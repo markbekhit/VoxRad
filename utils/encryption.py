@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from base64 import urlsafe_b64encode
@@ -10,6 +11,8 @@ from config.config import config
 from ui.utils import update_status
 import openai
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 password_dialog_open = False  # Global flag to track if a password dialog is open
 
@@ -121,7 +124,7 @@ def is_password_correct(password, flag):
         return load_mm_key(password=password)
     else:
         return False  # Invalid flag
-    
+
 
 def load_transcription_key(key_file="transcription_key.encrypted", password="default_password"):
     """Loads and decrypts the Transcription API key from the encrypted file. Returns True if decryption is successful."""
@@ -135,7 +138,7 @@ def load_transcription_key(key_file="transcription_key.encrypted", password="def
             config.TRANSCRIPTION_API_KEY = f.decrypt(encrypted_key).decode()
             return True  # Decryption was successful
         except Exception as e:
-            print(f"Error loading Transcription API key: {e}")
+            logger.error(f"Error loading Transcription API key: {e}")
             return False  # Decryption failed
     return False  # File does not exist
 
@@ -158,7 +161,7 @@ def save_transcription_key(api_key, key_file="transcription_key.encrypted"):
         update_status("Transcription API key saved.")
         return True  # Return True if the key is saved successfully
     except Exception as e:
-        print(f"Error saving Transcription API key: {e}")
+        logger.error(f"Error saving Transcription API key: {e}")
         update_status("Error saving API key.")
         return False  # Return False if an error occurs
 
@@ -171,7 +174,7 @@ def delete_transcription_key():
             config.TRANSCRIPTION_API_KEY = None
             update_status("Transcription API key deleted.")
         except Exception as e:
-            print(f"Error deleting Transcription API key: {e}")
+            logger.error(f"Error deleting Transcription API key: {e}")
             update_status("Error deleting API key.")
     else:
         update_status("API key not found.")
@@ -188,7 +191,7 @@ def load_text_key(key_file="text_key.encrypted", password="default_password"):
             config.TEXT_API_KEY = f.decrypt(encrypted_key).decode()
             return True  # Decryption was successful
         except Exception as e:
-            print(f"Error loading Text API key: {e}")
+            logger.error(f"Error loading Text API key: {e}")
             return False  # Decryption failed
     return False  # File does not exist
 
@@ -211,7 +214,7 @@ def save_text_key(api_key, key_file="text_key.encrypted"):
         update_status("Text API key saved.")
         return True  # Return True if the key is saved successfully
     except Exception as e:
-        print(f"Error saving Text API key: {e}")
+        logger.error(f"Error saving Text API key: {e}")
         update_status("Error saving API key.")
         return False  # Return False if an error occurs
 
@@ -224,7 +227,7 @@ def delete_text_api_key():
             config.TEXT_API_KEY = None
             update_status("Text API key deleted.")
         except Exception as e:
-            print(f"Error deleting Text API key: {e}")
+            logger.error(f"Error deleting Text API key: {e}")
             update_status("Error deleting Text API key.")
     else:
         update_status("Text API key not found.")
@@ -244,16 +247,16 @@ def fetch_models(base_url, api_key, model_combobox):
                     if not load_text_key(password=password):
                         raise ValueError("Incorrect password for Text Key.")
 
-            print("Initializing Client")
+            logger.debug("Initializing Client")
             client = openai.OpenAI(api_key=config.TEXT_API_KEY, base_url=base_url)
-            print("Client initialized, fetching models")
+            logger.debug("Client initialized, fetching models")
             models = client.models.list()
-            print("Models fetched")
+            logger.debug("Models fetched")
 
             # Filter out models starting with certain prefixes
             excluded_prefixes = ("whisper", "dall", "sdxl")
             model_ids = [model.id for model in models.data if not any(prefix in model.id for prefix in excluded_prefixes)]
-            print(f"Model IDs: {model_ids}")
+            logger.debug(f"Model IDs: {model_ids}")
 
             model_combobox['values'] = model_ids
             if model_ids:
@@ -262,7 +265,7 @@ def fetch_models(base_url, api_key, model_combobox):
             messagebox.showerror("Error", "Text API key not found. Please save the key first.")
 
     except Exception as e:
-        print(f"Failed to fetch models: {str(e)}")
+        logger.error(f"Failed to fetch models: {str(e)}")
         messagebox.showerror("Error", f"Failed to fetch models: {str(e)}")
 
 
@@ -280,15 +283,15 @@ def fetch_transcription_models(base_url, api_key, model_combobox):
                     if not load_transcription_key(password=password):
                         raise ValueError("Incorrect password for Transcription Key.")
 
-            print("Initializing Client")
+            logger.debug("Initializing Client")
             client = openai.OpenAI(api_key=config.TRANSCRIPTION_API_KEY, base_url=base_url)
-            print("Client initialized, fetching models")
+            logger.debug("Client initialized, fetching models")
             models = client.models.list()
-            print("Models fetched")
+            logger.debug("Models fetched")
             # Filter out models other than those with whisper
             included_prefix = "whisper"
             model_ids = [model.id for model in models.data if included_prefix in model.id]
-            print(f"Model IDs: {model_ids}")
+            logger.debug(f"Model IDs: {model_ids}")
 
             model_combobox['values'] = model_ids
             if model_ids:
@@ -297,7 +300,7 @@ def fetch_transcription_models(base_url, api_key, model_combobox):
             messagebox.showerror("Error", "Transcription API key not found. Please save the key first.")
 
     except Exception as e:
-        print(f"Failed to fetch models: {str(e)}")
+        logger.error(f"Failed to fetch models: {str(e)}")
         messagebox.showerror("Error", f"Failed to fetch models: {str(e)}")
 
 
@@ -324,7 +327,7 @@ def save_mm_key(api_key, key_file="mm_key.encrypted"):
         update_status("Multimodal Model API key saved.")
         return True  # Return True if the key is saved successfully
     except Exception as e:
-        print(f"Error saving Multimodal Model API key: {e}")
+        logger.error(f"Error saving Multimodal Model API key: {e}")
         update_status("Error saving API key.")
         return False  # Return False if an error occurs
 
@@ -337,7 +340,7 @@ def delete_mm_key():
             config.MM_API_KEY = None
             update_status("Multimodal Model API key deleted.")
         except Exception as e:
-            print(f"Error deleting Multimodal Model API key: {e}")
+            logger.error(f"Error deleting Multimodal Model API key: {e}")
             update_status("Error deleting API key.")
     else:
         update_status("API key not found.")
@@ -354,6 +357,6 @@ def load_mm_key(key_file="mm_key.encrypted", password="default_password"):
             config.MM_API_KEY = f.decrypt(encrypted_key).decode()
             return True  # Decryption was successful
         except Exception as e:
-            print(f"Error loading Multimodal Model API key: {e}")
+            logger.error(f"Error loading Multimodal Model API key: {e}")
             return False  # Decryption failed
     return False  # File does not exist

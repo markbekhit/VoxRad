@@ -13,10 +13,13 @@ Usage
 import base64
 import configparser
 import json
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def _get_working_directory() -> str:
@@ -143,9 +146,9 @@ def save_fhir_report(
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(resource, f, indent=2, ensure_ascii=False)
 
-        print(f"FHIR R4 report saved: {filepath}")
+        logger.info(f"FHIR R4 report saved: {filepath}")
         return filepath
 
     except Exception as e:
-        print(f"FHIR export failed: {e}")
+        logger.error(f"FHIR export failed: {e}")
         return None
