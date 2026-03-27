@@ -21,9 +21,9 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
 
 - [ ] **FHIR R4 export** — Create `llm/fhir_export.py` with `report_to_fhir(report_text, template_name)` → FHIR DiagnosticReport JSON. Add `fhir.resources` to `requirements.txt`. Add "Export FHIR R4 JSON" toggle to settings. Save as `{working_dir}/{timestamp}_report.json` after each report.
 
-## Deferred (Next Quarter)
+- [ ] **Web UI** — FastAPI + Jinja2 + vanilla JS. Browser MediaRecorder → WebM upload (no FFmpeg conversion needed — Whisper accepts WebM directly). HTTP Basic Auth (shared password). Session cache (in-memory dict, 30min TTL) for format Retry. Optional FHIR patient fields (patient ID, accession, radiologist). `--web` flag in VoxRad.py. Requires: status_callback refactor + headless load_settings() path. See `/plan-eng-review` for full architecture.
 
-- [ ] **Web UI** — FastAPI backend + minimal browser frontend. Makes VoxRad deployable on a hospital server for multi-user access from any workstation. Prerequisite: complete templates + FHIR first.
+## Deferred (Next Quarter)
 
 - [ ] **Docker Compose package** — `docker-compose.yml` for one-command on-prem deployment. Pairs with web UI.
 
@@ -36,6 +36,18 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
 - [ ] **FHIR network push** — After local FHIR export is stable, add EHR endpoint configuration (URL + auth token) so reports can be pushed directly to Epic/Cerner. Follow-up sprint.
 
 - [ ] **Error diagnostics** — 7 known silent failure modes (mic permission denied, stale API key, empty template dir, macOS 15 AppleScript permissions, Gemini >20MB, stale report key, corrupted settings.ini). Each needs a user-visible status message instead of silent failure.
+
+- [ ] **Gemini multimodal path in web mode** — `mm_gemini()` in transcriber.py uses `genai.upload_file()` directly. Web mode currently ignores `multimodal_pref=True`. Web UI should either: (a) show a warning when multimodal is enabled and route to it, or (b) always use standard ASR in web mode. Needs a decision and implementation.
+
+- [ ] **Playwright E2E tests (web UI)** — Once web UI ships, add: full dictation flow test (open → mic → record → stop → transcription → format → report), error recovery (mic denied, API down), FHIR download. Deferred until web UI is stable.
+
+- [ ] **LLM quality evals for format.py** — The retry loop, JSON fallback chain, and tool-call parsing in `llm/format.py` are the highest-risk code in the repo. Need eval tests: mock LLM responses at each retry, test JSON fallback triggers, test function-call vs JSON path selection. Priority over mechanical security tests.
+
+- [ ] **Per-user API key tokens** — Upgrade from shared password to per-user tokens stored in settings.ini. Required for proper audit logging and multi-radiologist accountability.
+
+- [ ] **WebSocket real-time streaming** — V1 uses request/response for transcription (wait ~5-10s). V2 can stream partial transcription results via WebSocket as Whisper processes audio. High UX impact, deferred.
+
+- [ ] **HTTPS/TLS setup guide** — Document nginx reverse proxy config for TLS termination in front of VoxRad web server. HTTP Basic Auth is credential-exposing over plain HTTP; this is a required deployment step for any non-localhost use.
 
 ## Known Issues (Fix Anytime)
 
