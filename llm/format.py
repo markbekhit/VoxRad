@@ -379,6 +379,7 @@ def format_text(text):
     """Formats the given text, incorporates template selection, and generates recommendations if needed."""
     print("Triggered format_text function.")
     try:
+        template_name = None  # Captured for FHIR export below
         if not config.global_md_text_content:
             update_status("Selecting template using AI...🤖")
             print("Selecting template using AI...🤖")
@@ -426,6 +427,14 @@ def format_text(text):
 
             update_status("Performing AI analysis.🤖")
             print("Performing AI analysis.🤖")
+
+            if config.fhir_export_enabled:
+                from llm.fhir_export import save_fhir_report
+                fhir_path = save_fhir_report(report_content, template_name=template_name)
+                if fhir_path:
+                    update_status(f"FHIR R4 JSON saved.")
+                    print(f"FHIR R4 JSON saved: {fhir_path}")
+
             return report_content
 
         else:

@@ -33,7 +33,8 @@ def load_settings():
         config.multimodal_pref = config_parser["DEFAULT"].getboolean("MultimodalPref", False)
         config.multimodal_model = config_parser["DEFAULT"].get("MultimodalModel", None)
         config.audio_device = config_parser['DEFAULT'].get('AudioDevice', config.audio_device)
-        config.secure_paste_shortcut = config_parser["DEFAULT"].get("SecurePasteShortcut", "ctrl+shift+v")  
+        config.secure_paste_shortcut = config_parser["DEFAULT"].get("SecurePasteShortcut", "ctrl+shift+v")
+        config.fhir_export_enabled = config_parser["DEFAULT"].getboolean("FhirExportEnabled", False)
     else:
         print("Warning: 'DEFAULT' section not found in settings.ini. Using default values.")
         config.save_directory = os.path.dirname(config_path)
@@ -96,7 +97,8 @@ def save_settings():
         "MultimodalPref": str(config.multimodal_pref),  # Convert to String
         "MultimodalModel": str(config.multimodal_model),
         "AudioDevice": str(config.audio_device),  # Convert to string
-        "SecurePasteShortcut": str(config.secure_paste_shortcut)   # Convert to string
+        "SecurePasteShortcut": str(config.secure_paste_shortcut),
+        "FhirExportEnabled": str(config.fhir_export_enabled),
     }
     with open(get_default_config_path(), "w") as configfile:
         config_parser.write(configfile)

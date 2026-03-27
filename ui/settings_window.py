@@ -143,23 +143,34 @@ def open_settings():
         docs_button = tk.Button(general_tab, text="💡", command=open_input_help_url, width=1, height=1, font=("Arial", 12))
         docs_button.grid(row=3, column=2, padx=5, pady=(0, 0), sticky="w")  # Position above the save button
 
+        # FHIR R4 export toggle
+        fhir_export_var = tk.BooleanVar(value=config.fhir_export_enabled)
+        fhir_export_checkbox = tk.Checkbutton(
+            general_tab,
+            text="Export FHIR R4 JSON after each report",
+            variable=fhir_export_var,
+        )
+        fhir_export_checkbox.grid(row=4, column=0, columnspan=3, padx=5, pady=5, sticky="w")
+
         def save_general_settings():
             config_parser = configparser.ConfigParser()
             config_parser.read(get_default_config_path())
             if 'DEFAULT' not in config_parser:
                 config_parser['DEFAULT'] = {}
-            config_parser['DEFAULT']['WorkingDirectory'] = str(dir_var.get())  # Convert to string
-            config_parser['DEFAULT']['AudioDevice'] = str(audio_device_var.get())  # Convert to string
-            config_parser['DEFAULT']['SecurePasteShortcut'] = str(secure_paste_var.get())  # Convert to string
+            config_parser['DEFAULT']['WorkingDirectory'] = str(dir_var.get())
+            config_parser['DEFAULT']['AudioDevice'] = str(audio_device_var.get())
+            config_parser['DEFAULT']['SecurePasteShortcut'] = str(secure_paste_var.get())
+            config_parser['DEFAULT']['FhirExportEnabled'] = str(fhir_export_var.get())
             with open(get_default_config_path(), 'w') as configfile:
                 config_parser.write(configfile)
             config.save_directory = dir_var.get()
             config.audio_device = audio_device_var.get()
             config.secure_paste_shortcut = secure_paste_var.get()
+            config.fhir_export_enabled = fhir_export_var.get()
             update_status("General settings saved.")
 
         save_general_button = tk.Button(general_tab, text="Save Settings", command=save_general_settings, width=12)
-        save_general_button.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        save_general_button.grid(row=5, column=1, padx=5, pady=5, sticky="w")
 
 
 

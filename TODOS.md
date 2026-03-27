@@ -19,7 +19,7 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
   - MRI: `MRI_Brain.txt`, `MRI_Spine_Cervical.txt`, `MRI_Spine_Lumbar.txt`, `MRI_Knee.txt`, `MRI_Shoulder.txt`, `MRI_Hip.txt`, `MRI_Abdomen_Liver.txt`, `MRI_Pelvis.txt`, `MRI_Breast.txt`, `MRI_Prostate.txt`
   - Plain/USG/Nuclear: `CXR.txt`, `Abdominal_Xray.txt`, `Ultrasound_Abdomen.txt`, `Ultrasound_Pelvis.txt`, `Ultrasound_Thyroid.txt`, `Ultrasound_Breast.txt`, `Bone_Scan.txt`, `PET_CT.txt`, `Echocardiography.txt`
 
-- [ ] **FHIR R4 export** — Create `llm/fhir_export.py` with `report_to_fhir(report_text, template_name)` → FHIR DiagnosticReport JSON. Add `fhir.resources` to `requirements.txt`. Add "Export FHIR R4 JSON" toggle to settings. Save as `{working_dir}/{timestamp}_report.json` after each report.
+- [x] **FHIR R4 export** — `llm/fhir_export.py` created with `report_to_fhir()` and `save_fhir_report()`. FHIR R4 DiagnosticReport JSON with LOINC code, category, base64 presentedForm, optional patient/accession/radiologist fields. `fhir.resources==7.1.0` added to `requirements.txt`. "Export FHIR R4 JSON" checkbox added to General settings tab. Saves as `{working_dir}/{YYYYMMDD_HHMMSS}_report.json` after each report when enabled.
 
 - [ ] **Web UI** — FastAPI + Jinja2 + vanilla JS. Browser MediaRecorder → WebM upload (no FFmpeg conversion needed — Whisper accepts WebM directly). HTTP Basic Auth (shared password). Session cache (in-memory dict, 30min TTL) for format Retry. Optional FHIR patient fields (patient ID, accession, radiologist). `--web` flag in VoxRad.py. Requires: status_callback refactor + headless load_settings() path. See `/plan-eng-review` for full architecture.
 
@@ -51,6 +51,4 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
 
 ## Known Issues (Fix Anytime)
 
-- `CLAUDE.md` says UI is "PyObjC (macOS native)" but actual UI is Tkinter. Update docs to reflect reality.
-- Waveform visualization is random noise, not real audio amplitude.
 - No test coverage anywhere in the codebase.
