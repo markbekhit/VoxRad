@@ -1,0 +1,34 @@
+# Web-mode dependencies only.
+# Excludes desktop/audio I/O packages that don't exist on Linux:
+#   pyobjc-*, rubicon-objc, sounddevice, soundfile, lameenc, pynput,
+#   PyGetWindow, PyMsgBox, PyRect, PyScreeze, pytweening, MouseInfo,
+#   pyperclip, macholib, altgraph
+#
+# tkinter is a system package — install it with:
+#   apt-get install python3-tk      (Debian/Ubuntu/the official Dockerfile)
+#   dnf install python3-tkinter     (Fedora/RHEL)
+
+aiofiles>=23.2.0
+fastapi>=0.115.0
+fhir.resources==7.1.0
+jinja2>=3.1.0
+python-multipart>=0.0.9
+uvicorn[standard]>=0.30.0
+
+cryptography==44.0.0
+
+google-ai-generativelanguage==0.6.15
+google-api-core==2.24.0
+google-api-python-client==2.159.0
+google-auth==2.38.0
+google-auth-httplib2==0.2.0
+google-generativeai==0.8.4
+googleapis-common-protos==1.66.0
+grpcio==1.70.0
+grpcio-status==1.70.0
+
+numpy==2.2.2
+openai==1.60.1
+packaging==24.2
+pydantic==2.10.6
+requests==2.32.3

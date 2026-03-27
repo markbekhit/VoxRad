@@ -67,6 +67,17 @@ def load_settings(web_mode: bool = False):
     logger.debug("Using Multimodal Model: %s", config.multimodal_model)
     logger.debug("Using Secure Paste Shortcut: %s", config.secure_paste_shortcut)
 
+    # ── Web-mode env-var overrides ─────────────────────────────────────────
+    # These allow Docker / 12-factor deployments without the desktop key-setup
+    # wizard.  Plaintext API key env vars are used as a fallback only when no
+    # encrypted key file is present; they are never written to disk.
+    if web_mode:
+        working_dir_env = os.environ.get("VOXRAD_WORKING_DIR")
+        if working_dir_env:
+            config.save_directory = working_dir_env
+            os.makedirs(working_dir_env, exist_ok=True)
+            logger.info("[web] Using VOXRAD_WORKING_DIR: %s", working_dir_env)
+
     config_dir = os.path.dirname(config.config_path)
 
     def _get_password_web(env_var: str, prompt: str) -> str | None:
@@ -142,6 +153,26 @@ def load_settings(web_mode: bool = False):
                 if not load_mm_key(mm_key_path, password):
                     messagebox.showerror("Error", "Incorrect password for Multimodal Model Key.")
 
+    # ── Plaintext API key env vars (Docker / 12-factor fallback) ──────────
+    # Applied after the encrypted-key loading so encrypted keys always win.
+    # Only active in web_mode to avoid accidentally bypassing the desktop
+    # encryption workflow.
+    if web_mode:
+        if config.TRANSCRIPTION_API_KEY is None:
+            raw = os.environ.get("VOXRAD_TRANSCRIPTION_API_KEY")
+            if raw:
+                config.TRANSCRIPTION_API_KEY = raw
+                logger.info("[web] Using VOXRAD_TRANSCRIPTION_API_KEY from environment.")
+        if config.TEXT_API_KEY is None:
+            raw = os.environ.get("VOXRAD_TEXT_API_KEY")
+            if raw:
+                config.TEXT_API_KEY = raw
+                logger.info("[web] Using VOXRAD_TEXT_API_KEY from environment.")
+        if config.MM_API_KEY is None:
+            raw = os.environ.get("VOXRAD_MM_API_KEY")
+            if raw:
+                config.MM_API_KEY = raw
+                logger.info("[web] Using VOXRAD_MM_API_KEY from environment.")
 
 
 def save_settings():

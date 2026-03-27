@@ -1,0 +1,54 @@
+services:
+  voxrad:
+    build: .
+    image: voxrad:latest
+    restart: unless-stopped
+    ports:
+      - "${VOXRAD_PORT:-8765}:8765"
+    environment:
+      # ── UI password ────────────────────────────────────────────────────────
+      # Change before any non-localhost deployment.
+      VOXRAD_WEB_PASSWORD: "${VOXRAD_WEB_PASSWORD:-voxrad}"
+
+      # ── Working directory (templates / guidelines / reports) ───────────────
+      VOXRAD_WORKING_DIR: /data/working
+
+      # ── API keys (plaintext env-var path) ──────────────────────────────────
+      # Set these to skip the encrypted-key setup entirely.
+      # Leave blank to use encrypted key files in /root/.voxrad instead.
+      VOXRAD_TRANSCRIPTION_API_KEY: "${VOXRAD_TRANSCRIPTION_API_KEY:-}"
+      VOXRAD_TEXT_API_KEY: "${VOXRAD_TEXT_API_KEY:-}"
+      VOXRAD_MM_API_KEY: "${VOXRAD_MM_API_KEY:-}"
+
+      # ── Encrypted-key passwords (alternative to plaintext keys above) ──────
+      # Used only when encrypted key files exist in /root/.voxrad.
+      VOXRAD_TRANSCRIPTION_PASSWORD: "${VOXRAD_TRANSCRIPTION_PASSWORD:-}"
+      VOXRAD_TEXT_PASSWORD: "${VOXRAD_TEXT_PASSWORD:-}"
+      VOXRAD_MM_PASSWORD: "${VOXRAD_MM_PASSWORD:-}"
+
+    volumes:
+      - voxrad-config:/root/.voxrad    # encrypted keys + settings.ini
+      - voxrad-data:/data/working      # templates, guidelines, reports
+
+    # Expose only to localhost if nginx is running in front.
+    # Remove the port binding and uncomment the network block below
+    # when using the nginx profile.
+
+  # ── Optional nginx TLS reverse proxy ─────────────────────────────────────
+  # Enable with:  docker compose --profile nginx up
+  nginx:
+    image: nginx:alpine
+    profiles: [nginx]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/voxrad.conf:ro
+      - ./deploy/certs:/etc/nginx/certs:ro   # place fullchain.pem + privkey.pem here
+    depends_on:
+      - voxrad
+
+volumes:
+  voxrad-config:
+  voxrad-data:
