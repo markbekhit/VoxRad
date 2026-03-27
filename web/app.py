@@ -144,6 +144,18 @@ def _load_template_content(template_name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
+
+
+# Mount mock OpenAI-compatible routes when running without real API keys.
+if os.environ.get("VOXRAD_MOCK_MODE"):
+    from web.mock_routes import router as _mock_router
+    app.include_router(_mock_router)
+    logger.info("[mock] Mock API routes mounted at /mock/v1/...")
+
+
 @app.get("/")
 def index(request: Request, username: str = Depends(_verify_auth)):
     return _jinja.TemplateResponse(

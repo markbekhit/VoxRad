@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: voxrad
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: VOXRAD_MOCK_MODE
+        value: "1"
+      - key: VOXRAD_WEB_PASSWORD
+        generateValue: true        # Render sets a random password; copy it from the dashboard
+      - key: VOXRAD_WORKING_DIR
+        value: /data/working
+    # Uncomment and set real keys to use actual APIs instead of mock mode:
+    #   - key: VOXRAD_MOCK_MODE        ← remove this line
+    #   - key: VOXRAD_TRANSCRIPTION_API_KEY
+    #     value: sk-...
+    #   - key: VOXRAD_TEXT_API_KEY
+    #     value: sk-...
