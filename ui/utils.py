@@ -1,6 +1,8 @@
+import logging
 import tkinter as tk
 from config.config import config
 
+logger = logging.getLogger(__name__)
 
 status_var = None
 status_label = None # Added global status label
@@ -26,22 +28,22 @@ def update_status(message):
     """Updates the status bar with the given message."""
     global status_var, status_label
     if status_var is None or not isinstance(status_var, tk.StringVar):
-        print("Re-initializing status_var.")  # Debugging message
+        logger.debug("Re-initializing status_var.")
         if config.root: # Added condition if config.root is initialized, then do the below
             if config.root.winfo_exists(): # Verify the root exists
                 initialize_status_var(config.main_frame) # Pass main_frame as argument
             else:
-                print("Error: config.root is not active. Unable to update status.")
+                logger.error("config.root is not active. Unable to update status.")
                 return
         else:
-            print(f"[status] {message}")
+            logger.info("[status] %s", message)
             return # Exit if config.root is not initialized (web mode)
 
     if status_var is not None:
         status_var.set(message)
     else:
-        print(f"Status update: {message}")  # Fallback if status_var is not initialized
-    
+        logger.info("Status update: %s", message)  # Fallback if status_var is not initialized
+
     if config.root:
         if config.root.winfo_exists():
             config.root.update() # Force GUI to update immediately
@@ -63,7 +65,8 @@ def simulate_waveform(canvas):
 
     # Lazy import to avoid circular dependency (recorder imports from ui.utils)
     import audio.recorder as recorder
-    chunk = recorder.latest_audio_chunk
+    with recorder._chunk_lock:
+        chunk = recorder.latest_audio_chunk
 
     if chunk is None or len(chunk) == 0:
         canvas.create_line(start_x, center_y, end_x, center_y, fill="yellow", width=1, tags="waveform")

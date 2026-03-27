@@ -1,19 +1,27 @@
-from openai import OpenAI
+import logging
+import os
 import re
+import tempfile
+from datetime import datetime
+
+from cryptography.fernet import Fernet, InvalidToken
+from openai import OpenAI, AuthenticationError, APIError
+import google.generativeai as genai
+
 from config.config import config
 from ui.utils import update_status
 from utils.file_handling import strip_markdown
 from llm.format import format_text
-import os
-from datetime import datetime
-import google.generativeai as genai
-from cryptography.fernet import Fernet
-import tempfile
+
+logger = logging.getLogger(__name__)
+
+_GEMINI_MAX_BYTES = 20 * 1024 * 1024  # 20 MB hard limit for Gemini upload
+
 
 def transcribe_audio(encrypted_mp3_path, decryption_key):
     """Transcribes the audio from an encrypted MP3 file using OpenAI's API."""
     if not encrypted_mp3_path or not decryption_key:
-        print("Error: Encrypted MP3 path or decryption key missing.")
+        logger.error("Encrypted MP3 path or decryption key missing.")
         update_status("Error: Could not process audio.")
         return
 
@@ -22,7 +30,15 @@ def transcribe_audio(encrypted_mp3_path, decryption_key):
     try:
         with open(encrypted_mp3_path, "rb") as encrypted_file:
             encrypted_data = encrypted_file.read()
-        decrypted_data = cipher_suite.decrypt(encrypted_data)
+
+        try:
+            decrypted_data = cipher_suite.decrypt(encrypted_data)
+        except InvalidToken:
+            logger.error("Audio decryption failed — stale or invalid encryption key.")
+            update_status(
+                "Could not decrypt audio. The recording key may be stale. Please re-record."
+            )
+            return
 
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_decrypted_file:
             tmp_decrypted_file.write(decrypted_data)
@@ -40,13 +56,25 @@ def transcribe_audio(encrypted_mp3_path, decryption_key):
 
         with open(decrypted_mp3_path, "rb") as decrypted_file:
             update_status("Transcribing...📝")
-            transcription_result = client.audio.transcriptions.create(
-                file=(decrypted_mp3_path, decrypted_file.read()),
-                model=config.SELECTED_TRANSCRIPTION_MODEL,
-                prompt=prompt_spellings,
-                language="en",
-                temperature=0.0
-            )
+            try:
+                transcription_result = client.audio.transcriptions.create(
+                    file=(decrypted_mp3_path, decrypted_file.read()),
+                    model=config.SELECTED_TRANSCRIPTION_MODEL,
+                    prompt=prompt_spellings,
+                    language="en",
+                    temperature=0.0,
+                )
+            except AuthenticationError:
+                logger.error("Transcription API key is invalid or expired.")
+                update_status(
+                    "Transcription API key rejected. Please update your key in Settings → Transcription Model."
+                )
+                return
+            except APIError as e:
+                logger.error("Transcription API error: %s", e)
+                update_status(f"Transcription API error: {e}")
+                return
+
             transcription = transcription_result.text
             update_status("Performing AI analysis.🤖")
             formatted_text = format_text(transcription)
@@ -59,22 +87,22 @@ def transcribe_audio(encrypted_mp3_path, decryption_key):
             config.current_encrypted_report = encrypted_report
             config.current_report_encryption_key = report_key.decode()
 
-            if os.name == "nt":
-                update_status(f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨")
-            else:
-                update_status(f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨")
+            update_status(
+                f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨"
+            )
 
     except Exception as e:
+        logger.error("Error decrypting or transcribing audio: %s", e)
         update_status(f"Error decrypting or transcribing audio: {e}")
-        print(f"Error details: {e}")
     finally:
         if decrypted_mp3_path and os.path.exists(decrypted_mp3_path):
             os.remove(decrypted_mp3_path)
 
+
 def mm_gemini(encrypted_mp3_path, decryption_key):
     """Generates text from an encrypted audio file using the multimodal Gemini model."""
     if not encrypted_mp3_path or not decryption_key:
-        print("Error: Encrypted MP3 path or decryption key missing.")
+        logger.error("Encrypted MP3 path or decryption key missing.")
         update_status("Error: Could not process audio.")
         return
 
@@ -83,47 +111,81 @@ def mm_gemini(encrypted_mp3_path, decryption_key):
     try:
         with open(encrypted_mp3_path, "rb") as encrypted_file:
             encrypted_data = encrypted_file.read()
-        decrypted_data = cipher_suite.decrypt(encrypted_data)
+
+        try:
+            decrypted_data = cipher_suite.decrypt(encrypted_data)
+        except InvalidToken:
+            logger.error("Audio decryption failed — stale or invalid encryption key.")
+            update_status(
+                "Could not decrypt audio. The recording key may be stale. Please re-record."
+            )
+            return
 
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_decrypted_file:
             tmp_decrypted_file.write(decrypted_data)
             decrypted_mp3_path = tmp_decrypted_file.name
 
+        # Guard against Gemini's 20 MB upload limit
+        file_size = os.path.getsize(decrypted_mp3_path)
+        if file_size > _GEMINI_MAX_BYTES:
+            logger.error(
+                "Audio file too large for Gemini upload: %.1f MB (limit 20 MB).", file_size / 1e6
+            )
+            update_status(
+                f"Audio too large for Gemini ({file_size / 1e6:.1f} MB). "
+                "Record a shorter dictation or switch to the standard transcription model."
+            )
+            return
+
         update_status("Performing AI analysis.🤖")
         genai.configure(api_key=config.MM_API_KEY)
-        audio_file = genai.upload_file(path=decrypted_mp3_path)
+
+        try:
+            audio_file = genai.upload_file(path=decrypted_mp3_path)
+        except Exception as e:
+            logger.error("Gemini file upload failed: %s", e)
+            update_status(f"Gemini upload failed: {e}")
+            return
+
         model = genai.GenerativeModel(model_name=config.multimodal_model)
-        prompt = f"""
-The provided audio is as dictated by a radiologist regarding a report of radiological study. Format is according to a standard radiological report.
-This is the report template format as chosen by the user:
-{config.global_md_text_content}
-"""
-        response = model.generate_content([prompt, audio_file])
+        prompt = (
+            "The provided audio is as dictated by a radiologist regarding a report of radiological study. "
+            "Format is according to a standard radiological report.\n"
+            f"This is the report template format as chosen by the user:\n{config.global_md_text_content}"
+        )
+
+        try:
+            response = model.generate_content([prompt, audio_file])
+        except Exception as e:
+            logger.error("Gemini generate_content failed: %s", e)
+            update_status(f"Gemini error: {e}")
+            return
+
         if response.text:
             stripped_text = strip_markdown(response.text)
 
-            # Encrypt the report and store it in config
             report_key = Fernet.generate_key()
             report_cipher = Fernet(report_key)
             encrypted_report = report_cipher.encrypt(stripped_text.encode()).decode()
             config.current_encrypted_report = encrypted_report
             config.current_report_encryption_key = report_key.decode()
 
-            if os.name == "nt":
-                update_status(f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨")
-            else:
-                update_status(f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨")
+            update_status(
+                f"Report generated. Use {config.secure_paste_shortcut} to securely paste.✨"
+            )
             return stripped_text
         else:
             update_status("No text returned by the multimodal model.")
             return None
+
     except Exception as e:
-        update_status(f"Failed to generate summary. Error: {str(e)}")
-        print(f"Error details: {e}")
+        logger.error("Failed to generate summary: %s", e)
+        update_status(f"Failed to generate summary. Error: {e}")
         return None
     finally:
         if decrypted_mp3_path and os.path.exists(decrypted_mp3_path):
             os.remove(decrypted_mp3_path)
+
 
 def save_report(report_text):
     """Saves the transcribed report to a file in the reports directory."""
@@ -138,5 +200,4 @@ def save_report(report_text):
     with open(report_filepath, "w") as report_file:
         report_file.write(report_text)
 
-    print(f"Report saved to {report_filepath}")
-
+    logger.info("Report saved to %s", report_filepath)

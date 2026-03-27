@@ -1,6 +1,9 @@
+import logging
 import tkinter as tk
 from tkinter import ttk
 from config.config import config
+
+logger = logging.getLogger(__name__)
 from audio.recorder import record_audio, stop_recording, pause_audio
 from config.settings import load_settings
 from ui.settings_window import open_settings
@@ -26,8 +29,8 @@ logo_label = None
 
 def retry_transcription():
     """Retries the transcription using the last encrypted audio file and key."""
-    print(config.current_encrypted_mp3_path)
-    print(config.current_encryption_key)
+    logger.debug("Retry: encrypted_mp3_path=%s", config.current_encrypted_mp3_path)
+    logger.debug("Retry: encryption_key present=%s", config.current_encryption_key is not None)
     if config.current_encrypted_mp3_path and config.current_encryption_key:
         update_status("Reprocessing last recorded audio...")
         if config.multimodal_pref:

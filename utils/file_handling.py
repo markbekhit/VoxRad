@@ -1,5 +1,6 @@
 # utils/file_handling.py
 
+import logging
 import os
 import sys
 import shutil
@@ -7,6 +8,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import re
 from config.config import config
+
+logger = logging.getLogger(__name__)
 
 # Global variables
 template_options = []
@@ -42,7 +45,7 @@ def load_templates():
          destination_file = os.path.join(template_dir, template_file)
          if os.path.exists(source_file) and not os.path.exists(destination_file):
              shutil.copy2(source_file, destination_file)
-             print(f"Copied {template_file} to {destination_file}")
+             logger.info("Copied %s to %s", template_file, destination_file)
  
 
      template_files = [f for f in os.listdir(template_dir) if f.endswith((".txt", ".md"))]
@@ -75,7 +78,7 @@ def on_template_select(event=None):
                 else:
                     raise FileNotFoundError(f"Template file not found: {template_file}")
             except Exception as e:
-                print(f"Error loading template: {e}")
+                logger.error("Error loading template: %s", e)
                 config.global_md_text_content = "" # Reset if error
 
 
@@ -92,15 +95,15 @@ def move_files(old_dir, new_dir):
                     try:
                         shutil.rmtree(new_path)
                         shutil.move(old_path, new_path)
-                        print(f"Moved '{folder_name}' folder from '{old_path}' to '{new_path}'")
+                        logger.info("Moved '%s' folder from '%s' to '%s'", folder_name, old_path, new_path)
                     except Exception as e:
-                        print(f"Error moving '{folder_name}' folder: {e}")
+                        logger.error("Error moving '%s' folder: %s", folder_name, e)
             else:
                 try:
                     shutil.move(old_path, new_path)
-                    print(f"Moved '{folder_name}' folder from '{old_path}' to '{new_path}'")
+                    logger.info("Moved '%s' folder from '%s' to '%s'", folder_name, old_path, new_path)
                 except Exception as e:
-                    print(f"Error moving '{folder_name}' folder: {e}")
+                    logger.error("Error moving '%s' folder: %s", folder_name, e)
 
 
 def load_guidelines():  # Function to load guidelines - similar to load_templates
@@ -121,7 +124,7 @@ def load_guidelines():  # Function to load guidelines - similar to load_template
          destination_file = os.path.join(guidelines_dir, guideline_file)
          if os.path.exists(source_file) and not os.path.exists(destination_file):
              shutil.copy2(source_file, destination_file)
-             print(f"Copied {guideline_file} to {destination_file}")
+             logger.info("Copied %s to %s", guideline_file, destination_file)
  
 
      guideline_files = [f for f in os.listdir(guidelines_dir) if f.endswith((".md"))]  # Only .md for guidelines

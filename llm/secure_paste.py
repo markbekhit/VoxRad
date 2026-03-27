@@ -1,5 +1,6 @@
+import logging
 import subprocess
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from config.config import config
 from ui.utils import update_status
 from pynput import keyboard
@@ -7,7 +8,8 @@ from pynput.keyboard import Controller
 import time
 import os
 import ctypes
-import time
+
+logger = logging.getLogger(__name__)
 
 # Global variables
 pressed_keys = set()
@@ -34,7 +36,7 @@ def initialize_secure_paste():
     """Starts the hotkey listener."""
     listener = keyboard.Listener(on_press=on_key_press, on_release=on_key_release)
     listener.start()
-    print("Secure paste initialized")
+    logger.info("Secure paste initialized.")
 
 
 def on_key_press(key):
@@ -45,7 +47,7 @@ def on_key_press(key):
         # Add pressed key to the set
         key_name = key.char if hasattr(key, 'char') else key.name
         pressed_keys.add(key_name)
-        print(f"Pressed: {pressed_keys}")
+        logger.debug("Pressed: %s", pressed_keys)
 
         # Check if shortcut is pressed and debounce
         if check_secure_paste_shortcut() and not shortcut_active:
@@ -56,7 +58,7 @@ def on_key_press(key):
                 last_execution_time = current_time
 
     except Exception as e:
-        print(f"Error in on_key_press: {e}")
+        logger.error("Error in on_key_press: %s", e)
 
 
 def on_key_release(key):
@@ -67,23 +69,32 @@ def on_key_release(key):
         # Remove released key from the set
         key_name = key.char if hasattr(key, 'char') else key.name
         pressed_keys.discard(key_name)
-        print(f"Released: {pressed_keys}")
+        logger.debug("Released: %s", pressed_keys)
 
         # Reset shortcut_active when all keys are released
         if not pressed_keys:
             shortcut_active = False
 
     except Exception as e:
-        print(f"Error in on_key_release: {e}")
+        logger.error("Error in on_key_release: %s", e)
 
 def secure_paste_report():
     """Securely pastes the generated report."""
-    print("Secure paste report started")
+    logger.debug("Secure paste report started.")
     try:
         # Decrypt report
         if config.current_encrypted_report and config.current_report_encryption_key:
             cipher_suite = Fernet(config.current_report_encryption_key.encode())
-            decrypted_report = cipher_suite.decrypt(config.current_encrypted_report.encode()).decode()
+            try:
+                decrypted_report = cipher_suite.decrypt(
+                    config.current_encrypted_report.encode()
+                ).decode()
+            except InvalidToken:
+                logger.error("Report decryption failed — stale report key.")
+                thread_safe_update_status(
+                    "Could not decrypt report. The report key is stale. Please re-record."
+                )
+                return
 
             # Inject text based on OS
             if os.name == "nt":  # Windows
@@ -95,6 +106,7 @@ def secure_paste_report():
         else:
             thread_safe_update_status("No report available for secure paste.")
     except Exception as e:
+        logger.error("Error during secure paste: %s", e)
         thread_safe_update_status(f"Error during secure paste: {e}")
 
 ########## FOR MACOS ##########
@@ -113,7 +125,19 @@ def inject_text_with_applescript(text):
     end tell
     '''.format('\n        '.join(applescript_lines))
 
-    subprocess.run(["osascript", "-e", applescript], check=True)
+    try:
+        subprocess.run(["osascript", "-e", applescript], check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode(errors="replace") if e.stderr else ""
+        if "not allowed" in stderr.lower() or "1002" in stderr or "assistant" in stderr.lower():
+            logger.error("AppleScript keystroke blocked by macOS permissions: %s", stderr)
+            thread_safe_update_status(
+                "Secure paste blocked. Grant Accessibility access to VoxRad in "
+                "System Settings → Privacy & Security → Accessibility."
+            )
+        else:
+            logger.error("AppleScript failed: %s", stderr)
+            thread_safe_update_status(f"Secure paste failed: {stderr.strip() or e}")
 
 
 ########## FOR WINDOWS ##########

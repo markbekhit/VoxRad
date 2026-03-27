@@ -1,9 +1,12 @@
 import getpass
+import logging
 import os
 import configparser
 from config.config import config
 from utils.encryption import get_password_from_user, load_transcription_key, load_text_key, load_mm_key
 from ui.utils import update_status
+
+logger = logging.getLogger(__name__)
 
 def get_default_config_path():
     """Returns the platform-specific default config file path."""
@@ -29,7 +32,14 @@ def load_settings(web_mode: bool = False):
     config_path = get_default_config_path()
     config.config_path = config_path  # Save config path to config for usage elsewhere
     config_parser = configparser.ConfigParser()
-    config_parser.read(config_path)
+    try:
+        config_parser.read(config_path)
+    except configparser.Error as e:
+        logger.error("Corrupted settings.ini — using defaults. Error: %s", e)
+        update_status(
+            "settings.ini is corrupted and could not be read. Default settings will be used. "
+            "You can reconfigure in Settings."
+        )
 
     if "DEFAULT" in config_parser:
         config.save_directory = config_parser["DEFAULT"].get("WorkingDirectory", os.path.dirname(config_path))
@@ -43,19 +53,19 @@ def load_settings(web_mode: bool = False):
         config.secure_paste_shortcut = config_parser["DEFAULT"].get("SecurePasteShortcut", "ctrl+shift+v")
         config.fhir_export_enabled = config_parser["DEFAULT"].getboolean("FhirExportEnabled", False)
     else:
-        print("Warning: 'DEFAULT' section not found in settings.ini. Using default values.")
+        logger.warning("'DEFAULT' section not found in settings.ini. Using default values.")
         config.save_directory = os.path.dirname(config_path)
         config.BASE_URL = "http://localhost:11434/v1"
         config.TRANSCRIPTION_BASE_URL = "http://localhost:8000/v1"
 
-    print(f"Using save_directory: {config.save_directory}")  # Debug output
-    print(f"Using Transcription Base URL: {config.TRANSCRIPTION_BASE_URL}")
-    print(f"Using Text Base URL: {config.BASE_URL}")
-    print(f"Using Selected Model for Transcription: {config.SELECTED_TRANSCRIPTION_MODEL}")
-    print(f"Using Selected Model: {config.SELECTED_MODEL}")
-    print(f"Using Multimodal Pref: {config.multimodal_pref}")
-    print(f"Using Multimodal Model: {config.multimodal_model}")
-    print(f"Using Secure Paste Shortcut: {config.secure_paste_shortcut}")
+    logger.debug("Using save_directory: %s", config.save_directory)
+    logger.debug("Using Transcription Base URL: %s", config.TRANSCRIPTION_BASE_URL)
+    logger.debug("Using Text Base URL: %s", config.BASE_URL)
+    logger.debug("Using Selected Model for Transcription: %s", config.SELECTED_TRANSCRIPTION_MODEL)
+    logger.debug("Using Selected Model: %s", config.SELECTED_MODEL)
+    logger.debug("Using Multimodal Pref: %s", config.multimodal_pref)
+    logger.debug("Using Multimodal Model: %s", config.multimodal_model)
+    logger.debug("Using Secure Paste Shortcut: %s", config.secure_paste_shortcut)
 
     config_dir = os.path.dirname(config.config_path)
 
@@ -63,7 +73,7 @@ def load_settings(web_mode: bool = False):
         """Get API key password without Tkinter: env var first, then getpass."""
         pw = os.environ.get(env_var)
         if pw:
-            print(f"[web] Using {env_var} from environment.")
+            logger.info("[web] Using %s from environment.", env_var)
             return pw
         try:
             return getpass.getpass(f"{prompt}: ") or None
@@ -80,7 +90,7 @@ def load_settings(web_mode: bool = False):
                 "Enter transcription key password",
             )
             if password and not load_transcription_key(transcription_key_path, password):
-                print("ERROR: Incorrect transcription key password.")
+                logger.error("Incorrect transcription key password.")
         else:
             from tkinter import messagebox
             password = get_password_from_user(
@@ -101,7 +111,7 @@ def load_settings(web_mode: bool = False):
                 "Enter text model key password",
             )
             if password and not load_text_key(text_key_path, password):
-                print("ERROR: Incorrect text model key password.")
+                logger.error("Incorrect text model key password.")
         else:
             from tkinter import messagebox
             password = get_password_from_user(
@@ -122,7 +132,7 @@ def load_settings(web_mode: bool = False):
                 "Enter multimodal model key password",
             )
             if password and not load_mm_key(mm_key_path, password):
-                print("ERROR: Incorrect multimodal model key password.")
+                logger.error("Incorrect multimodal model key password.")
         else:
             password = get_password_from_user(
                 "Enter your password to unlock the Multimodal Model key:", "mm"
