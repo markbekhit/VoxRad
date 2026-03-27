@@ -5,7 +5,7 @@ VoxRad is a voice transcription desktop application for radiologists. It transcr
 ## Tech Stack
 
 - **Language**: Python
-- **UI**: PyObjC (macOS native)
+- **UI**: Tkinter (cross-platform)
 - **Audio**: sounddevice, soundfile, lameenc
 - **LLM backends**: OpenAI API-compatible (OpenAI, Google Gemini)
 - **Entry point**: `VoxRad.py`
