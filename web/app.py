@@ -147,6 +147,7 @@ def _load_template_content(template_name: str) -> str:
 @app.get("/")
 def index(request: Request, username: str = Depends(_verify_auth)):
     return _jinja.TemplateResponse(
+        request,
         "index.html",
         {
             "request": request,

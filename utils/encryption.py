@@ -5,8 +5,6 @@ from base64 import urlsafe_b64encode
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.fernet import Fernet
-import tkinter as tk
-from tkinter import simpledialog, messagebox
 from config.config import config
 from ui.utils import update_status
 import openai
@@ -51,6 +49,8 @@ def get_encryption_key(password, salt_filename=".asr_salt"):
 
 def get_password_from_user(prompt, flag):
     """Prompt the user to enter their password securely with error handling for incorrect entries."""
+    import tkinter as tk
+    from tkinter import simpledialog, messagebox
     global password_dialog_open
 
     # Check if currently locked out
@@ -108,6 +108,8 @@ def get_password_from_user(prompt, flag):
 
 def get_save_password_from_user(prompt):
     """Prompt the user to enter their password securely."""
+    import tkinter as tk
+    from tkinter import simpledialog
     root = tk.Tk()
     root.withdraw()  # Hide the main window
     password = simpledialog.askstring("Password", prompt, show='*')
@@ -235,6 +237,7 @@ def delete_text_api_key():
 
 def fetch_models(base_url, api_key, model_combobox):
     """Fetches available models and updates the model combobox."""
+    from tkinter import messagebox
     try:
         text_key_path = os.path.join(os.path.dirname(config.config_path), "text_key.encrypted")# Corrected line
 
@@ -271,6 +274,7 @@ def fetch_models(base_url, api_key, model_combobox):
 
 def fetch_transcription_models(base_url, api_key, model_combobox):
     """Fetches available transcription models and updates the model combobox."""
+    from tkinter import messagebox
     try:
         transcription_key_path = os.path.join(os.path.dirname(config.config_path), "transcription_key.encrypted") # Corrected line
 

@@ -1,6 +1,10 @@
 import logging
-import tkinter as tk
 from config.config import config
+
+try:
+    import tkinter as tk
+except ImportError:
+    tk = None  # headless / web mode — tkinter not available
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,7 @@ def initialize_status_var(main_frame):
 def update_status(message):
     """Updates the status bar with the given message."""
     global status_var, status_label
-    if status_var is None or not isinstance(status_var, tk.StringVar):
+    if status_var is None or (tk is not None and not isinstance(status_var, tk.StringVar)):
         logger.debug("Re-initializing status_var.")
         if config.root: # Added condition if config.root is initialized, then do the below
             if config.root.winfo_exists(): # Verify the root exists
