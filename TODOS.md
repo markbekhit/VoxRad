@@ -21,7 +21,7 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
 
 - [x] **FHIR R4 export** — `llm/fhir_export.py` created with `report_to_fhir()` and `save_fhir_report()`. FHIR R4 DiagnosticReport JSON with LOINC code, category, base64 presentedForm, optional patient/accession/radiologist fields. `fhir.resources==7.1.0` added to `requirements.txt`. "Export FHIR R4 JSON" checkbox added to General settings tab. Saves as `{working_dir}/{YYYYMMDD_HHMMSS}_report.json` after each report when enabled.
 
-- [ ] **Web UI** — FastAPI + Jinja2 + vanilla JS. Browser MediaRecorder → WebM upload (no FFmpeg conversion needed — Whisper accepts WebM directly). HTTP Basic Auth (shared password). Session cache (in-memory dict, 30min TTL) for format Retry. Optional FHIR patient fields (patient ID, accession, radiologist). `--web` flag in VoxRad.py. Requires: status_callback refactor + headless load_settings() path. See `/plan-eng-review` for full architecture.
+- [x] **Web UI** — `web/app.py` (FastAPI), `web/templates/index.html` (Jinja2), `web/static/app.js` (MediaRecorder + Web Audio waveform), `web/static/style.css`. HTTP Basic Auth via `VOXRAD_WEB_PASSWORD` env var. Session cache (30min TTL). `threading.Lock` protects `config.global_md_text_content` from concurrent format requests. `VoxRad.py` updated with `--web [--host --port]` flags. `load_settings(web_mode=True)` skips Tkinter dialogs — uses `VOXRAD_*_PASSWORD` env vars or `getpass`. `ui/utils.py` logs status to console when `config.root` is None. New deps: fastapi, uvicorn, python-multipart, aiofiles, jinja2.
 
 ## Deferred (Next Quarter)
 

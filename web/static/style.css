@@ -1,0 +1,209 @@
+/* VoxRad Web — dark clinical theme */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0E1118;
+  --surface:  #161b27;
+  --border:   #2a3045;
+  --yellow:   #FFD700;
+  --yellow2:  #e6c200;
+  --text:     #e8eaf0;
+  --muted:    #7a8099;
+  --red:      #e05252;
+  --green:    #52c065;
+  --radius:   8px;
+  --shadow:   0 2px 12px rgba(0,0,0,0.4);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Layout ── */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+header h1 { font-size: 18px; font-weight: 700; color: var(--yellow); letter-spacing: 1px; }
+header .subtitle { font-size: 12px; color: var(--muted); }
+
+main { flex: 1; padding: 16px 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 20px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ── Inputs ── */
+select, input[type=text], textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+select:focus, input[type=text]:focus, textarea:focus {
+  border-color: var(--yellow);
+}
+select { cursor: pointer; }
+textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-size: 12px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-primary  { background: var(--yellow);  color: #0E1118; }
+.btn-danger   { background: var(--red);     color: #fff; }
+.btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-sm       { padding: 5px 10px; font-size: 12px; }
+
+/* ── Recording section ── */
+.record-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#timer {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--yellow);
+  min-width: 52px;
+}
+
+#waveform {
+  flex: 1;
+  height: 48px;
+  background: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  min-width: 120px;
+}
+
+/* ── Status bar ── */
+#status {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.2s;
+}
+#status.error   { border-color: var(--red);   color: var(--red); }
+#status.success { border-color: var(--green);  color: var(--green); }
+#status.active  { border-color: var(--yellow); }
+
+/* ── Grid for FHIR fields ── */
+.fhir-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+@media (max-width: 600px) { .fhir-grid { grid-template-columns: 1fr; } }
+
+.fhir-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 3px;
+  display: block;
+}
+
+/* ── Collapsible ── */
+details > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  user-select: none;
+  padding: 4px 0;
+  list-style: none;
+}
+details > summary::before { content: "▶ "; font-size: 10px; }
+details[open] > summary::before { content: "▼ "; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* ── Report output ── */
+#report-output {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 160px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── Row utils ── */
+.row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.ml-auto { margin-left: auto; }
+.mt-8 { margin-top: 8px; }
+.w-full { width: 100%; }
+
+/* ── Recording indicator ── */
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 1s infinite; }
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; }

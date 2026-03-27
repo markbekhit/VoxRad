@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxRad</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>VOXRAD</h1>
+    <div class="subtitle">Voice Radiology Dictation &nbsp;·&nbsp; Web Interface</div>
+  </div>
+  <div class="ml-auto" style="font-size:12px;color:var(--muted);">{{ username }}</div>
+</header>
+
+<main>
+
+  <!-- ── Template + FHIR settings ── -->
+  <div class="card">
+    <div class="card-title">Report Settings</div>
+
+    <div class="row" style="align-items:flex-end;">
+      <div style="flex:1;min-width:200px;">
+        <label class="fhir-label" for="template-select">Template</label>
+        <select id="template-select">
+          <option value="">Auto-select (AI chooses)</option>
+          {% for t in templates %}
+          <option value="{{ t }}">{{ t.replace('_', ' ').replace('.txt','').replace('.md','') }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <details style="margin-top:10px;">
+      <summary>Optional FHIR Patient Fields</summary>
+      <div class="fhir-grid mt-8">
+        <div>
+          <label class="fhir-label" for="patient-id">Patient ID (MRN)</label>
+          <input type="text" id="patient-id" placeholder="e.g. MRN-00123" />
+        </div>
+        <div>
+          <label class="fhir-label" for="accession">Accession Number</label>
+          <input type="text" id="accession" placeholder="e.g. ACC-2026-001" />
+        </div>
+        <div>
+          <label class="fhir-label" for="radiologist">Radiologist</label>
+          <input type="text" id="radiologist" placeholder="e.g. Dr. Smith" />
+        </div>
+      </div>
+      {% if not fhir_enabled %}
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;">
+        FHIR export is disabled. Enable it in Settings → General → Export FHIR R4 JSON.
+      </p>
+      {% endif %}
+    </details>
+  </div>
+
+  <!-- ── Recording ── -->
+  <div class="card">
+    <div class="card-title">Dictation</div>
+
+    <div class="record-row">
+      <button id="btn-record" class="btn btn-primary">
+        <span>&#9654;</span> Record
+      </button>
+      <button id="btn-stop" class="btn btn-danger" disabled>
+        <span>&#9632;</span> Stop
+      </button>
+      <span id="rec-dot" class="rec-dot" style="display:none;"></span>
+      <span id="timer">0:00</span>
+      <canvas id="waveform"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Status ── -->
+  <div id="status"></div>
+
+  <!-- ── Transcription ── -->
+  <div class="card mt-8">
+    <div class="card-title">Transcription <span style="font-weight:400;text-transform:none;">(editable — correct before formatting)</span></div>
+    <textarea id="transcription" rows="5" placeholder="Transcription will appear here after recording…"></textarea>
+    <div class="row mt-8">
+      <button id="btn-format" class="btn btn-primary" disabled>
+        <span>&#9881;</span> Format Report
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Report ── -->
+  <div class="card">
+    <div class="card-title">Structured Report</div>
+    <pre id="report-output"></pre>
+    <div class="row mt-8">
+      <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>
+        &#128203; Copy Report
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  &#9888; VoxRad Web uses HTTP Basic Auth.
+  Credentials are sent in cleartext over plain HTTP — run behind HTTPS in production.
+  Reports contain PHI: treat this server accordingly.
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

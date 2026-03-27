@@ -34,8 +34,8 @@ def update_status(message):
                 print("Error: config.root is not active. Unable to update status.")
                 return
         else:
-            print("Error: config.root is not initialized. Unable to update status.")
-            return # Exit if config.root is not initialized
+            print(f"[status] {message}")
+            return # Exit if config.root is not initialized (web mode)
 
     if status_var is not None:
         status_var.set(message)
