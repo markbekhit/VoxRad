@@ -1,4 +1,5 @@
 import os
+import logging
 import configparser
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -6,6 +7,8 @@ import subprocess
 import webbrowser
 import sounddevice as sd
 from ui.utils import update_status
+
+logger = logging.getLogger(__name__)
 from config.config import config
 from utils.file_handling import move_files, load_templates, load_guidelines
 from utils.encryption import save_transcription_key, save_text_key, delete_transcription_key, delete_text_api_key, fetch_models, fetch_transcription_models, get_password_from_user, load_transcription_key, load_text_key
@@ -50,7 +53,7 @@ def open_settings():
 
 
         def browse_directory():
-            print(config.template_dropdown)
+            logger.debug(config.template_dropdown)
             directory = filedialog.askdirectory()
             if directory:
                 old_directory = config.save_directory
@@ -86,7 +89,7 @@ def open_settings():
                 destination_file = os.path.join(templates_path, template_file)
                 if os.path.exists(source_file) and not os.path.exists(destination_file):
                     shutil.copy2(source_file, destination_file)
-                    print(f"Copied {template_file} to {destination_file}")
+                    logger.info(f"Copied {template_file} to {destination_file}")
 
 
             # Guideline files to copy
@@ -102,7 +105,7 @@ def open_settings():
                 destination_file = os.path.join(guidelines_path, guideline_file)
                 if os.path.exists(source_file) and not os.path.exists(destination_file):
                     shutil.copy2(source_file, destination_file)
-                    print(f"Copied {guideline_file} to {destination_file}")
+                    logger.info(f"Copied {guideline_file} to {destination_file}")
 
 
             if os.name == 'nt':
@@ -110,7 +113,7 @@ def open_settings():
             elif os.name == 'posix':
                 subprocess.run(['open', working_directory])
             else:
-                print(f"Unsupported operating system: {os.name}")
+                logger.warning(f"Unsupported operating system: {os.name}")
 
 
         open_templates_button = tk.Button(general_tab, text="Open", command=open_working_directory, width=12)
@@ -194,7 +197,7 @@ def open_settings():
         # Initialize button states and entry field
         # Corrected path: Use get_config_dir()
         transcription_key_path = os.path.join(get_config_dir(), "transcription_key.encrypted")
-        print(f"[DEBUG] Transcription key path: {transcription_key_path}")  # Debug: Print the path
+        logger.debug(f"Transcription key path: {transcription_key_path}")
         transcription_key_file_exists = os.path.exists(transcription_key_path)
 
         # Initialize in one place, then set based on conditions
@@ -204,30 +207,30 @@ def open_settings():
         def update_transcription_ui():
             nonlocal transcription_key_file_exists
             transcription_key_file_exists = os.path.exists(transcription_key_path)
-            print(f"[DEBUG] Transcription key file exists: {transcription_key_file_exists}")
+            logger.debug(f"Transcription key file exists: {transcription_key_file_exists}")
 
             if transcription_key_file_exists:
                 transcription_key_entry.config(state="readonly")
                 transcription_key_var.set("**********************************")
                 save_delete_button.config(text="Delete Key")
-                print(f"[DEBUG] Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
+                logger.debug("Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
                 if config.TRANSCRIPTION_API_KEY:
                     lock_unlock_button.config(text="🔒 Lock Key", state="normal")
-                    print(f"[DEBUG] API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
+                    logger.debug("API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
                 else:
                     lock_unlock_button.config(text="🔓 Unlock Key", state="normal")
-                    print(f"[DEBUG] API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
+                    logger.debug("API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
             else:
                 transcription_key_entry.config(state="normal")
                 transcription_key_var.set("")
                 save_delete_button.config(text="Save Key")
                 lock_unlock_button.config(text="🔓 Unlock Key", state="disabled")
-                print(f"[DEBUG] No encrypted file - Setting entry to normal and empty, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
+                logger.debug("No encrypted file - Setting entry to normal and empty, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
 
             #Ensures no change to the button state, if the key is deleted but not cleared from config.TRANSCRIPTION_API_KEY.
             if config.TRANSCRIPTION_API_KEY is None and transcription_key_file_exists:
                  lock_unlock_button.config(state="normal")
-                 print(f"[DEBUG] API key is None and file exists - Lock/Unlock button state set to normal")
+                 logger.debug("API key is None and file exists - Lock/Unlock button state set to normal")
 
         def save_transcription_key_ui():
             if transcription_key_var.get().strip() == "":
@@ -236,25 +239,25 @@ def open_settings():
                 return False
 
             if save_transcription_key(transcription_key_var.get()):
-                print(f"[DEBUG] Transcription key saved successfully")
+                logger.debug("Transcription key saved successfully")
                 update_transcription_ui()
                 return True
-            print(f"[DEBUG] Transcription key save failed")
+            logger.debug("Transcription key save failed")
             return False
 
         def delete_transcription_key_ui():
             delete_transcription_key()
             config.TRANSCRIPTION_API_KEY = None  # Clear the key on delete
-            print(f"[DEBUG] Transcription key deleted and config.TRANSCRIPTION_API_KEY set to None")
+            logger.debug("Transcription key deleted and config.TRANSCRIPTION_API_KEY set to None")
             update_transcription_ui()
 
 
         def toggle_save_delete_key():
             if save_delete_button.cget("text") == "Save Key":
-                print(f"[DEBUG] Save/Delete button clicked: Save Key")
+                logger.debug("Save/Delete button clicked: Save Key")
                 save_transcription_key_ui()
             else:
-                print(f"[DEBUG] Save/Delete button clicked: Delete Key")
+                logger.debug("Save/Delete button clicked: Delete Key")
                 delete_transcription_key_ui()
 
         save_delete_button.config(command=toggle_save_delete_key)
@@ -262,28 +265,28 @@ def open_settings():
 
         def toggle_lock_unlock_transcription_key():
             if config.TRANSCRIPTION_API_KEY is None:
-                print(f"[DEBUG] Lock/Unlock button clicked: Unlock Key")
+                logger.debug("Lock/Unlock button clicked: Unlock Key")
                 password = get_password_from_user("Enter your password to unlock the Transcription Model key:", "transcription")
                 if password:
                     if load_transcription_key(password=password):
                         lock_unlock_button.config(text="🔒 Lock Key")  # Update button text
                         update_status("Transcription Model key unlocked.")
-                        print(f"[DEBUG] Transcription key unlocked - Setting Lock/Unlock to 'Lock Key'")
+                        logger.debug("Transcription key unlocked - Setting Lock/Unlock to 'Lock Key'")
                     else:
                         update_status("Incorrect password for Transcription Model key.")
                         messagebox.showerror("Error", "Incorrect password for Transcription Model key.")
-                        print(f"[DEBUG] Incorrect password for transcription key")
+                        logger.debug("Incorrect password for transcription key")
             else:
-                print(f"[DEBUG] Lock/Unlock button clicked: Lock Key")
+                logger.debug("Lock/Unlock button clicked: Lock Key")
                 config.TRANSCRIPTION_API_KEY = None
                 lock_unlock_button.config(text="🔓 Unlock Key")  # Update button text
                 update_status("Transcription Model key locked.")
-                print(f"[DEBUG] Transcription key locked - Setting Lock/Unlock to 'Unlock Key'")
+                logger.debug("Transcription key locked - Setting Lock/Unlock to 'Unlock Key'")
 
         lock_unlock_button.config(command=toggle_lock_unlock_transcription_key)
         lock_unlock_button.grid(row=2, column=3, padx=5, pady=5)
 
-        print(f"[DEBUG] Initial state - Encrypted file exists: {transcription_key_file_exists}, API key loaded: {config.TRANSCRIPTION_API_KEY is not None}")
+        logger.debug(f"Initial state - Encrypted file exists: {transcription_key_file_exists}, API key loaded: {config.TRANSCRIPTION_API_KEY is not None}")
         update_transcription_ui()  # Call once to initialize UI
 
 
@@ -358,7 +361,7 @@ def open_settings():
         # Initialize button states
         # Corrected path: Use get_config_dir()
         text_key_path = os.path.join(get_config_dir(), "text_key.encrypted")
-        print(f"[DEBUG] Text key path: {text_key_path}")  # Debug
+        logger.debug(f"Text key path: {text_key_path}")
         text_key_file_exists = os.path.exists(text_key_path)
 
 
@@ -370,30 +373,30 @@ def open_settings():
         def update_text_ui():
             nonlocal text_key_file_exists
             text_key_file_exists = os.path.exists(text_key_path)
-            print(f"[DEBUG] Text key file exists: {text_key_file_exists}")
+            logger.debug(f"Text key file exists: {text_key_file_exists}")
 
             if text_key_file_exists:
                 api_key_entry.config(state="readonly")
                 api_key_var.set("**********************************")
                 save_delete_text_button.config(text="Delete Key")
-                print(f"[DEBUG] Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
+                logger.debug("Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
                 if config.TEXT_API_KEY:
                     lock_unlock_text_button.config(text="🔒 Lock Key", state="normal")
-                    print(f"[DEBUG] API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
+                    logger.debug("API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
                 else:
                     lock_unlock_text_button.config(text="🔓 Unlock Key", state="normal")
-                    print(f"[DEBUG] API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
+                    logger.debug("API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
             else:
                 api_key_entry.config(state="normal")
                 api_key_var.set("")
                 save_delete_text_button.config(text="Save Key")
                 lock_unlock_text_button.config(text="🔓 Unlock Key", state="disabled")
-                print(f"[DEBUG] No encrypted file - Setting entry to normal and empty, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
+                logger.debug("No encrypted file - Setting entry to normal and empty, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
 
             #Ensures no change to the button state, if the key is deleted but not cleared from config.TEXT_API_KEY.
             if config.TEXT_API_KEY is None and text_key_file_exists:
                 lock_unlock_text_button.config(state="normal")
-                print(f"[DEBUG] API key is None and file exists - Lock/Unlock button state set to normal")
+                logger.debug("API key is None and file exists - Lock/Unlock button state set to normal")
 
 
         def save_text_key_ui():
@@ -403,24 +406,24 @@ def open_settings():
                 return False  # Indicate failure
 
             if save_text_key(api_key_var.get()):
-                print(f"[DEBUG] Text key saved successfully")
+                logger.debug("Text key saved successfully")
                 update_text_ui()
                 return True  # Indicate success
-            print(f"[DEBUG] Text key save failed")
+            logger.debug("Text key save failed")
             return False
 
         def delete_text_key_ui():
             delete_text_api_key()
             config.TEXT_API_KEY = None  # Clear the key on delete.
-            print(f"[DEBUG] Text key deleted and config.TEXT_API_KEY set to None")
+            logger.debug("Text key deleted and config.TEXT_API_KEY set to None")
             update_text_ui()
 
         def toggle_save_delete_text_key():
             if save_delete_text_button.cget("text") == "Save Key":
-                print(f"[DEBUG] Save/Delete button clicked: Save Key")
+                logger.debug("Save/Delete button clicked: Save Key")
                 save_text_key_ui()
             else:
-                print(f"[DEBUG] Save/Delete button clicked: Delete Key")
+                logger.debug("Save/Delete button clicked: Delete Key")
                 delete_text_key_ui()
 
         #Create the button
@@ -429,29 +432,29 @@ def open_settings():
 
         def toggle_lock_unlock_text_key():
             if config.TEXT_API_KEY is None:
-                print(f"[DEBUG] Lock/Unlock button clicked: Unlock Key")
+                logger.debug("Lock/Unlock button clicked: Unlock Key")
                 password = get_password_from_user("Enter your password to unlock the Text Model key:", "text")
                 if password:
                     if load_text_key(password=password):
                         lock_unlock_text_button.config(text="🔒 Lock Key")
                         update_status("Text Model key unlocked.")
-                        print(f"[DEBUG] Text key unlocked - Setting Lock/Unlock to 'Lock Key'")
+                        logger.debug("Text key unlocked - Setting Lock/Unlock to 'Lock Key'")
                     else:
                         update_status("Incorrect password for Text Model key.")
                         messagebox.showerror("Error", "Incorrect password for Text Model key.")
-                        print(f"[DEBUG] Incorrect password for text key")
+                        logger.debug("Incorrect password for text key")
             else:
-                print(f"[DEBUG] Lock/Unlock button clicked: Lock Key")
+                logger.debug("Lock/Unlock button clicked: Lock Key")
                 config.TEXT_API_KEY = None
                 lock_unlock_text_button.config(text="🔓 Unlock Key")
                 update_status("Text Model key locked.")
-                print(f"[DEBUG] Text key locked - Setting Lock/Unlock to 'Unlock Key'")
+                logger.debug("Text key locked - Setting Lock/Unlock to 'Unlock Key'")
 
 
         lock_unlock_text_button.config(command=toggle_lock_unlock_text_key)
         lock_unlock_text_button.grid(row=2, column=3, padx=5, pady=5)
 
-        print(f"[DEBUG] Initial state - Encrypted file exists: {text_key_file_exists}, API key loaded: {config.TEXT_API_KEY is not None}")
+        logger.debug(f"Initial state - Encrypted file exists: {text_key_file_exists}, API key loaded: {config.TEXT_API_KEY is not None}")
         update_text_ui() # Call once to initialize UI
 
 
@@ -542,7 +545,7 @@ def open_settings():
 
         # Use get_config_dir() for the correct path
         mm_key_path = os.path.join(get_config_dir(), "mm_key.encrypted")
-        print(f"[DEBUG] Multimodal key path: {mm_key_path}")
+        logger.debug(f"Multimodal key path: {mm_key_path}")
         mm_key_file_exists = os.path.exists(mm_key_path)
 
 
@@ -553,7 +556,7 @@ def open_settings():
         def update_mm_ui():
             nonlocal mm_key_file_exists
             mm_key_file_exists = os.path.exists(mm_key_path)
-            print(f"[DEBUG] MM key file exists: {mm_key_file_exists}")
+            logger.debug(f"MM key file exists: {mm_key_file_exists}")
 
             #Update combobox
             if use_multimodal_var.get() == True:
@@ -566,15 +569,15 @@ def open_settings():
                 mm_api_key_entry.config(state="readonly")
                 mm_api_key_var.set("**********************************")
                 save_delete_mm_button.config(text="Delete Key")
-                print(f"[DEBUG] Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
+                logger.debug("Encrypted file exists - Setting entry to readonly, dummy input, and button to 'Delete Key'")
 
                 if config.MM_API_KEY:
                     lock_unlock_mm_button.config(text="🔒 Lock Key", state="normal")
-                    print(f"[DEBUG] MM API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
+                    logger.debug("MM API key loaded - Setting Lock/Unlock button to 'Lock Key' and enabled")
 
                 else:
                     lock_unlock_mm_button.config(text="🔓 Unlock Key", state="normal")
-                    print(f"[DEBUG] MM API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
+                    logger.debug("MM API key NOT loaded - Setting Lock/Unlock button to 'Unlock Key' and enabled")
             else:
                 #mm_api_key_entry.config(state="normal") #Removed
                 if use_multimodal_var.get() == True: #Added
@@ -584,11 +587,11 @@ def open_settings():
                 mm_api_key_var.set("")
                 save_delete_mm_button.config(text="Save Key")
                 lock_unlock_mm_button.config(text="🔓 Unlock Key", state="disabled")
-                print(f"[DEBUG] No encrypted file - Setting entry based on checkbox, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
+                logger.debug("No encrypted file - Setting entry based on checkbox, Save/Delete button to 'Save Key', Lock/Unlock to disabled")
 
             if config.MM_API_KEY is None and mm_key_file_exists:
                  lock_unlock_mm_button.config(state="normal")
-                 print(f"[DEBUG] API key is None and file exists - Lock/Unlock button state set to normal")
+                 logger.debug("API key is None and file exists - Lock/Unlock button state set to normal")
 
         def toggle_multimodal_model(var, combobox, entry):
             """Toggles the state of the multimodal model combobox and entry."""
@@ -597,12 +600,12 @@ def open_settings():
                 if not os.path.exists(mm_key_path):  # Only enable if no key exists
                     entry.config(state="normal")
                 update_status("Multimodal model enabled.")
-                print("[DEBUG] Multimodal model enabled")
+                logger.debug("Multimodal model enabled")
             else:  # Checkbox is unchecked
                 combobox.config(state="disabled")
                 entry.config(state="disabled") #keep disabled
                 update_status("Multimodal model disabled.")
-                print("[DEBUG] Multimodal model disabled")
+                logger.debug("Multimodal model disabled")
 
             # Update the config.multimodal_pref variable
             config.multimodal_pref = var.get()
@@ -624,25 +627,25 @@ def open_settings():
                 return False
 
             if save_mm_key(mm_api_key_var.get()):
-                print(f"[DEBUG] MM key saved successfully")
+                logger.debug("MM key saved successfully")
                 update_mm_ui()
                 return True
-            print(f"[DEBUG] MM key save failed")
+            logger.debug("MM key save failed")
             return False
 
         def delete_mm_key_ui():
             delete_mm_key()
             config.MM_API_KEY = None
-            print(f"[DEBUG] MM key deleted and config.MM_API_KEY set to None")
+            logger.debug("MM key deleted and config.MM_API_KEY set to None")
             update_mm_ui()
 
 
         def toggle_save_delete_mm_key():
             if save_delete_mm_button.cget("text") == "Save Key":
-                print(f"[DEBUG] Save/Delete MM button clicked: Save Key")
+                logger.debug("Save/Delete MM button clicked: Save Key")
                 save_mm_key_ui()
             else:
-                print(f"[DEBUG] Save/Delete MM button clicked: Delete Key")
+                logger.debug("Save/Delete MM button clicked: Delete Key")
                 delete_mm_key_ui()
 
         save_delete_mm_button.config(command=toggle_save_delete_mm_key)
@@ -651,27 +654,27 @@ def open_settings():
 
         def toggle_lock_unlock_mm_key():
             if config.MM_API_KEY is None:
-                print(f"[DEBUG] Lock/Unlock MM button clicked: Unlock Key")
+                logger.debug("Lock/Unlock MM button clicked: Unlock Key")
                 password = get_password_from_user("Enter your password to unlock the Multimodal Model key:", "mm")
                 if password:
                     if load_mm_key(password=password):
                         lock_unlock_mm_button.config(text="🔒 Lock Key")
                         update_status("Multimodal Model key unlocked.")
-                        print(f"[DEBUG] MM key unlocked - Setting Lock/Unlock to 'Lock Key'")
+                        logger.debug("MM key unlocked - Setting Lock/Unlock to 'Lock Key'")
                     else:
                         update_status("Incorrect password for Multimodal Model key.")
                         messagebox.showerror("Error", "Incorrect password for Multimodal Model key.")
-                        print(f"[DEBUG] Incorrect password for MM key")
+                        logger.debug("Incorrect password for MM key")
             else:
-                print(f"[DEBUG] Lock/Unlock MM button clicked: Lock Key")
+                logger.debug("Lock/Unlock MM button clicked: Lock Key")
                 config.MM_API_KEY = None
                 lock_unlock_mm_button.config(text="🔓 Unlock Key")
                 update_status("Multimodal Model key locked.")
-                print(f"[DEBUG] MM key locked - Setting Lock/Unlock to 'Unlock Key'")
+                logger.debug("MM key locked - Setting Lock/Unlock to 'Unlock Key'")
 
         lock_unlock_mm_button.config(command=toggle_lock_unlock_mm_key)
         lock_unlock_mm_button.grid(row=2, column=3, padx=5, pady=5)
-        print(f"[DEBUG] Initial state - Encrypted file exists: {mm_key_file_exists}, API key loaded: {config.MM_API_KEY is not None}, Multimodal Checkbox: {use_multimodal_var.get()}")
+        logger.debug(f"Initial state - Encrypted file exists: {mm_key_file_exists}, API key loaded: {config.MM_API_KEY is not None}, Multimodal Checkbox: {use_multimodal_var.get()}")
         update_mm_ui() #Initialise UI
         # Set initial value for combobox
         if (config.multimodal_model != "None" and config.multimodal_model):
