@@ -1,4 +1,5 @@
 import os
+import time
 from base64 import urlsafe_b64encode
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
@@ -11,6 +12,10 @@ import openai
 from openai import OpenAI
 
 password_dialog_open = False  # Global flag to track if a password dialog is open
+
+_MAX_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 30
+_attempt_counts: dict = {}  # {flag: (attempts, lockout_until)}
 
 
 def ensure_salt_exists(salt_filename=".asr_salt"):
@@ -44,6 +49,14 @@ def get_encryption_key(password, salt_filename=".asr_salt"):
 def get_password_from_user(prompt, flag):
     """Prompt the user to enter their password securely with error handling for incorrect entries."""
     global password_dialog_open
+
+    # Check if currently locked out
+    attempts, lockout_until = _attempt_counts.get(flag, (0, 0))
+    if lockout_until > time.time():
+        remaining = int(lockout_until - time.time())
+        messagebox.showerror("Locked", f"Too many failed attempts. Try again in {remaining}s.")
+        return None
+
     if password_dialog_open:
         messagebox.showerror("Error", "Another password dialog is already open.")
         return None
@@ -72,12 +85,22 @@ def get_password_from_user(prompt, flag):
             return None  # User cancelled the dialog
 
         if is_password_correct(password, flag):
+            _attempt_counts[flag] = (0, 0)  # Reset counter on success
             root.destroy()
             password_dialog_open = False  # Reset the flag after successful validation
             return password  # Correct password entered
 
-        messagebox.showerror("Error", "Incorrect password, please try again.")
-        # The loop will continue, prompting the user again
+        # Failed attempt — increment counter and check for lockout
+        current_attempts = _attempt_counts.get(flag, (0, 0))[0] + 1
+        if current_attempts >= _MAX_ATTEMPTS:
+            _attempt_counts[flag] = (0, time.time() + _LOCKOUT_SECONDS)
+            root.destroy()
+            password_dialog_open = False
+            messagebox.showerror("Locked", f"Too many failed attempts. Locked for {_LOCKOUT_SECONDS}s.")
+            return None
+        _attempt_counts[flag] = (current_attempts, 0)
+        remaining = _MAX_ATTEMPTS - current_attempts
+        messagebox.showerror("Error", f"Incorrect password. {remaining} attempt(s) remaining.")
 
 
 def get_save_password_from_user(prompt):

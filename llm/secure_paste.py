@@ -103,7 +103,7 @@ def inject_text_with_applescript(text):
     """Injects multiline text directly into the active window using AppleScript."""
     applescript_lines = []
     for line in text.splitlines():
-        escaped_line = line.replace('"', '\\"')
+        escaped_line = line.replace('\\', '\\\\').replace('"', '\\"')
         applescript_lines.append(f'keystroke "{escaped_line}"')
         applescript_lines.append('key code 36')  # Key code 36 is the Return key
 
