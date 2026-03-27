@@ -1,0 +1,52 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Pelvis
+
+### Technique:
+MRI of the pelvis was performed using T2-weighted, T1-weighted, DWI/ADC, and dynamic contrast-enhanced sequences in axial, coronal, and sagittal planes. High-resolution T2-weighted sequences were obtained in orthogonal planes relative to the organ of interest.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Pelvis report involves Uterus (zonal anatomy: endometrium, junctional zone, myometrium), Cervix, Vagina, Ovaries (size, follicles, cysts, masses), Adnexae, Fallopian Tubes (if visible), Urinary Bladder (wall, lumen), Rectum and Sigmoid Colon, Small Bowel (if visualised), Peritoneum and Ascites, Pelvic Lymph Nodes, Pelvic Sidewalls and Muscles (levator ani, obturator internus, piriformis), Sacrum and Coccyx, Pubic Symphysis, Iliac Vessels, and Inguinal Regions. [In male patients, replace with: Prostate, Seminal Vesicles, Vas Deferens, Testes (if included), Penis (if included).] If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+- **Commonly Misspelled Words:**
+[correct spellings] endometrium, myometrium, junctional zone, fibroid, leiomyoma, endometriosis, adenomyosis, ovarian, parametrium, cervix, cul-de-sac, peritoneal implants, hydrosalpinx [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Uterine fibroid(s) as described — no malignant features.
+  - No adnexal mass or free fluid.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Gynaecological consultation is advised for [fibroid / endometriosis / adnexal mass].'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

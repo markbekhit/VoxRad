@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Lumbar Spine
+
+### Technique:
+Axial cuts were obtained from the T12/L1 junction to the sacrum. Sagittal and coronal reformatting were then obtained. Bone and soft tissue window reconstructions were reviewed.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology and any neural compromise.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, a CT Lumbar Spine report involves Vertebral Bodies (L1–L5 and S1), Intervertebral Disc Spaces (L1/2 through L5/S1), Facet Joints (bilateral, each level), Pedicles and Posterior Elements, Spinal Canal, Thecal Sac, Lateral Recesses, Neural Foramina (bilateral, each level), Sacrum and Sacroiliac Joints, Paraspinal Muscles, Cauda Equina, and Visualized Abdominal Structures. If not mentioned in transcript, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **L4/L5:** Broad-based disc bulge causing mild bilateral foraminal narrowing.
+    - **L5/S1:** Disc desiccation with moderate disc space narrowing.
+    - **Spinal Canal:** Adequate at all levels.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] spondylosis, spondylolisthesis, spondylolysis, foraminal stenosis, lateral recess, cauda equina, annular fissure, facet hypertrophy, ligamentum flavum, disc desiccation, laminectomy [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Lumbar spondylosis with [level-specific] disc disease causing [mild/moderate/severe] canal/foraminal narrowing.
+  - *No acute fracture identified.*
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'MRI lumbar spine is recommended for further evaluation of the thecal sac, neural elements and disc–nerve root interface.'
+- 'Clinical correlation and neurosurgical/orthopaedic consultation is advised if radiculopathy is present.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

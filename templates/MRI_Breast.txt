@@ -1,0 +1,59 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Breast
+
+### Technique:
+MRI of both breasts was performed in the prone position using bilateral dedicated breast coils. Sequences included T1-weighted, T2-weighted fat-suppressed, and dynamic contrast-enhanced T1-weighted sequences (pre-contrast and multiple post-contrast phases) following intravenous gadolinium administration. Subtraction and MIP reconstructions were reviewed.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly using ACR BI-RADS lexicon — describe mass morphology (shape, margin, internal enhancement), non-mass enhancement (distribution, internal pattern), and kinetic curve characteristics (initial and delayed phases).
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Breast report involves Right Breast (each quadrant/clock position, nipple, subareolar region), Left Breast, Background Parenchymal Enhancement (BPE — minimal/mild/moderate/marked), Axillary Lymph Nodes (bilateral), Skin and Nipple–Areolar Complex, Pectoral Muscles, Chest Wall, Sternum, and Visualized Upper Abdomen. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Right Breast:** 1.8 cm irregular mass at the 10 o'clock position, 3 cm from nipple. Initial rapid enhancement with washout kinetics. Spiculated margins. BI-RADS 5.
+    - **Left Breast:** No suspicious enhancement identified.
+    - **Axillary Lymph Nodes:** No pathologically enlarged lymph nodes bilaterally.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] BI-RADS, kinetics, enhancement, background parenchymal enhancement, non-mass enhancement, spiculated, circumscribed, heterogeneous, washout, plateau, persistent, subareolar, axillary [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+- Assign a final BI-RADS category (0–6) in the impression.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Include BI-RADS category.
+- **Sample:**
+  - Right breast 10 o'clock mass with suspicious morphology and kinetics — MRI BI-RADS 5.
+  - Recommend biopsy for histopathological confirmation.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- Follow ACR BI-RADS management recommendations for the assigned category.
+- 'MRI-guided biopsy is recommended for BI-RADS 4 or 5 lesions not visible on ultrasound or mammography.'
+- 'Breast surgery / multidisciplinary team review is advised.'
+
+---

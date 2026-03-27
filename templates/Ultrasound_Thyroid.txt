@@ -1,0 +1,60 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Ultrasound Thyroid
+
+### Technique:
+Ultrasound examination of the thyroid gland was performed using a high-frequency linear transducer. Real-time grayscale imaging and colour Doppler interrogation were performed. The parathyroid regions and cervical lymph node stations were also surveyed.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions, TSH level if provided].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly using ACR TI-RADS lexicon — describe nodule composition, echogenicity, shape, margin, and echogenic foci.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, a Thyroid Ultrasound report involves Right Thyroid Lobe (size in three dimensions, echogenicity, nodules), Left Thyroid Lobe, Isthmus (anteroposterior dimension), Overall Gland Volume, Vascularity (colour Doppler pattern), Pyramidal Lobe (if present), Parathyroid Regions, and Cervical Lymph Nodes (levels II–VI). If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Right Thyroid Lobe:** Normal in size ([X × Y × Z] cm). A [X] mm solid hypoechoic nodule with irregular margins in the mid-pole — ACR TI-RADS 4.
+    - **Left Thyroid Lobe:** Normal in size and echogenicity. No nodule identified.
+    - **Isthmus:** [X] mm in anteroposterior dimension.
+    - **Cervical Lymph Nodes:** No pathologically enlarged cervical lymph nodes.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] thyroid, hypoechoic, hyperechoic, isoechoic, echogenicity, vascularity, TI-RADS, parathyroid, goitre, Hashimoto, follicular, macrocalcification, microcalcification, trachea deviation [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+- Assign ACR TI-RADS score (TR1–TR5) for each nodule and state the recommended action per ACR TI-RADS guidelines.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Include TI-RADS category for each nodule.
+- **Sample:**
+  - [X] mm right thyroid nodule — ACR TI-RADS [category]. [FNA / follow-up / no action] recommended per guidelines.
+  - No cervical lymphadenopathy.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Follow ACR TI-RADS management recommendations for each nodule.
+- 'Ultrasound-guided FNA biopsy is recommended for [TR4/TR5] nodules meeting size threshold.'
+- 'Follow-up ultrasound in [1/2/3] year(s) is recommended for [TR3] nodules.'
+- 'Endocrinology consultation is advised.'
+
+---

@@ -1,0 +1,60 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Cervical Spine
+
+### Technique:
+Axial cuts were obtained from the skull base to the cervicothoracic junction. Sagittal and coronal reformatting were then obtained. Bone and soft tissue window reconstructions were reviewed.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - Offer a concise overview of the patient's relevant medical history and the reason for the examination.
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology and any neural compromise.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, a CT Cervical Spine report involves Vertebral Bodies (C1–C7), Intervertebral Disc Spaces, Facet Joints, Pedicles and Posterior Elements, Spinal Canal and Thecal Sac, Neural Foramina (bilateral, each level), Uncovertebral Joints, Prevertebral Soft Tissues, Atlantoaxial Joint and Odontoid Process, and Visualized Posterior Fossa and Cervicothoracic Junction. If the transcript doesn't mention anything about a certain structure or level, mention that it "appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **C1–C2:** Atlantoaxial alignment maintained. Odontoid process intact.
+    - **C3–C4:** Mild disc space narrowing with anterior osteophyte formation.
+    - **Neural Foramina:** Patent bilaterally at all levels.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] osteophyte, spondylosis, spondylolisthesis, foraminal, myelopathy, radiculopathy, uncovertebral, facet, listhesis, odontoid, atlantoaxial, prevertebral [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Cervical spondylosis with [level-specific] disc osteophyte complex causing [mild/moderate/severe] foraminal narrowing.
+  - *No acute fracture or subluxation identified.*
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- **Sample Descriptive Style:**
+  - 'MRI cervical spine is recommended for further evaluation of the spinal cord and disc-neural interface.'
+  - 'Clinical correlation and orthopaedic/neurosurgical consultation is advised.'
+  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

@@ -1,5 +1,4 @@
 import tkinter as tk
-import random
 from config.config import config
 
 
@@ -52,29 +51,37 @@ def simulate_waveform(canvas):
     canvas.delete("waveform")  # Clear existing waveform
     canvas_width = canvas.winfo_width()
     canvas_height = canvas.winfo_height()
-    
-    if canvas_width > 1:  # Ensure the canvas has been drawn
-        # Calculate the start and end points for the waveform
-        start_x = canvas_width / 8
-        end_x = canvas_width * 7 / 8
-        waveform_width = end_x - start_x
-        
-        # Calculate the number of points to draw
-        num_points = int(waveform_width / 2)  # Adjust this for desired density
-        
-        # Calculate the center y-coordinate
-        center_y = canvas_height / 2
-        
-        # Draw the waveform
-        for i in range(num_points):
-            x1 = start_x + (i * waveform_width / num_points)
-            x2 = start_x + ((i + 1) * waveform_width / num_points)
-            y1 = center_y + random.randint(-10, 10)
-            y2 = center_y + random.randint(-10, 10)
-            canvas.create_line(x1, y1, x2, y2, fill="yellow", width=1, tags="waveform")
-    else:
-        # If the canvas hasn't been drawn yet, schedule the drawing for later
+
+    if canvas_width <= 1:
         canvas.after(100, lambda: simulate_waveform(canvas))
+        return
+
+    start_x = canvas_width // 8
+    end_x = canvas_width * 7 // 8
+    waveform_width = end_x - start_x
+    center_y = canvas_height / 2
+
+    # Lazy import to avoid circular dependency (recorder imports from ui.utils)
+    import audio.recorder as recorder
+    chunk = recorder.latest_audio_chunk
+
+    if chunk is None or len(chunk) == 0:
+        canvas.create_line(start_x, center_y, end_x, center_y, fill="yellow", width=1, tags="waveform")
+        return
+
+    samples = chunk.flatten()
+    num_points = max(1, int(waveform_width / 2))
+    step = max(1, len(samples) // num_points)
+    amplitudes = [abs(float(samples[i])) for i in range(0, len(samples), step)][:num_points]
+
+    max_val = max(amplitudes) if amplitudes and max(amplitudes) > 0 else 1
+    max_height = center_y * 0.9
+
+    for i, amp in enumerate(amplitudes):
+        x = start_x + int(i * waveform_width / num_points)
+        height = int((amp / max_val) * max_height)
+        canvas.create_line(x, int(center_y - height), x, int(center_y + height),
+                           fill="yellow", width=1, tags="waveform")
 
 def draw_straight_line(canvas):
     canvas.delete("waveform")  # Clear any existing waveform

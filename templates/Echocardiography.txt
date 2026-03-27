@@ -1,0 +1,59 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Echocardiography (Transthoracic / Transoesophageal)
+
+### Technique:
+[Transthoracic / Transoesophageal] echocardiography was performed using standard parasternal, apical, subcostal, and suprasternal views. 2D, M-mode, colour Doppler, pulsed-wave Doppler, and continuous-wave Doppler interrogation were performed.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly with quantitative measurements where available.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an Echocardiography report involves Left Ventricle (size — LVEDD/LVESD, wall thickness — IVS/LVPW, systolic function — EF%, wall motion), Right Ventricle (size, systolic function — TAPSE, FAC), Left Atrium (size, volume), Right Atrium (size), Mitral Valve (morphology, opening, regurgitation — grade, stenosis — MVA), Aortic Valve (morphology, number of cusps, gradient — peak/mean, AVA, regurgitation), Tricuspid Valve (morphology, regurgitation — grade, RVSP), Pulmonary Valve (gradient, regurgitation), Interatrial Septum (PFO, ASD), Interventricular Septum (VSD, LVOTO), Pericardium (effusion — size and haemodynamic significance), Aortic Root and Ascending Aorta (dimensions), and Inferior Vena Cava (size, collapsibility). If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Left Ventricle:** Not dilated (LVEDD [X] mm). Concentric hypertrophy (IVS [X] mm, LVPW [X] mm). Preserved systolic function, EF [X]%.
+    - **Mitral Valve:** Mild mitral regurgitation. No mitral stenosis.
+    - **Pericardium:** Small pericardial effusion without haemodynamic compromise.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] echocardiography, ejection fraction, regurgitation, stenosis, tricuspid, pulmonary, pericardial, diastolic dysfunction, hypertrophy, cardiomyopathy, ventricular, atrial fibrillation [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Concentric left ventricular hypertrophy with preserved systolic function (EF [X]%).
+  - Mild mitral regurgitation. No significant valvular stenosis.
+  - Small pericardial effusion without tamponade physiology.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Cardiology consultation is advised for [valvular disease / cardiomyopathy / pericardial effusion].'
+- 'Follow-up echocardiogram in [6–12] months is recommended to monitor [finding].'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

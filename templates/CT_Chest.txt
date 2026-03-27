@@ -1,0 +1,63 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Chest
+
+### Technique:
+Axial cuts were obtained from the thoracic inlet to the upper abdomen. Coronal and sagittal reformatting were then obtained. [If contrast: Scans were acquired following intravenous contrast administration.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - Offer a concise overview of the patient's relevant medical history and the reason for the examination. Include details such as symptoms, pertinent clinical history, and any known medical conditions.
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, and if the lesion is a mass, mention its extension and relations.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Chest. For your guidance, a CT Chest report involves regions like Lungs (including each lobe), Pleura, Airways (Trachea, Main Bronchi, Lobar and Segmental Bronchi), Mediastinum, Heart and Pericardium, Great Vessels (Aorta, Pulmonary Arteries and Veins, SVC/IVC), Lymph Nodes (mediastinal, hilar, axillary), Chest Wall and Soft Tissues, Bony Thorax (ribs, sternum, clavicles, thoracic spine), Esophagus, Thyroid (if visualized), and Visualized Upper Abdomen. If the transcript doesn't mention anything about a certain structure, mention that "{the organ} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Lungs:** No evidence of pulmonary nodules or consolidation.
+    - **Pleura:** No pleural effusion or thickening.
+    - **Mediastinum:** Normal mediastinal contour, no lymphadenopathy.
+    - and so on...
+- Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
+- **Consolidation of Similar Findings:** Consolidate similar findings across different locations into a single comprehensive statement.
+- **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:
+[correct spellings] consolidation, atelectasis, pneumothorax, haemothorax, pleural effusion, mediastinal, lymphadenopathy, bronchiectasis, pulmonary embolism, pericardial effusion, subcarinal [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Provide an overall findings are suggestive of differential diagnosis or final diagnosis.
+- **Sample:**
+  - No significant abnormality identified in the chest.
+  - *Overall, the imaging findings are within normal limits.*
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- **Sample Descriptive Style:**
+  - 'Further clinical evaluation or follow-up imaging may be warranted to assess [specific abnormality or concern].'
+  - Correlation with Histopathological findings is suggested (if a neoplastic mass warrants biopsy).
+  - 'Consultation with [relevant medical specialty] is advised for appropriate management.'
+  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

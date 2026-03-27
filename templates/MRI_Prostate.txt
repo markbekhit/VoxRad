@@ -1,0 +1,59 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Prostate (mpMRI)
+
+### Technique:
+Multiparametric MRI of the prostate was performed using a 3T scanner. Sequences included high-resolution T2-weighted in axial, coronal, and sagittal planes; diffusion-weighted imaging (DWI) with ADC mapping; and dynamic contrast-enhanced (DCE) T1-weighted sequences following intravenous gadolinium administration.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions, PSA level if provided].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly using PI-RADS v2.1 lexicon — describe lesion location (zone, sector per PI-RADS sector map), size, T2 signal, diffusion restriction, and DCE characteristics.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an mpMRI Prostate report involves Prostate (size in three dimensions, estimated volume, zonal anatomy: peripheral zone, transition zone, central zone), Prostatic Urethra, Seminal Vesicles (bilateral), Neurovascular Bundles (bilateral), Prostatic Capsule (extracapsular extension), Bladder Neck, Rectum, Pelvic Lymph Nodes, Bony Pelvis (if marrow signal abnormality), and Visualized Pelvic Structures. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Peripheral Zone:** T2 hypointense lesion in the right posterior mid-peripheral zone (sector PRm), measuring 1.4 cm, with restricted diffusion (ADC ~600 µm²/s) and early DCE enhancement. PI-RADS 5.
+    - **Transition Zone:** Heterogeneous signal consistent with benign prostatic hyperplasia (BPH). No dominant nodule meeting PI-RADS ≥ 3 criteria.
+    - **Seminal Vesicles:** No T2 signal abnormality or restricted diffusion. No seminal vesicle invasion.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] PI-RADS, multiparametric, peripheral zone, transition zone, seminal vesicles, extracapsular extension, neurovascular bundle, ADC, diffusion restriction, prostatic capsule, benign prostatic hyperplasia [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+- Assign PI-RADS score (1–5) for each index lesion. State overall PI-RADS assessment.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Include PI-RADS score.
+- **Sample:**
+  - Right posterior mid-peripheral zone lesion — PI-RADS 5 (clinically significant prostate cancer highly likely).
+  - No evidence of extracapsular extension or seminal vesicle invasion.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- Follow PI-RADS v2.1 management recommendations.
+- 'MRI-targeted transperineal biopsy is recommended for PI-RADS ≥ 3 lesions — urology consultation advised.'
+- 'Staging CT chest/abdomen/pelvis and bone scan may be warranted for confirmed high-grade prostate cancer.'
+
+---

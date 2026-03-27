@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Lumbar Spine
+
+### Technique:
+MRI of the lumbar spine was performed using T1-weighted, T2-weighted, and STIR sequences in sagittal and axial planes. [If contrast: Post-gadolinium T1-weighted sequences were also obtained.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing disc morphology (bulge/protrusion/extrusion/sequestration), signal change, degree of canal/foraminal/lateral recess compromise, and nerve root involvement.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Lumbar Spine report involves Vertebral Bodies (L1–L5, S1), Bone Marrow Signal, Intervertebral Discs (L1/2 through L5/S1 — disc height, T2 signal, disc morphology), End Plates, Facet Joints (bilateral, each level), Spinal Canal (AP diameter), Thecal Sac, Cauda Equina Nerve Roots, Lateral Recesses (bilateral), Neural Foramina (bilateral, each level), Ligamentum Flavum, Sacroiliac Joints, Paraspinal Muscles, and Visualized Abdominal Structures. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **L4/L5:** Left paracentral disc protrusion abutting the traversing left L5 nerve root with mild left lateral recess narrowing.
+    - **L5/S1:** Broad-based disc bulge with mild bilateral foraminal narrowing.
+    - **Thecal Sac:** Adequate calibre throughout the remaining levels.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] spondylolysis, spondylolisthesis, foraminal stenosis, lateral recess, cauda equina, ligamentum flavum, Modic, annular fissure, protrusion, extrusion, sequestration, facet hypertrophy [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Lumbar spondylosis most significant at [level] with [disc protrusion / canal stenosis] affecting [nerve root].
+  - No acute fracture or marrow signal abnormality.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Neurosurgical/orthopaedic consultation is advised if radiculopathy or cauda equina symptoms are present.'
+- 'Physiotherapy and conservative management may be appropriate for mild disc disease.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

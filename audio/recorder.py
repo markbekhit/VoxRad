@@ -20,6 +20,7 @@ audio_data = []
 start_time = None
 recording_thread = None
 pause_event = threading.Event()
+latest_audio_chunk = None  # Latest 1-second chunk, polled by waveform visualizer
 
 
 def record_audio():
@@ -82,7 +83,7 @@ def pause_audio():
         start_waveform_simulation(canvas, config.root)
 
 def background_recording(device_index=None):
-    global audio_data, start_time, recording, paused, pause_event
+    global audio_data, start_time, recording, paused, pause_event, latest_audio_chunk
     fs = 44100
     start_time = time.time()
 
@@ -98,6 +99,7 @@ def background_recording(device_index=None):
                 if overflowed:
                     print("Audio buffer overflowed")
                 audio_data.append(data)
+                latest_audio_chunk = data  # expose for waveform visualization
                 print(f"Chunk {loop_counter}: shape={data.shape}, overflowed={overflowed}")
                 loop_counter += 1
             print(f"Recording stopped. Total chunks recorded: {loop_counter}")

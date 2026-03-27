@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Chest X-Ray (CXR)
+
+### Technique:
+[PA / AP / Lateral] projection chest radiograph was obtained. [Portable AP if bedside.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, a CXR report involves Technical Adequacy (rotation, inspiratory effort, exposure), Lungs (each zone: upper, mid, lower zones — right and left), Hila (size and density), Pleura (costophrenic angles, pleural effusion, pneumothorax), Trachea and Mediastinum (width, contour, position), Cardiac Silhouette (size — cardiothoracic ratio, contour), Aortic Knuckle, Hemidiaphragms (right and left), Costophrenic Angles, Bones (ribs, clavicles, scapulae, visible spine, shoulder joints), Soft Tissues, and Visible Abdominal Structures (subdiaphragmatic gas). Lines, tubes, and implanted devices should be commented on if present. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Lungs:** Homogeneous opacity in the right lower zone consistent with consolidation. No nodules in the remaining lung fields.
+    - **Pleura:** No pleural effusion or pneumothorax.
+    - **Cardiac Silhouette:** Normal in size, cardiothoracic ratio < 0.5.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] consolidation, atelectasis, pneumothorax, pleural effusion, cardiomegaly, mediastinal widening, costophrenic angle, hilar, opacification, interstitial, reticulonodular [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Right lower zone consolidation — likely infective in aetiology.
+  - No pleural effusion, pneumothorax, or significant cardiomegaly.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'CT chest is recommended for further characterisation of [finding].'
+- 'Follow-up CXR in [4–6 weeks] after treatment is recommended to confirm resolution of consolidation.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

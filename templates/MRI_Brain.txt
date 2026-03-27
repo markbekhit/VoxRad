@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Brain
+
+### Technique:
+MRI of the brain was performed using a standard brain protocol including T1-weighted, T2-weighted, FLAIR, DWI/ADC, and GRE/SWI sequences in axial, coronal, and sagittal planes. [If contrast: Post-gadolinium T1-weighted sequences were also obtained.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, signal characteristics (T1/T2/FLAIR/DWI), enhancement pattern, and mass effect.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Brain report involves Brain Parenchyma (cerebral hemispheres – frontal, parietal, temporal, occipital lobes), Cerebellum and Vermis, Brainstem (midbrain, pons, medulla), Corpus Callosum, Basal Ganglia and Thalami, Internal Capsules, Periventricular and Subcortical White Matter, Cortical Grey Matter, Ventricular System (lateral ventricles, third ventricle, fourth ventricle), Sulci and Cisterns, Hippocampi, Pituitary Gland and Sella, Cerebellopontine Angle Cisterns, Cranial Nerves (if evaluable), Intracranial Vessels (if MRA included), Skull Base, Calvarium, and Extracranial Soft Tissues. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Brain Parenchyma:** No abnormal signal intensity on T2/FLAIR sequences.
+    - **Diffusion-Weighted Imaging:** No restricted diffusion to suggest acute infarction.
+    - **Ventricular System:** Normal in size and configuration.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] hippocampal, periventricular, leukoaraiosis, gliosis, demyelination, enhancement, susceptibility, diffusion restriction, FLAIR, cerebellopontine, tentorial, uncal, fornix, thalamus, putamen, caudate [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - No acute intracranial abnormality identified on MRI.
+  - *Overall, the MRI brain is within normal limits.*
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'MR spectroscopy / perfusion imaging is recommended for further characterisation of [lesion].'
+- 'Neurology/Neurosurgical consultation is advised.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

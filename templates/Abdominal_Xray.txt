@@ -1,0 +1,57 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Abdominal X-Ray (AXR)
+
+### Technique:
+[Supine / Erect / Decubitus] abdominal radiograph was obtained.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an AXR report involves Bowel Gas Pattern (small bowel loops — calibre, distribution; large bowel — calibre, haustra), Free Air (pneumoperitoneum — subdiaphragmatic or extraluminal), Calcifications (renal, ureteric, gallstones, vascular calcification, pancreatic calcification), Solid Organs (liver outline, spleen, kidney shadows), Psoas Shadows (bilateral), Bladder Outline, Retroperitoneal Structures, Hernias (if visualised), Bones (lumbar vertebrae, pelvis, visible lower ribs, hip joints), Soft Tissues, and Visible Lower Chest (hemidiaphragms). If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Bowel Gas Pattern:** Dilated small bowel loops up to [X] cm without valvulae conniventes — findings in keeping with small bowel obstruction.
+    - **Free Air:** No pneumoperitoneum identified.
+    - **Calcifications:** No radioopaque calculi identified in the KUB region.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] pneumoperitoneum, obstruction, ileus, caecum, volvulus, calculus, radiopaque, psoas, haustral, valvulae conniventes, hepatomegaly, splenomegaly [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Non-specific bowel gas pattern. No free air or obstruction.
+  - No radioopaque calculi in the KUB region.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'CT abdomen is recommended for definitive evaluation of [obstruction / perforation / mass].'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

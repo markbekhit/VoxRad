@@ -1,0 +1,53 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Bone Scintigraphy (Whole-Body Bone Scan)
+
+### Technique:
+Whole-body planar bone scintigraphy was performed approximately 3 hours following intravenous administration of [X] MBq of Tc-99m methylene diphosphonate (MDP). Anterior and posterior whole-body images were acquired. [If SPECT/CT: SPECT/CT of the [region] was additionally performed for anatomical localisation.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions, primary tumour type if provided].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the abnormal tracer uptake is from the transcript. Then format it correctly, describing increased or decreased uptake, its distribution (focal/diffuse/superscan), and likely aetiology.
+- First mention the sites of abnormal uptake.
+- Then mention ALL the regions that demonstrate normal uptake. For your guidance, a Bone Scan report involves Skull and Calvarium, Facial Bones and Mandible, Cervical Spine, Thoracic Spine, Lumbar Spine, Sacrum and Coccyx, Pelvis (iliac wings, acetabulum, pubic rami, ischium), Ribs (each side — upper, mid, lower ribs), Sternum, Clavicles and Acromioclavicular Joints, Scapulae, Humeri, Elbows and Forearms, Wrists and Hands, Femora, Knees, Tibiae and Fibulae, Ankles and Feet, Soft Tissue Uptake, Kidneys and Bladder (physiological), and Renal Uptake Symmetry. If not mentioned, state "{region} demonstrates normal uptake."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+- **Commonly Misspelled Words:**
+[correct spellings] scintigraphy, technetium, methylene diphosphonate, tracer uptake, osteoblastic, osteolytic, superscan, photopenic, metastasis, metastases, degenerative, sacroiliac [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Multifocal areas of increased tracer uptake in the [regions] consistent with [skeletal metastases / degenerative changes].
+  - No superscan pattern. Kidneys demonstrate symmetric physiological uptake.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Targeted CT or MRI is recommended for further characterisation of [specific lesion].'
+- 'Nuclear medicine / oncology consultation is advised.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

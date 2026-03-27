@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Shoulder
+
+### Technique:
+MRI of the [right/left] shoulder was performed using PD-weighted fat-suppressed, T2-weighted, T1-weighted, and STIR sequences in coronal oblique, sagittal oblique, and axial planes. [If arthrogram: MR arthrography was performed following intra-articular gadolinium injection.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing morphology, signal, and extent of tear (partial/full-thickness, retraction).
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Shoulder report involves Rotator Cuff (supraspinatus, infraspinatus, teres minor, subscapularis — each tendon separately), Long Head of Biceps Tendon, Biceps Tendon Sheath, Glenohumeral Joint and Labrum (anterior, posterior, superior — SLAP), Glenohumeral Articular Cartilage, Subacromial–Subdeltoid Bursa, Acromioclavicular Joint, Acromion (morphology, os acromiale), Coracoclavicular Ligaments, Glenohumeral Capsule and Ligaments, Bony Structures (humeral head, glenoid, acromion, clavicle, coracoid), Deltoid Muscle, and Axillary Recess. If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Supraspinatus:** Full-thickness tear at the critical zone with 1.5 cm medial retraction.
+    - **Infraspinatus and Teres Minor:** Intact.
+    - **Subscapularis:** Intact, no tear.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] supraspinatus, infraspinatus, subscapularis, labrum, SLAP lesion, subacromial, acromioclavicular, impingement, tendinopathy, bursitis, glenohumeral, coracoacromial [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- **Sample:**
+  - Full-thickness supraspinatus tear with [X] cm retraction.
+  - No significant labral tear or glenohumeral instability.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Orthopaedic consultation is advised for surgical repair of significant rotator cuff tear.'
+- 'Physiotherapy may be appropriate for partial tears and impingement syndrome.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

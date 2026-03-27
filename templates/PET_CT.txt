@@ -1,0 +1,58 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+PET-CT (FDG PET-CT / Whole Body)
+
+### Technique:
+Whole-body FDG PET-CT was performed from the vertex to the mid-thighs following intravenous administration of [X] MBq of F-18 fluorodeoxyglucose (FDG). The patient fasted for at least 6 hours prior to the scan. Blood glucose level at the time of injection was [X] mmol/L. PET images were acquired approximately 60 minutes post-injection and co-registered with the low-dose CT for attenuation correction and anatomical localisation. Diagnostic-quality CT of the [chest/abdomen/pelvis] was additionally obtained.
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions, primary malignancy, staging/restaging/response assessment].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the FDG-avid lesions are from the transcript. For each lesion, report SUVmax, size, and location.
+- First mention the sites of abnormal FDG uptake.
+- Then mention ALL the regions surveyed. For your guidance, a PET-CT report involves Head and Neck (brain, oropharynx, larynx, thyroid, cervical lymph nodes), Thorax (lungs, mediastinum, hilar lymph nodes, pleura, chest wall), Abdomen (liver, spleen, stomach, small and large bowel, pancreas, kidneys, adrenal glands, para-aortic lymph nodes), Pelvis (bladder, pelvic lymph nodes, pelvic organs), Skeleton (axial and appendicular), Soft Tissues, Physiological FDG Uptake (brain, myocardium, liver, spleen, bowel, kidneys/bladder). If not mentioned, state "{region} demonstrates no abnormal FDG uptake."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Mediastinum:** FDG-avid subcarinal lymph node (SUVmax [X]) measuring [X] mm.
+    - **Liver:** No FDG-avid hepatic lesion. Physiological background uptake.
+    - **Skeleton:** No FDG-avid skeletal lesion.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] fluorodeoxyglucose, SUVmax, FDG-avid, hypermetabolic, hypometabolic, attenuation, standardised uptake value, Deauville, mediastinal blood pool, hepatic uptake, physiological, malignancy [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Include staging summary (TNM) if applicable.
+- **Sample:**
+  - FDG-avid [primary tumour] at [site] with [mediastinal / pelvic] lymph node involvement — [Stage].
+  - No evidence of distant metastatic disease.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Offer recommendations for further evaluation or management based on the impression of the report.
+- 'Multidisciplinary oncology team review is recommended for staging and treatment planning.'
+- 'Biopsy confirmation of [FDG-avid lesion] is recommended before treatment.'
+- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+
+---

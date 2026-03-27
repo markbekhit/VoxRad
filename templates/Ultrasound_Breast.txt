@@ -1,0 +1,59 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Ultrasound Breast
+
+### Technique:
+Ultrasound examination of [the right / the left / both] breast(s) was performed using a high-frequency linear transducer. Systematic evaluation of all quadrants and the retroareolar region was performed. [If targeted: Directed ultrasound was performed to correlate with the [clinical / mammographic / MRI] finding.]
+
+### Clinical Details
+**Instructions:**
+- **If provided:**
+  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+
+- **If not provided:**
+  - 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly using ACR BI-RADS lexicon — describe mass shape (oval/round/irregular), orientation (parallel/not parallel), margin (circumscribed/indistinct/angular/microlobulated/spiculated), and echo pattern (anechoic/hyperechoic/complex/hypoechoic/isoechoic/heterogeneous).
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, a Breast Ultrasound report involves Right Breast (each quadrant and clock position, retroareolar region, skin and subcutaneous fat), Left Breast, Nipple–Areolar Complex (bilateral), Right Axilla and Axillary Lymph Nodes, Left Axilla and Axillary Lymph Nodes, and Tissue Composition (fatty / fibroglandular). If not mentioned, state "{structure} appears normal."
+
+  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
+  - DO NOT club rest of the structures to be normal.
+  - BUT RATHER mention each in a new bullet point.
+    For instance:
+    - **Right Breast 2 o'clock, 4 cm from nipple:** Oval, parallel, circumscribed hypoechoic mass measuring [X] mm — BI-RADS 3. Likely benign.
+    - **Left Breast:** No discrete mass or architectural distortion.
+    - **Axillary Lymph Nodes:** No pathologically enlarged lymph nodes bilaterally.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] BI-RADS, hypoechoic, hyperechoic, anechoic, circumscribed, spiculated, microlobulated, posterior acoustic enhancement, posterior shadowing, retroareolar, axillary, lymphadenopathy [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+- Assign a final BI-RADS category (0–6) in the impression.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points. Include BI-RADS category.
+- **Sample:**
+  - Right breast 2 o'clock oval circumscribed hypoechoic mass — BI-RADS 3 (probably benign). Short-term follow-up in 6 months.
+  - No suspicious lesion in the left breast.
+
+### Advice/Recommendation(s):
+**Instructions:**
+- Follow ACR BI-RADS management recommendations for the assigned category.
+- 'Ultrasound-guided core needle biopsy is recommended for BI-RADS 4 and 5 lesions.'
+- 'Short-term follow-up ultrasound in 6 months is recommended for BI-RADS 3 lesions.'
+- 'Breast surgery / multidisciplinary team review is advised for suspicious lesions.'
+
+---

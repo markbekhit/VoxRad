@@ -5,16 +5,16 @@ See `~/.gstack/projects/markbekhit-VoxRad/ceo-plans/2026-03-27-voxrad-improvemen
 
 ## Active Sprint (Accepted Scope)
 
-- [ ] **Security hardening** — Fix 3 production blockers for PHI handling:
-  - `audio/transcriber.py`: Replace `/tmp/temp_audio.mp3` with `tempfile.mkstemp()` + cleanup in `finally`
-  - `utils/encryption.py`: Add rate limiting (5 attempts, then 30s lockout) to `get_password_from_user()`
-  - `llm/secure_paste.py`: Escape `\` and `"` in report text before AppleScript injection
+- [x] **Security hardening** — Fix 3 production blockers for PHI handling:
+  - `audio/transcriber.py`: Already used `tempfile.NamedTemporaryFile` — no change needed
+  - `utils/encryption.py`: Rate limiting added (5 attempts, then 30s lockout)
+  - `llm/secure_paste.py`: `\` and `"` now escaped before AppleScript injection
 
-- [ ] **Real audio waveform** — Replace fake random-line animation in `ui/utils.py` with actual amplitude data from `audio/recorder.py`. Expose `audio_data[-4096:]` as a shared buffer polled by the waveform canvas.
+- [x] **Real audio waveform** — `ui/utils.py` now reads `audio.recorder.latest_audio_chunk` (updated each 1s loop in `background_recording`), downsamples to canvas width, and draws real amplitude bars.
 
-- [ ] **Local Whisper setup guide** — Create `docs/local-whisper-setup.md` covering faster-whisper, whisper.cpp HTTP server, VoxRad base URL config, model recommendations, and HIPAA air-gapped deployment note.
+- [x] **Local Whisper setup guide** — `docs/local-whisper-setup.md` created covering faster-whisper, whisper.cpp HTTP server, VoxRad base URL config, model recommendations, and HIPAA air-gapped deployment note.
 
-- [ ] **20+ report templates** — Create in `templates/`:
+- [x] **20+ report templates** — 27 templates created in `templates/`:
   - CT: `CT_Abdomen_Pelvis.txt`, `CT_Chest.txt`, `CT_Head_Brain.txt`, `CT_Spine_Cervical.txt`, `CT_Spine_Lumbar.txt`, `CT_Spine_Thoracic.txt`, `CT_Angiography_Thoracic.txt`, `CT_KUB.txt`
   - MRI: `MRI_Brain.txt`, `MRI_Spine_Cervical.txt`, `MRI_Spine_Lumbar.txt`, `MRI_Knee.txt`, `MRI_Shoulder.txt`, `MRI_Hip.txt`, `MRI_Abdomen_Liver.txt`, `MRI_Pelvis.txt`, `MRI_Breast.txt`, `MRI_Prostate.txt`
   - Plain/USG/Nuclear: `CXR.txt`, `Abdominal_Xray.txt`, `Ultrasound_Abdomen.txt`, `Ultrasound_Pelvis.txt`, `Ultrasound_Thyroid.txt`, `Ultrasound_Breast.txt`, `Bone_Scan.txt`, `PET_CT.txt`, `Echocardiography.txt`
