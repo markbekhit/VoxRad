@@ -78,6 +78,21 @@ def load_settings(web_mode: bool = False):
             os.makedirs(working_dir_env, exist_ok=True)
             logger.info("[web] Using VOXRAD_WORKING_DIR: %s", working_dir_env)
 
+        # Base URL + model overrides — essential for cloud deployments where
+        # local Whisper / Ollama are not available.
+        if os.environ.get("VOXRAD_TRANSCRIPTION_BASE_URL"):
+            config.TRANSCRIPTION_BASE_URL = os.environ["VOXRAD_TRANSCRIPTION_BASE_URL"]
+            logger.info("[web] Using VOXRAD_TRANSCRIPTION_BASE_URL: %s", config.TRANSCRIPTION_BASE_URL)
+        if os.environ.get("VOXRAD_TRANSCRIPTION_MODEL"):
+            config.SELECTED_TRANSCRIPTION_MODEL = os.environ["VOXRAD_TRANSCRIPTION_MODEL"]
+            logger.info("[web] Using VOXRAD_TRANSCRIPTION_MODEL: %s", config.SELECTED_TRANSCRIPTION_MODEL)
+        if os.environ.get("VOXRAD_TEXT_BASE_URL"):
+            config.BASE_URL = os.environ["VOXRAD_TEXT_BASE_URL"]
+            logger.info("[web] Using VOXRAD_TEXT_BASE_URL: %s", config.BASE_URL)
+        if os.environ.get("VOXRAD_TEXT_MODEL"):
+            config.SELECTED_MODEL = os.environ["VOXRAD_TEXT_MODEL"]
+            logger.info("[web] Using VOXRAD_TEXT_MODEL: %s", config.SELECTED_MODEL)
+
     config_dir = os.path.dirname(config.config_path)
 
     def _get_password_web(env_var: str, prompt: str) -> str | None:
