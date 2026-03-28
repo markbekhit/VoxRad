@@ -179,13 +179,55 @@ details > summary::before { content: "▶ "; font-size: 10px; }
 details[open] > summary::before { content: "▼ "; }
 details > summary::-webkit-details-marker { display: none; }
 
-/* ── Report output ── */
-#report-output {
-  font-family: "Menlo", "Consolas", monospace;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
+/* ── Report card header ── */
+.report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+/* ── Rendered markdown report ── */
+.report-rendered {
   min-height: 160px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 13px;
+}
+.report-rendered:empty::before {
+  content: "Formatted report will appear here…";
+  color: var(--muted);
+}
+.report-rendered h1,
+.report-rendered h2,
+.report-rendered h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--yellow);
+  margin: 14px 0 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+.report-rendered h1:first-child,
+.report-rendered h2:first-child,
+.report-rendered h3:first-child { margin-top: 0; }
+.report-rendered strong { color: var(--text); font-weight: 600; }
+.report-rendered p { margin: 4px 0; }
+.report-rendered ul, .report-rendered ol {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+.report-rendered li { margin: 2px 0; }
+.report-rendered li + li { margin-top: 1px; }
+
+/* ── Raw edit textarea ── */
+#report-raw {
   width: 100%;
   resize: vertical;
   background: var(--bg);

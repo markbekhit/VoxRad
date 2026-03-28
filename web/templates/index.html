@@ -91,13 +91,17 @@
 
   <!-- ── Report ── -->
   <div class="card">
-    <div class="card-title">Structured Report <span style="font-weight:400;text-transform:none;">(editable)</span></div>
-    <textarea id="report-output" rows="16" placeholder="Formatted report will appear here…"></textarea>
-    <div class="row mt-8">
-      <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>
-        &#128203; Copy Report
-      </button>
+    <div class="report-card-header">
+      <div class="card-title" style="margin-bottom:0;">Structured Report</div>
+      <div class="row" style="gap:6px;">
+        <button id="btn-edit-toggle" class="btn btn-ghost btn-sm" disabled>&#9998; Edit</button>
+        <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>&#128203; Copy</button>
+      </div>
     </div>
+    <!-- Rendered markdown view (default) -->
+    <div id="report-rendered" class="report-rendered"></div>
+    <!-- Raw edit textarea (shown when editing) -->
+    <textarea id="report-raw" rows="16" style="display:none;" placeholder="Formatted report will appear here…"></textarea>
   </div>
 
 </main>
@@ -108,6 +112,7 @@
   Reports contain PHI: treat this server accordingly.
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

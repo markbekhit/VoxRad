@@ -36,10 +36,11 @@ function setStatus(msg, type = "") {
 
 function setUI(mode) {
   // mode: idle | recording | processing | transcribed | formatting | done
-  $("btn-record").disabled = !["idle", "transcribed", "done"].includes(mode);
-  $("btn-stop").disabled   = mode !== "recording";
-  $("btn-format").disabled = !["transcribed", "done"].includes(mode);
-  $("btn-copy").disabled   = mode !== "done";
+  $("btn-record").disabled      = !["idle", "transcribed", "done"].includes(mode);
+  $("btn-stop").disabled        = mode !== "recording";
+  $("btn-format").disabled      = !["transcribed", "done"].includes(mode);
+  $("btn-copy").disabled        = mode !== "done";
+  $("btn-edit-toggle").disabled = mode !== "done";
 
   const dot = $("rec-dot");
   if (dot) dot.style.display = mode === "recording" ? "inline-block" : "none";
@@ -359,11 +360,11 @@ async function formatReport() {
       throw new Error(err.detail || resp.statusText);
     }
     const data = await resp.json();
-    $("report-output").value = data.report;
+    setReport(data.report);
     const fhirNote = data.fhir_saved ? " · FHIR R4 JSON saved." : "";
     setUI("done");
     setStatus("Report generated." + fhirNote, "success");
-    $("report-output").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("report-rendered").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     setUI("transcribed");
     setStatus(`Format error: ${err.message}`, "error");
@@ -371,10 +372,38 @@ async function formatReport() {
 }
 
 // ---------------------------------------------------------------------------
+// Report: render markdown + edit/preview toggle
+// ---------------------------------------------------------------------------
+let _reportEditMode = false;
+
+function setReport(markdown) {
+  $("report-raw").value = markdown;
+  $("report-rendered").innerHTML = marked.parse(markdown);
+  if (_reportEditMode) _setReportEditMode(false); // always start in preview
+}
+
+function _setReportEditMode(editing) {
+  _reportEditMode = editing;
+  $("report-rendered").style.display = editing ? "none" : "";
+  $("report-raw").style.display      = editing ? "" : "none";
+  $("btn-edit-toggle").textContent   = editing ? "✓ Done" : "✎ Edit";
+}
+
+function toggleReportEdit() {
+  if (!_reportEditMode) {
+    _setReportEditMode(true);
+  } else {
+    // Switching back to preview — re-render any edits
+    $("report-rendered").innerHTML = marked.parse($("report-raw").value);
+    _setReportEditMode(false);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Copy report
 // ---------------------------------------------------------------------------
 async function copyReport() {
-  const text = $("report-output").value;
+  const text = $("report-raw").value;
   if (!text.trim()) return;
   try {
     await navigator.clipboard.writeText(text);
@@ -420,4 +449,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);
   $("btn-copy").addEventListener("click", copyReport);
+  $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
 });
