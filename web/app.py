@@ -120,22 +120,31 @@ _format_lock = threading.Lock()
 # Helper: list available templates
 # ---------------------------------------------------------------------------
 
+_BUNDLED_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+
+
 def _list_templates() -> list[str]:
-    template_dir = os.path.join(config.save_directory or "", "templates")
-    if not os.path.isdir(template_dir):
-        return []
-    return sorted(
-        f for f in os.listdir(template_dir) if f.endswith((".txt", ".md"))
-    )
+    # Prefer user templates in the working directory; fall back to bundled ones.
+    for d in [
+        os.path.join(config.save_directory or "", "templates"),
+        _BUNDLED_TEMPLATES_DIR,
+    ]:
+        if os.path.isdir(d):
+            return sorted(f for f in os.listdir(d) if f.endswith((".txt", ".md")))
+    return []
 
 
 def _load_template_content(template_name: str) -> str:
     if not template_name:
         return ""
-    path = os.path.join(config.save_directory or "", "templates", template_name)
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
+    for d in [
+        os.path.join(config.save_directory or "", "templates"),
+        _BUNDLED_TEMPLATES_DIR,
+    ]:
+        path = os.path.join(d, template_name)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
     return ""
 
 

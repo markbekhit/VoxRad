@@ -28,7 +28,7 @@ function setStatus(msg, type = "") {
 
 function setUI(mode) {
   // mode: idle | recording | processing | transcribed | formatting | done
-  $("btn-record").disabled = mode !== "idle";
+  $("btn-record").disabled = !["idle", "transcribed", "done"].includes(mode);
   $("btn-stop").disabled   = mode !== "recording";
   $("btn-format").disabled = !["transcribed", "done"].includes(mode);
   $("btn-copy").disabled   = mode !== "done";
@@ -203,9 +203,10 @@ async function submitAudio() {
     }
     const data = await resp.json();
     state.sessionId = data.session_id;
-    $("transcription").value = data.transcription;
+    const existing = $("transcription").value.trim();
+    $("transcription").value = existing ? existing + " " + data.transcription : data.transcription;
     setUI("transcribed");
-    setStatus("Transcription complete. Edit if needed, then click Format.", "success");
+    setStatus("Transcription complete. Record again to add more, edit if needed, then Format.", "success");
   } catch (err) {
     setUI("idle");
     setStatus(`Transcription error: ${err.message}`, "error");
@@ -245,7 +246,7 @@ async function formatReport() {
       throw new Error(err.detail || resp.statusText);
     }
     const data = await resp.json();
-    $("report-output").textContent = data.report;
+    $("report-output").value = data.report;
     const fhirNote = data.fhir_saved ? " · FHIR R4 JSON saved." : "";
     setUI("done");
     setStatus("Report generated." + fhirNote, "success");
@@ -260,7 +261,7 @@ async function formatReport() {
 // Copy report
 // ---------------------------------------------------------------------------
 async function copyReport() {
-  const text = $("report-output").textContent;
+  const text = $("report-output").value;
   if (!text.trim()) return;
   try {
     await navigator.clipboard.writeText(text);
