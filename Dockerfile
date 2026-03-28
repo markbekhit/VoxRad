@@ -25,13 +25,6 @@ ENV VOXRAD_WEB_PASSWORD=voxrad \
 EXPOSE 8765
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python - <<'EOF'
-import urllib.request, sys
-try:
-    urllib.request.urlopen("http://localhost:8765/", timeout=4)
-    sys.exit(0)
-except Exception:
-    sys.exit(1)
-EOF
+    CMD python -c "import urllib.request, sys; urllib.request.urlopen('http://localhost:8765/health', timeout=4); sys.exit(0)"
 
 CMD ["python", "VoxRad.py", "--web", "--host", "0.0.0.0", "--port", "8765"]
