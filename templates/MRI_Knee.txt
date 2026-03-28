@@ -76,8 +76,8 @@ Cover all groups in this order:
 - Femur, tibia, fibula, patella
 - Bone Marrow Signal
 
-- **Commonly Misspelled Words:**
-[correct spellings] meniscus, meniscal, cruciate, collateral, chondral, osteochondral, patellofemoral, trochlear, Hoffa, posterolateral, osteophyte, subchondral oedema [correct spellings]
+- **ASR Prompt (do not include in report):**
+[correct spellings] MRI of the right knee. Normal body alignment. No marrow oedema, contusion or fracture. No joint effusion. Medial meniscus: oblique undersurface tear at the junction of the body and posterior horn. Lateral meniscus intact. ACL: partial thickness tear, fibres intact. PCL intact. MCL and LCL intact. Posterolateral corner structures intact. Articular cartilage intact, no focal chondral defect. Patellofemoral joint unremarkable. Quadriceps and patellar tendons intact. Hoffa fat pad unremarkable. Popliteal fossa clear. Small Baker's cyst without features of rupture. No bone marrow oedema. Osteophyte formation. Subchondral sclerosis. Trochlear dysplasia. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:

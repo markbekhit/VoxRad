@@ -222,15 +222,19 @@ def _is_hallucination(text: str) -> bool:
 # ---------------------------------------------------------------------------
 _RADIOLOGY_PROMPT = (
     "Radiology report dictation. "
-    "ACL, PCL, MCL, LCL, meniscus, meniscal, cruciate, collateral, oedema, effusion, "
-    "articular cartilage, chondral, osteochondral, osteophyte, subchondral, patellofemoral, "
-    "trochlear, Hoffa, posterolateral, synovitis, tendinopathy, bursitis, "
-    "supraspinatus, infraspinatus, subscapularis, labrum, SLAP, glenohumeral, acromioclavicular, "
-    "consolidation, atelectasis, pneumothorax, pleural effusion, mediastinum, lymphadenopathy, "
-    "bronchiectasis, pulmonary embolism, pericardial, hydronephrosis, nephrolithiasis, "
-    "cholelithiasis, hepatomegaly, splenomegaly, intervertebral disc, foraminal stenosis, "
-    "spinal canal, radiculopathy, spondylosis, haemorrhage, subdural, subarachnoid, "
-    "BIRADS, TIRADS, PIRADS, LIRADS, no fracture, no marrow oedema, intact, unremarkable."
+    "There is no marrow oedema, contusion, or fracture. No joint effusion identified. "
+    "There is an oblique undersurface tear of the posterior horn of the medial meniscus. "
+    "Small Baker's cyst without features of rupture. "
+    "The ACL and PCL are intact. The MCL and LCL are intact. "
+    "No pleural effusion or pneumothorax. No consolidation or atelectasis. "
+    "No lymphadenopathy. The mediastinum is unremarkable. "
+    "Supraspinatus tendon shows a partial thickness tear at the critical zone. "
+    "The labrum is intact with no SLAP lesion. "
+    "There is mild foraminal stenosis at L4/L5 with contact of the exiting nerve root. "
+    "No significant spinal canal stenosis. No disc protrusion. "
+    "No acute intracranial haemorrhage or midline shift. "
+    "No hydronephrosis. No nephrolithiasis or cholelithiasis. "
+    "Hepatomegaly with heterogeneous echotexture. Splenomegaly noted."
 )
 
 

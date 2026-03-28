@@ -41,7 +41,7 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Coronal a
 - Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
 - **Consolidation of Similar Findings:** Consolidate similar findings across different locations into a single comprehensive statement.
 - **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:
-[correct spellings] consolidation, atelectasis, pneumothorax, haemothorax, pleural effusion, mediastinal, lymphadenopathy, bronchiectasis, pulmonary embolism, pericardial effusion, subcarinal [correct spellings]
+[correct spellings] CT chest with contrast. The lungs are clear with no consolidation, atelectasis, or pneumothorax. No pleural effusion or haemothorax. No pulmonary embolism. The airways are patent to the segmental level with no bronchiectasis. The mediastinum is unremarkable. No mediastinal or hilar lymphadenopathy. No subcarinal lymphadenopathy. The heart is normal in size with no pericardial effusion. The thoracic aorta is normal in calibre. No axillary lymphadenopathy. No pleural thickening. Bony thorax intact with no lytic or sclerotic lesions. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:

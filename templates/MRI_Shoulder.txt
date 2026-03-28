@@ -38,7 +38,7 @@ MRI of the [right/left] shoulder was performed using PD-weighted fat-suppressed,
     - **Subscapularis:** Intact, no tear.
     - and so on...
 - **Commonly Misspelled Words:**
-[correct spellings] supraspinatus, infraspinatus, subscapularis, labrum, SLAP lesion, subacromial, acromioclavicular, impingement, tendinopathy, bursitis, glenohumeral, coracoacromial [correct spellings]
+[correct spellings] MRI of the right shoulder. Full thickness tear of the supraspinatus tendon at the critical zone with medial retraction. Infraspinatus intact. Teres minor intact. Subscapularis intact. Long head of biceps tendon intact within the bicipital groove. No SLAP lesion. The anterior and posterior labrum are intact. Glenohumeral articular cartilage intact. Subacromial subdeltoid bursa: mild bursitis. Acromioclavicular joint: mild degenerative change. Acromion: type two morphology, no os acromiale. Coracoclavicular ligaments intact. No significant glenohumeral joint effusion. Humeral head, glenoid, and clavicle: no fracture. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
