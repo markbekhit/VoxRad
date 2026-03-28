@@ -9,8 +9,22 @@ services:
         generateValue: true
       - key: VOXRAD_WORKING_DIR
         value: /data/working
-      # Set your OpenAI API keys in the Render dashboard:
+
+      # ── Transcription (Groq recommended — ~200 ms latency enables 600 ms live gaps) ──
+      # Get a free key at https://console.groq.com
+      # - key: VOXRAD_TRANSCRIPTION_API_KEY
+      #   value: gsk_...
+      # - key: VOXRAD_TRANSCRIPTION_BASE_URL
+      #   value: https://api.groq.com/openai/v1
+      # - key: VOXRAD_TRANSCRIPTION_MODEL
+      #   value: whisper-large-v3-turbo
+
+      # ── Transcription (OpenAI Whisper — works but ~1-3 s latency) ──
       # - key: VOXRAD_TRANSCRIPTION_API_KEY
       #   value: sk-...
+      # (VOXRAD_TRANSCRIPTION_BASE_URL and MODEL default to OpenAI / whisper-1)
+
+      # ── Report formatting (OpenAI) ──
       # - key: VOXRAD_TEXT_API_KEY
       #   value: sk-...
+      # (VOXRAD_TEXT_BASE_URL and VOXRAD_TEXT_MODEL default to OpenAI / gpt-4o-mini)
