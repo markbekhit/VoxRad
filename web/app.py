@@ -184,6 +184,56 @@ def list_templates(username: str = Depends(_verify_auth)):
     return {"templates": _list_templates()}
 
 
+# ---------------------------------------------------------------------------
+# Whisper hallucination filter
+# ---------------------------------------------------------------------------
+
+# Whisper reliably hallucinates these phrases on silent/noisy audio.
+# Normalise to lowercase, strip trailing punctuation before comparing.
+_HALLUCINATIONS: set[str] = {
+    "", "thank you", "thanks", "thank you so much", "thank you very much",
+    "thank you for watching", "thanks for watching", "thank you for listening",
+    "thanks for listening", "please like and subscribe", "don't forget to subscribe",
+    "okay", "ok", "alright", "right", "sure", "yes", "no", "yep", "nope",
+    "bye", "goodbye", "see you", "see you next time", "take care",
+    "hello", "hi", "hey", "welcome", "welcome back",
+    "you", "hmm", "mm", "mm-hmm", "um", "uh", "ah", "oh",
+    "of course", "absolutely", "indeed", "certainly",
+    "subtitles by", "subtitles", "captions by", "captions",
+    "transcribed by", "translated by",
+    "john", "omar", "james", "michael", "david",  # common single-name hallucinations
+}
+
+
+def _is_hallucination(text: str) -> bool:
+    normalised = text.strip().lower().rstrip(".,!?;: ").strip()
+    if normalised in _HALLUCINATIONS:
+        return True
+    # Single-word, non-medical short tokens are almost certainly hallucinations
+    words = normalised.split()
+    if len(words) == 1 and len(normalised) <= 6 and normalised.isalpha():
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Radiology vocabulary prompt for Whisper
+# Biases ASR toward medical terms; template-specific spellings override this.
+# ---------------------------------------------------------------------------
+_RADIOLOGY_PROMPT = (
+    "Radiology report dictation. "
+    "ACL, PCL, MCL, LCL, meniscus, meniscal, cruciate, collateral, oedema, effusion, "
+    "articular cartilage, chondral, osteochondral, osteophyte, subchondral, patellofemoral, "
+    "trochlear, Hoffa, posterolateral, synovitis, tendinopathy, bursitis, "
+    "supraspinatus, infraspinatus, subscapularis, labrum, SLAP, glenohumeral, acromioclavicular, "
+    "consolidation, atelectasis, pneumothorax, pleural effusion, mediastinum, lymphadenopathy, "
+    "bronchiectasis, pulmonary embolism, pericardial, hydronephrosis, nephrolithiasis, "
+    "cholelithiasis, hepatomegaly, splenomegaly, intervertebral disc, foraminal stenosis, "
+    "spinal canal, radiculopathy, spondylosis, haemorrhage, subdural, subarachnoid, "
+    "BIRADS, TIRADS, PIRADS, LIRADS, no fracture, no marrow oedema, intact, unremarkable."
+)
+
+
 _MOCK_TRANSCRIPTION = (
     "CT chest with contrast. "
     "The lungs are clear. No focal consolidation, pleural effusion, or pneumothorax. "
@@ -238,7 +288,6 @@ async def transcribe(
     if len(audio_bytes) > 100 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Audio exceeds 100 MB limit.")
 
-    _prune_sessions()
 
     tmp_path = None
     try:
@@ -248,15 +297,16 @@ async def transcribe(
             tmp.write(audio_bytes)
             tmp_path = tmp.name
 
-        # Extract [correct spellings] block from template for ASR prompt
-        prompt_spellings = " "
+        # Build ASR prompt: template-specific spellings take priority over the
+        # general radiology vocabulary prompt.
+        asr_prompt = _RADIOLOGY_PROMPT
         if template_name:
             content = _load_template_content(template_name)
             match = re.search(
                 r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
             )
             if match:
-                prompt_spellings = match.group(1).strip()
+                asr_prompt = match.group(1).strip()
 
         client = OpenAI(
             api_key=config.TRANSCRIPTION_API_KEY,
@@ -266,14 +316,20 @@ async def transcribe(
             result = client.audio.transcriptions.create(
                 file=(os.path.basename(tmp_path), f.read()),
                 model=config.SELECTED_TRANSCRIPTION_MODEL,
-                prompt=prompt_spellings,
+                prompt=asr_prompt,
                 language="en",
                 temperature=0.0,
             )
 
-        session_id = _create_session(result.text)
-        logger.info("Transcription complete for session %s (%d chars)", session_id, len(result.text))
-        return {"transcription": result.text, "session_id": session_id}
+        text = result.text.strip()
+        if _is_hallucination(text):
+            logger.debug("Discarded hallucination: %r", text)
+            return {"transcription": "", "session_id": ""}
+
+        _prune_sessions()
+        session_id = _create_session(text)
+        logger.info("Transcription complete for session %s (%d chars)", session_id, len(text))
+        return {"transcription": text, "session_id": session_id}
 
     except HTTPException:
         raise

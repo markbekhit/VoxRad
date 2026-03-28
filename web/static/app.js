@@ -21,7 +21,7 @@ const state = {
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
 const SILENCE_DURATION_MS = 600;    // 600 ms pause triggers segment (works well with Groq; increase to ~1500 ms for OpenAI Whisper)
-const MIN_SEGMENT_BYTES   = 4000;   // ignore blobs smaller than this (mic noise)
+const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this (~600 ms of silence encodes to ~8-10 KB)
 
 // ---------------------------------------------------------------------------
 // UI helpers
@@ -297,11 +297,10 @@ async function submitAudioSegment(chunks, isFinal) {
     const data = await resp.json();
     if (data.session_id) state.sessionId = data.session_id;
 
-    if (data.transcription) {
+    const newText = data.transcription ? data.transcription.trim() : "";
+    if (newText) {
       const existing = $("transcription").value.trim();
-      $("transcription").value = existing
-        ? existing + " " + data.transcription
-        : data.transcription;
+      $("transcription").value = existing ? existing + " " + newText : newText;
     }
 
     if (isFinal) {
