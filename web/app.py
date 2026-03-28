@@ -205,7 +205,7 @@ _HALLUCINATIONS: set[str] = {
 }
 
 
-def _is_hallucination(text: str) -> bool:
+def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
     normalised = text.strip().lower().rstrip(".,!?;: ").strip()
     if normalised in _HALLUCINATIONS:
         return True
@@ -213,8 +213,7 @@ def _is_hallucination(text: str) -> bool:
     words = normalised.split()
     if len(words) == 1 and len(normalised) <= 6 and normalised.isalpha():
         return True
-    # Repetition loop: any 5-word ngram appearing more than once is a
-    # hallucination (Whisper loops prompt text on silent audio).
+    # Repetition loop: any 5-word ngram appearing more than once
     if len(words) >= 10:
         seen: set[tuple] = set()
         for i in range(len(words) - 4):
@@ -222,6 +221,14 @@ def _is_hallucination(text: str) -> bool:
             if ngram in seen:
                 return True
             seen.add(ngram)
+    # Prompt-echo detection: discard if the transcription matches any sentence
+    # from the ASR prompt (Whisper completes/repeats prompt on silent audio)
+    if asr_prompt:
+        text_norm = text.strip().lower().rstrip(".,!?;: ")
+        for sentence in re.split(r"[.!?]", asr_prompt):
+            s = sentence.strip().lower().rstrip(".,!?;: ")
+            if len(s) > 15 and (text_norm == s or text_norm in s or s in text_norm):
+                return True
     return False
 
 
@@ -328,7 +335,7 @@ async def transcribe(
             )
 
         text = result.text.strip()
-        if _is_hallucination(text):
+        if _is_hallucination(text, asr_prompt):
             logger.debug("Discarded hallucination: %r", text)
             return {"transcription": "", "session_id": ""}
 
