@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 const state = {
   mediaRecorder: null,
+  stream: null,          // kept open between segments so mic stays active
   audioChunks: [],
   sessionId: null,
   isRecording: false,
@@ -13,7 +14,14 @@ const state = {
   audioCtx: null,
   analyser: null,
   animFrameId: null,
+  // Silence-triggered real-time transcription
+  silenceStart: null,
+  isSegmentTranscribing: false,
 };
+
+const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
+const SILENCE_DURATION_MS = 1800;   // hold for 1.8 s before triggering
+const MIN_SEGMENT_BYTES   = 4000;   // ignore blobs smaller than this (mic noise)
 
 // ---------------------------------------------------------------------------
 // UI helpers
@@ -70,8 +78,17 @@ function stopTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// Waveform (Web Audio API AnalyserNode)
+// Waveform + silence detection (Web Audio API AnalyserNode)
 // ---------------------------------------------------------------------------
+function getRMS(dataArr) {
+  let sum = 0;
+  for (let i = 0; i < dataArr.length; i++) {
+    const v = (dataArr[i] - 128) / 128.0;
+    sum += v * v;
+  }
+  return Math.sqrt(sum / dataArr.length);
+}
+
 function startWaveform(stream) {
   const canvas = $("waveform");
   const ctx = canvas.getContext("2d");
@@ -89,6 +106,31 @@ function startWaveform(stream) {
     state.animFrameId = requestAnimationFrame(draw);
     state.analyser.getByteTimeDomainData(dataArr);
 
+    // ── Silence detection ──────────────────────────────────────────────────
+    if (state.isRecording && !state.isSegmentTranscribing) {
+      const rms = getRMS(dataArr);
+      const now = Date.now();
+      if (rms < SILENCE_THRESHOLD) {
+        if (!state.silenceStart) {
+          state.silenceStart = now;
+        } else if (now - state.silenceStart >= SILENCE_DURATION_MS) {
+          // Only trigger if we have meaningful audio accumulated
+          const approxBytes = state.audioChunks.reduce((s, c) => s + c.size, 0);
+          if (approxBytes >= MIN_SEGMENT_BYTES) {
+            state.silenceStart = null;
+            state.isSegmentTranscribing = true;
+            // Stop recorder → onstop will restart it and send segment
+            if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+              state.mediaRecorder.stop();
+            }
+          }
+        }
+      } else {
+        state.silenceStart = null;
+      }
+    }
+
+    // ── Draw waveform ──────────────────────────────────────────────────────
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#0E1118";
@@ -120,7 +162,6 @@ function stopWaveform() {
     state.audioCtx = null;
     state.analyser = null;
   }
-  // Draw flat line
   const canvas = $("waveform");
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -135,34 +176,56 @@ function stopWaveform() {
 }
 
 // ---------------------------------------------------------------------------
+// MediaRecorder management
+// ---------------------------------------------------------------------------
+function _startMediaRecorder() {
+  const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    ? "audio/webm;codecs=opus"
+    : "audio/webm";
+
+  state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
+  state.audioChunks = [];
+
+  state.mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) state.audioChunks.push(e.data);
+  };
+
+  state.mediaRecorder.onstop = () => {
+    const chunks = state.audioChunks.splice(0); // take and clear
+    const isFinal = !state.isRecording;
+
+    if (state.isRecording) {
+      // Silence-triggered segment — restart recorder immediately so the mic
+      // stays active while we send this segment in the background.
+      _startMediaRecorder();
+    } else {
+      // User clicked Stop — release the microphone.
+      if (state.stream) {
+        state.stream.getTracks().forEach((t) => t.stop());
+        state.stream = null;
+      }
+    }
+
+    submitAudioSegment(chunks, isFinal);
+  };
+
+  state.mediaRecorder.start(250);
+}
+
+// ---------------------------------------------------------------------------
 // Recording
 // ---------------------------------------------------------------------------
 async function startRecording() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    startWaveform(stream);
-
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/webm";
-
-    state.mediaRecorder = new MediaRecorder(stream, { mimeType });
-    state.audioChunks = [];
-
-    state.mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) state.audioChunks.push(e.data);
-    };
-
-    state.mediaRecorder.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      submitAudio();
-    };
-
-    state.mediaRecorder.start(250); // collect chunks every 250ms
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startWaveform(state.stream);
+    state.silenceStart = null;
+    state.isSegmentTranscribing = false;
+    _startMediaRecorder();
     state.isRecording = true;
     startTimer();
     setUI("recording");
-    setStatus("Recording… click Stop when finished.", "active");
+    setStatus("Recording… pause briefly to see live transcription.", "active");
   } catch (err) {
     setStatus(
       `Microphone access denied: ${err.message}. Check browser permissions.`,
@@ -172,44 +235,94 @@ async function startRecording() {
 }
 
 function stopRecording() {
-  if (state.mediaRecorder && state.isRecording) {
-    state.mediaRecorder.stop();
-    state.isRecording = false;
-    stopTimer();
-    stopWaveform();
-    setUI("processing");
-    setStatus("Processing audio…", "active");
+  if (!state.isRecording) return;
+  state.isRecording = false;
+  stopTimer();
+  stopWaveform();
+  setUI("processing");
+  setStatus("Processing remaining audio…", "active");
+
+  if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+    state.mediaRecorder.stop(); // onstop handles stream teardown + final transcription
+  } else {
+    // Edge case: recorder already stopped mid-silence-segment restart.
+    // Stream cleanup happened (or will happen) in that onstop. Just update UI.
+    if (state.stream) {
+      state.stream.getTracks().forEach((t) => t.stop());
+      state.stream = null;
+    }
+    const hasText = $("transcription").value.trim();
+    setUI(hasText ? "transcribed" : "idle");
+    setStatus(hasText ? "Transcription complete. Edit if needed, then Format." : "No speech detected.", hasText ? "success" : "error");
+    state.isSegmentTranscribing = false;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Transcribe
+// Transcribe segment (called from onstop for both mid-recording and final)
 // ---------------------------------------------------------------------------
-async function submitAudio() {
-  const blob = new Blob(state.audioChunks, { type: "audio/webm" });
-  const formData = new FormData();
-  formData.append("audio", blob, "recording.webm");
+async function submitAudioSegment(chunks, isFinal) {
+  const blob = new Blob(chunks, { type: "audio/webm" });
 
+  if (blob.size < MIN_SEGMENT_BYTES) {
+    // Too small — silence or noise only, nothing to transcribe.
+    if (isFinal) {
+      const hasText = $("transcription").value.trim();
+      setUI(hasText ? "transcribed" : "idle");
+      setStatus(
+        hasText ? "Transcription complete. Edit if needed, then Format." : "No speech detected.",
+        hasText ? "success" : "error"
+      );
+    }
+    state.isSegmentTranscribing = false;
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("audio", blob, "segment.webm");
   const templateName = $("template-select").value;
   if (templateName) formData.append("template_name", templateName);
-
-  setStatus("Transcribing audio…", "active");
 
   try {
     const resp = await fetch("/transcribe", { method: "POST", body: formData });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-      throw new Error(err.detail || resp.statusText);
+      if (isFinal) {
+        setUI("idle");
+        setStatus(`Transcription error: ${err.detail}`, "error");
+      }
+      return;
     }
     const data = await resp.json();
-    state.sessionId = data.session_id;
-    const existing = $("transcription").value.trim();
-    $("transcription").value = existing ? existing + " " + data.transcription : data.transcription;
-    setUI("transcribed");
-    setStatus("Transcription complete. Record again to add more, edit if needed, then Format.", "success");
+    if (data.session_id) state.sessionId = data.session_id;
+
+    if (data.transcription) {
+      const existing = $("transcription").value.trim();
+      $("transcription").value = existing
+        ? existing + " " + data.transcription
+        : data.transcription;
+    }
+
+    if (isFinal) {
+      const hasText = $("transcription").value.trim();
+      setUI(hasText ? "transcribed" : "idle");
+      setStatus(
+        hasText
+          ? "Transcription complete. Record again to add more, edit if needed, then Format."
+          : "No speech detected.",
+        hasText ? "success" : "error"
+      );
+    } else {
+      // Mid-recording segment done — recorder already restarted
+      setStatus("Recording… pause briefly to see live transcription.", "active");
+    }
   } catch (err) {
-    setUI("idle");
-    setStatus(`Transcription error: ${err.message}`, "error");
+    if (isFinal) {
+      setUI("idle");
+      setStatus(`Transcription error: ${err.message}`, "error");
+    }
+  } finally {
+    state.isSegmentTranscribing = false;
   }
 }
 
@@ -267,7 +380,6 @@ async function copyReport() {
     await navigator.clipboard.writeText(text);
     setStatus("Report copied to clipboard.", "success");
   } catch {
-    // Fallback for older browsers / HTTP contexts
     const ta = document.createElement("textarea");
     ta.value = text;
     ta.style.position = "fixed";
@@ -281,19 +393,19 @@ async function copyReport() {
 }
 
 // ---------------------------------------------------------------------------
-// Canvas resize observer — keep canvas pixel dimensions in sync
+// Canvas resize observer
 // ---------------------------------------------------------------------------
 function initCanvasResize() {
   const canvas = $("waveform");
   const ro = new ResizeObserver(() => {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    if (!state.isRecording) stopWaveform(); // redraw flat line
+    if (!state.isRecording) stopWaveform();
   });
   ro.observe(canvas);
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
-  stopWaveform(); // draw initial flat line
+  stopWaveform();
 }
 
 // ---------------------------------------------------------------------------
