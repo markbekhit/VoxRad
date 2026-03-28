@@ -54,6 +54,6 @@ Echocardiography (Transthoracic / Transoesophageal)
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'Cardiology consultation is advised for [valvular disease / cardiomyopathy / pericardial effusion].'
 - 'Follow-up echocardiogram in [6–12] months is recommended to monitor [finding].'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

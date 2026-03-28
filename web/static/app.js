@@ -20,7 +20,7 @@ const state = {
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
-const SILENCE_DURATION_MS = 1800;   // hold for 1.8 s before triggering
+const SILENCE_DURATION_MS = 1200;   // hold for 1.2 s before triggering
 const MIN_SEGMENT_BYTES   = 4000;   // ignore blobs smaller than this (mic noise)
 
 // ---------------------------------------------------------------------------

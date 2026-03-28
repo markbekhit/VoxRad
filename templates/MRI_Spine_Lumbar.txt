@@ -53,6 +53,6 @@ MRI of the lumbar spine was performed using T1-weighted, T2-weighted, and STIR s
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'Neurosurgical/orthopaedic consultation is advised if radiculopathy or cauda equina symptoms are present.'
 - 'Physiotherapy and conservative management may be appropriate for mild disc disease.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

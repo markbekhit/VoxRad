@@ -53,6 +53,6 @@ Ultrasound Pelvis
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'MRI pelvis is recommended for further characterisation of [fibroid / adnexal mass].'
 - 'Gynaecological consultation is advised.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

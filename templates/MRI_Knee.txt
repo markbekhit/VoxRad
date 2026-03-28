@@ -25,34 +25,74 @@ MRI of the [right/left] knee was performed using PD-weighted fat-suppressed, T2-
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing morphology, signal characteristics, and grade of injury.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. For your guidance, an MRI Knee report involves Medial Meniscus (anterior horn, body, posterior horn), Lateral Meniscus (anterior horn, body, posterior horn), Anterior Cruciate Ligament (ACL), Posterior Cruciate Ligament (PCL), Medial Collateral Ligament (MCL), Lateral Collateral Ligament (LCL), Posterolateral Corner Structures, Articular Cartilage (medial femoral condyle, lateral femoral condyle, medial tibial plateau, lateral tibial plateau, patella, trochlear groove), Patellofemoral Joint, Quadriceps Tendon, Patellar Tendon, Joint Effusion, Hoffa's Fat Pad, Popliteal Fossa, Baker's Cyst, Bony Structures (femur, tibia, fibula, patella), and Bone Marrow Oedema. If not mentioned, state "{structure} appears normal."
+- Describe pathological structures first within each group, then normal structures. Separate each anatomical group with a blank line. Every structure must have its own bullet point — no catch-all lines.
+- Use precise radiology terminology for normal structures:
+  - Menisci → "normal in morphology, signal, and extrusion"
+  - Ligaments → "intact"
+  - Tendons → "intact"
+  - Articular cartilage surfaces → "intact, no focal chondral defect"
+  - Joint effusion → "no joint effusion"
+  - Baker's cyst → "no Baker's cyst identified"
+  - Bony structures → "no fracture or aggressive bony lesion"
+  - Bone marrow → "no bone marrow oedema"
+  - Soft tissues → "unremarkable"
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Medial Meniscus:** Grade III signal extending to the inferior articular surface of the posterior horn, in keeping with a horizontal tear.
-    - **ACL:** Intact with normal signal and tension.
-    - **Articular Cartilage:** Full-thickness chondral defect at the medial femoral condyle.
-    - and so on...
+Cover all groups in this order:
+
+**Menisci**
+- Medial Meniscus (anterior horn, body, posterior horn)
+- Lateral Meniscus (anterior horn, body, posterior horn)
+
+**Cruciate Ligaments**
+- Anterior Cruciate Ligament (ACL)
+- Posterior Cruciate Ligament (PCL)
+
+**Collateral Ligaments and Posterolateral Corner**
+- Medial Collateral Ligament (MCL)
+- Lateral Collateral Ligament (LCL)
+- Posterolateral Corner Structures
+
+**Articular Cartilage**
+- Medial femoral condyle
+- Lateral femoral condyle
+- Medial tibial plateau
+- Lateral tibial plateau
+- Patella
+- Trochlear groove
+
+**Patellofemoral Joint**
+
+**Tendons**
+- Quadriceps Tendon
+- Patellar Tendon
+
+**Soft Tissues**
+- Joint Effusion
+- Hoffa's Fat Pad
+- Popliteal Fossa
+- Baker's Cyst
+
+**Bony Structures**
+- Femur, tibia, fibula, patella
+- Bone Marrow Signal
+
 - **Commonly Misspelled Words:**
 [correct spellings] meniscus, meniscal, cruciate, collateral, chondral, osteochondral, patellofemoral, trochlear, Hoffa, posterolateral, osteophyte, subchondral oedema [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points.
+- Concise bullet-point summary of key findings.
 - **Sample:**
   - Posterior horn medial meniscal tear.
   - ACL intact. No significant ligamentous injury.
+  - No joint effusion.
 
 ### Advice/Recommendation(s):
 **Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Orthopaedic consultation is advised for surgical planning of meniscal tear/ligament injury.'
-- 'Physiotherapy may be appropriate for stable ligamentous injuries.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- Base recommendations strictly on the findings.
+- 'Orthopaedic consultation is advised for surgical planning of meniscal tear or ligament reconstruction.'
+- 'Physiotherapy may be appropriate for stable ligamentous injuries or minor tendinopathy.'
+- If no significant pathology: 'No further radiological workup required.'
 
 ---

@@ -54,6 +54,6 @@ MRI of the abdomen was performed using T1-weighted in-phase and out-of-phase, T2
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'Multidisciplinary hepatobiliary team review is recommended for hepatic malignancy.'
 - 'Follow-up MRI liver in [3/6] months is recommended for LI-RADS [3/4] lesions.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

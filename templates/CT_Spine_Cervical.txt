@@ -54,7 +54,7 @@ Axial cuts were obtained from the skull base to the cervicothoracic junction. Sa
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - **Sample Descriptive Style:**
   - 'MRI cervical spine is recommended for further evaluation of the spinal cord and disc-neural interface.'
-  - 'Clinical correlation and orthopaedic/neurosurgical consultation is advised.'
-  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+  - 'Orthopaedic or neurosurgical consultation is advised.'
+  - If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

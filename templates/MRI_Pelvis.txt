@@ -47,6 +47,6 @@ MRI of the pelvis was performed using T2-weighted, T1-weighted, DWI/ADC, and dyn
 **Instructions:**
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'Gynaecological consultation is advised for [fibroid / endometriosis / adnexal mass].'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

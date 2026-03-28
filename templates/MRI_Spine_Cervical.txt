@@ -52,6 +52,6 @@ MRI of the cervical spine was performed using T1-weighted, T2-weighted, and STIR
 **Instructions:**
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'Neurosurgical consultation is advised in the setting of cord signal change or significant myelopathy.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

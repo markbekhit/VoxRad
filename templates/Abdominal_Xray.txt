@@ -52,6 +52,6 @@ Abdominal X-Ray (AXR)
 **Instructions:**
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'CT abdomen is recommended for definitive evaluation of [obstruction / perforation / mass].'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

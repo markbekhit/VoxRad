@@ -47,6 +47,6 @@ Axial cuts were obtained from the cervicothoracic junction to the thoracolumbar 
 **Instructions:**
 - Offer recommendations for further evaluation or management based on the impression of the report.
 - 'MRI thoracic spine is recommended if cord compression is clinically suspected.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+- If no significant findings are identified, state 'No further radiological workup required.'
 
 ---

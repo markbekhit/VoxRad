@@ -57,6 +57,6 @@ Axial cuts were obtained from the skull base to the vertex. Bone window and soft
 - **Sample Descriptive Style:**
   - 'MRI brain with contrast is recommended for further characterisation of [specific finding].'
   - 'Neurosurgical consultation is advised for appropriate management.'
-  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
+  - If no significant findings are identified, state 'No further radiological workup required.'
 
 ---
