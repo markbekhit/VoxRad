@@ -175,6 +175,35 @@ def list_templates(username: str = Depends(_verify_auth)):
     return {"templates": _list_templates()}
 
 
+_MOCK_TRANSCRIPTION = (
+    "CT chest with contrast. "
+    "The lungs are clear. No focal consolidation, pleural effusion, or pneumothorax. "
+    "The heart size is normal. The mediastinum is unremarkable. "
+    "No axillary, mediastinal, or hilar lymphadenopathy. "
+    "Impression: No acute cardiopulmonary abnormality."
+)
+
+_MOCK_REPORT = """\
+CT CHEST WITH CONTRAST
+
+TECHNIQUE: Axial CT images of the chest were obtained with IV contrast.
+
+FINDINGS:
+
+Lungs: Clear bilaterally. No focal consolidation, mass, nodule, or pleural effusion.
+       No pneumothorax.
+
+Heart: Normal in size. No pericardial effusion.
+
+Mediastinum: Normal width. No lymphadenopathy.
+
+IMPRESSION:
+1. No acute cardiopulmonary abnormality.
+"""
+
+_MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
+
+
 @app.post("/transcribe")
 async def transcribe(
     audio: UploadFile = File(...),
@@ -182,6 +211,13 @@ async def transcribe(
     username: str = Depends(_verify_auth),
 ):
     """Accept a WebM audio blob, transcribe via Whisper-compatible API."""
+    if _MOCK_MODE:
+        _ = await audio.read()
+        _prune_sessions()
+        session_id = _create_session(_MOCK_TRANSCRIPTION)
+        logger.info("[mock] Returning canned transcription for session %s", session_id)
+        return {"transcription": _MOCK_TRANSCRIPTION, "session_id": session_id}
+
     if not config.TRANSCRIPTION_API_KEY:
         raise HTTPException(
             status_code=503, detail="Transcription API key not loaded on server."
@@ -252,6 +288,10 @@ class FormatRequest(BaseModel):
 @app.post("/format")
 def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
     """Format a transcription into a structured radiology report."""
+    if _MOCK_MODE:
+        logger.info("[mock] Returning canned report")
+        return {"report": _MOCK_REPORT, "fhir_saved": False}
+
     if not config.TEXT_API_KEY:
         raise HTTPException(
             status_code=503, detail="Text model API key not loaded on server."

@@ -17,19 +17,9 @@ def _run_web(host: str, port: int):
     from config.settings import load_settings
     load_settings(web_mode=True)
 
-    # Mock mode: point config at the built-in mock routes so no real API keys
-    # are needed.  Set VOXRAD_MOCK_MODE=1 to enable.
     if os.environ.get("VOXRAD_MOCK_MODE"):
-        from config.config import config
-        mock_base = f"http://localhost:{port}/mock/v1"
-        config.BASE_URL = mock_base
-        config.TRANSCRIPTION_BASE_URL = mock_base
-        config.TEXT_API_KEY = "mock"
-        config.TRANSCRIPTION_API_KEY = "mock"
-        config.SELECTED_MODEL = "gpt-mock"
-        config.SELECTED_TRANSCRIPTION_MODEL = "whisper-mock"
         logging.getLogger(__name__).info(
-            "[mock] Mock mode active — API calls routed to %s", mock_base
+            "[mock] Mock mode active — transcribe and format return canned responses"
         )
 
     import uvicorn
