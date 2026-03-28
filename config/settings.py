@@ -43,10 +43,10 @@ def load_settings(web_mode: bool = False):
 
     if "DEFAULT" in config_parser:
         config.save_directory = config_parser["DEFAULT"].get("WorkingDirectory", os.path.dirname(config_path))
-        config.TRANSCRIPTION_BASE_URL = config_parser["DEFAULT"].get("TranscriptionBaseURL", "http://localhost:8000/v1")
-        config.SELECTED_TRANSCRIPTION_MODEL = config_parser["DEFAULT"].get("SelectedTranscriptionModel", "Systran/faster-whisper-large-v3")
-        config.BASE_URL = config_parser["DEFAULT"].get("TextBaseURL", "http://localhost:11434/v1")
-        config.SELECTED_MODEL = config_parser["DEFAULT"].get("SelectedModel", "llama3.1:latest")
+        config.TRANSCRIPTION_BASE_URL = config_parser["DEFAULT"].get("TranscriptionBaseURL", "https://api.openai.com/v1")
+        config.SELECTED_TRANSCRIPTION_MODEL = config_parser["DEFAULT"].get("SelectedTranscriptionModel", "whisper-1")
+        config.BASE_URL = config_parser["DEFAULT"].get("TextBaseURL", "https://api.openai.com/v1")
+        config.SELECTED_MODEL = config_parser["DEFAULT"].get("SelectedModel", "gpt-4o-mini")
         config.multimodal_pref = config_parser["DEFAULT"].getboolean("MultimodalPref", False)
         config.multimodal_model = config_parser["DEFAULT"].get("MultimodalModel", None)
         config.audio_device = config_parser['DEFAULT'].get('AudioDevice', config.audio_device)
@@ -55,8 +55,8 @@ def load_settings(web_mode: bool = False):
     else:
         logger.warning("'DEFAULT' section not found in settings.ini. Using default values.")
         config.save_directory = os.path.dirname(config_path)
-        config.BASE_URL = "http://localhost:11434/v1"
-        config.TRANSCRIPTION_BASE_URL = "http://localhost:8000/v1"
+        config.BASE_URL = "https://api.openai.com/v1"
+        config.TRANSCRIPTION_BASE_URL = "https://api.openai.com/v1"
 
     logger.debug("Using save_directory: %s", config.save_directory)
     logger.debug("Using Transcription Base URL: %s", config.TRANSCRIPTION_BASE_URL)

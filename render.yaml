@@ -6,18 +6,10 @@ services:
     healthCheckPath: /health
     envVars:
       - key: VOXRAD_WEB_PASSWORD
-        generateValue: true        # Copy from Render dashboard → Environment
+        generateValue: true
       - key: VOXRAD_WORKING_DIR
         value: /data/working
-      - key: VOXRAD_TRANSCRIPTION_BASE_URL
-        value: https://api.openai.com/v1
-      - key: VOXRAD_TRANSCRIPTION_MODEL
-        value: whisper-1
-      - key: VOXRAD_TEXT_BASE_URL
-        value: https://api.openai.com/v1
-      - key: VOXRAD_TEXT_MODEL
-        value: gpt-4o
-      # Set your real API keys in the Render dashboard (do not commit them):
+      # Set your OpenAI API keys in the Render dashboard:
       # - key: VOXRAD_TRANSCRIPTION_API_KEY
       #   value: sk-...
       # - key: VOXRAD_TEXT_API_KEY
