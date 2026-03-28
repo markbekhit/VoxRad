@@ -17,10 +17,13 @@ const state = {
   // Silence-triggered real-time transcription
   silenceStart: null,
   isSegmentTranscribing: false,
+  // VAD: true only if RMS exceeded SPEECH_THRESHOLD during this segment
+  speechDetected: false,
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
-const SILENCE_DURATION_MS = 600;    // 600 ms pause triggers segment (works well with Groq; increase to ~1500 ms for OpenAI Whisper)
+const SPEECH_THRESHOLD    = 0.04;   // RMS above this = real speech (filters background noise)
+const SILENCE_DURATION_MS = 800;    // 800 ms pause triggers segment
 const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this (~600 ms of silence encodes to ~8-10 KB)
 
 // ---------------------------------------------------------------------------
@@ -107,27 +110,38 @@ function startWaveform(stream) {
     state.animFrameId = requestAnimationFrame(draw);
     state.analyser.getByteTimeDomainData(dataArr);
 
-    // ── Silence detection ──────────────────────────────────────────────────
+    // ── VAD + Silence detection ────────────────────────────────────────────
     if (state.isRecording && !state.isSegmentTranscribing) {
       const rms = getRMS(dataArr);
       const now = Date.now();
-      if (rms < SILENCE_THRESHOLD) {
+
+      // Track whether real speech occurred in this segment
+      if (rms >= SPEECH_THRESHOLD) {
+        state.speechDetected = true;
+        state.silenceStart = null;   // reset silence timer while speaking
+      } else if (rms < SILENCE_THRESHOLD) {
         if (!state.silenceStart) {
           state.silenceStart = now;
         } else if (now - state.silenceStart >= SILENCE_DURATION_MS) {
-          // Only trigger if we have meaningful audio accumulated
+          // Only trigger segment if speech was actually detected AND blob is large enough
           const approxBytes = state.audioChunks.reduce((s, c) => s + c.size, 0);
-          if (approxBytes >= MIN_SEGMENT_BYTES) {
+          if (state.speechDetected && approxBytes >= MIN_SEGMENT_BYTES) {
             state.silenceStart = null;
             state.isSegmentTranscribing = true;
             // Stop recorder → onstop will restart it and send segment
             if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
               state.mediaRecorder.stop();
             }
+          } else if (!state.speechDetected && approxBytes >= MIN_SEGMENT_BYTES * 3) {
+            // Long silence with no speech — just discard chunks and restart recorder
+            // to keep blob size small and avoid ever sending noise-only audio
+            state.silenceStart = null;
+            state.audioChunks = [];
+            if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+              state.mediaRecorder.stop();
+            }
           }
         }
-      } else {
-        state.silenceStart = null;
       }
     }
 
@@ -186,6 +200,8 @@ function _startMediaRecorder() {
 
   state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
   state.audioChunks = [];
+  state.speechDetected = false;  // reset VAD flag for new segment
+  state.silenceStart = null;
 
   state.mediaRecorder.ondataavailable = (e) => {
     if (e.data && e.data.size > 0) state.audioChunks.push(e.data);
@@ -194,6 +210,7 @@ function _startMediaRecorder() {
   state.mediaRecorder.onstop = () => {
     const chunks = state.audioChunks.splice(0); // take and clear
     const isFinal = !state.isRecording;
+    const hadSpeech = state.speechDetected;
 
     if (state.isRecording) {
       // Silence-triggered segment — restart recorder immediately so the mic
@@ -205,6 +222,12 @@ function _startMediaRecorder() {
         state.stream.getTracks().forEach((t) => t.stop());
         state.stream = null;
       }
+    }
+
+    // VAD gate: only send to Whisper if speech was detected in this segment
+    if (!isFinal && !hadSpeech) {
+      state.isSegmentTranscribing = false;
+      return; // discard silent segment silently
     }
 
     submitAudioSegment(chunks, isFinal);
@@ -222,6 +245,7 @@ async function startRecording() {
     startWaveform(state.stream);
     state.silenceStart = null;
     state.isSegmentTranscribing = false;
+    state.speechDetected = false;
     _startMediaRecorder();
     state.isRecording = true;
     startTimer();
