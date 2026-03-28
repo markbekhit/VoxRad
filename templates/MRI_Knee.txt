@@ -27,7 +27,7 @@ MRI of the [right/left] knee was performed using PD-weighted fat-suppressed, T2-
 **Instructions:**
 - Describe pathological structures first within each group, then normal structures. Separate each anatomical group with a blank line. Every structure must have its own bullet point — no catch-all lines.
 - Use precise radiology terminology for normal structures:
-  - Menisci → "normal in morphology, signal, and extrusion"
+  - Menisci → "intact"
   - Ligaments → "intact"
   - Tendons → "intact"
   - Articular cartilage surfaces → "intact, no focal chondral defect"
