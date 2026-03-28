@@ -43,10 +43,4 @@ MRI of the pelvis was performed using T2-weighted, T1-weighted, DWI/ADC, and dyn
   - Uterine fibroid(s) as described — no malignant features.
   - No adnexal mass or free fluid.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Gynaecological consultation is advised for [fibroid / endometriosis / adnexal mass].'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

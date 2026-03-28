@@ -48,11 +48,4 @@ Chest X-Ray (CXR)
   - Right lower zone consolidation — likely infective in aetiology.
   - No pleural effusion, pneumothorax, or significant cardiomegaly.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'CT chest is recommended for further characterisation of [finding].'
-- 'Follow-up CXR in [4–6 weeks] after treatment is recommended to confirm resolution of consolidation.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

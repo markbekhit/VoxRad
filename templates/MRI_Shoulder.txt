@@ -48,11 +48,4 @@ MRI of the [right/left] shoulder was performed using PD-weighted fat-suppressed,
   - Full-thickness supraspinatus tear with [X] cm retraction.
   - No significant labral tear or glenohumeral instability.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Orthopaedic consultation is advised for surgical repair of significant rotator cuff tear.'
-- 'Physiotherapy may be appropriate for partial tears and impingement syndrome.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

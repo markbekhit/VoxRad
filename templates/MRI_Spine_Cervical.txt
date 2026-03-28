@@ -48,10 +48,4 @@ MRI of the cervical spine was performed using T1-weighted, T2-weighted, and STIR
   - Cervical spondylosis most marked at [level], with [mild/moderate/severe] central canal stenosis.
   - [Presence / Absence] of cord signal change to suggest myelopathy.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Neurosurgical consultation is advised in the setting of cord signal change or significant myelopathy.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

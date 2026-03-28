@@ -49,11 +49,4 @@ MRI of the abdomen was performed using T1-weighted in-phase and out-of-phase, T2
   - Segment [X] hepatic lesion with LI-RADS [category] features — [diagnosis or differential].
   - No other focal hepatic lesion identified.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Multidisciplinary hepatobiliary team review is recommended for hepatic malignancy.'
-- 'Follow-up MRI liver in [3/6] months is recommended for LI-RADS [3/4] lesions.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

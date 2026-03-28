@@ -49,11 +49,4 @@ MRI of both breasts was performed in the prone position using bilateral dedicate
   - Right breast 10 o'clock mass with suspicious morphology and kinetics — MRI BI-RADS 5.
   - Recommend biopsy for histopathological confirmation.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- Follow ACR BI-RADS management recommendations for the assigned category.
-- 'MRI-guided biopsy is recommended for BI-RADS 4 or 5 lesions not visible on ultrasound or mammography.'
-- 'Breast surgery / multidisciplinary team review is advised.'
-
 ---

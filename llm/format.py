@@ -71,6 +71,56 @@ def _get_guidelines() -> List[str]:
             return files
     return []
 
+# ---------------------------------------------------------------------------
+# Keyword-based template pre-selection (no LLM call)
+# ---------------------------------------------------------------------------
+_KEYWORD_MAP = [
+    # (template_filename, [keywords — checked against lowercase transcript])
+    # Order matters: more specific entries first
+    ("CT_Angiography_Thoracic.txt", ["cta thorax", "ct angio thorax", "thoracic aorta", "ct pulmonary angiogram", "ctpa"]),
+    ("HRCT_Thorax.txt",             ["hrct", "high resolution ct", "high-resolution ct", "hrct thorax"]),
+    ("CT_Chest.txt",                ["ct chest", "chest ct", "ct thorax", "thorax ct"]),
+    ("CT_Abdomen_Pelvis.txt",       ["ct abdomen pelvis", "ct ap", "abdomen and pelvis ct", "ct of the abdomen and pelvis"]),
+    ("CT_KUB.txt",                  ["ct kub", "kub ct", "ct urogram", "ct kidney ureter"]),
+    ("CT_Head_Brain.txt",           ["ct head", "ct brain", "head ct", "brain ct"]),
+    ("CT_Spine_Cervical.txt",       ["ct cervical spine", "ct c-spine", "cervical spine ct"]),
+    ("CT_Spine_Lumbar.txt",         ["ct lumbar spine", "ct l-spine", "lumbar spine ct"]),
+    ("CT_Spine_Thoracic.txt",       ["ct thoracic spine", "ct t-spine", "thoracic spine ct"]),
+    ("MRI_Knee.txt",                ["mri knee", "knee mri", "mri of the knee", "mri right knee", "mri left knee"]),
+    ("MRI_Shoulder.txt",            ["mri shoulder", "shoulder mri", "mri of the shoulder"]),
+    ("MRI_Hip.txt",                 ["mri hip", "hip mri", "mri of the hip"]),
+    ("MRI_Brain.txt",               ["mri brain", "brain mri", "mri head", "mri of the brain"]),
+    ("MRI_Spine_Cervical.txt",      ["mri cervical spine", "mri c-spine", "cervical spine mri"]),
+    ("MRI_Spine_Lumbar.txt",        ["mri lumbar spine", "mri l-spine", "lumbar spine mri"]),
+    ("MRI_Abdomen_Liver.txt",       ["mri liver", "mri abdomen", "liver mri", "mri of the liver"]),
+    ("MRI_Pelvis.txt",              ["mri pelvis", "pelvis mri", "mri of the pelvis"]),
+    ("MRI_Prostate.txt",            ["mri prostate", "prostate mri", "mri of the prostate"]),
+    ("MRI_Breast.txt",              ["mri breast", "breast mri"]),
+    ("CXR.txt",                     ["chest x-ray", "chest xray", "cxr", "plain film chest", "pa chest"]),
+    ("Abdominal_Xray.txt",          ["abdominal x-ray", "abdominal xray", "axa", "plain film abdomen", "kub x-ray"]),
+    ("Ultrasound_Abdomen.txt",      ["ultrasound abdomen", "abdominal ultrasound", "us abdomen"]),
+    ("Ultrasound_Pelvis.txt",       ["ultrasound pelvis", "pelvic ultrasound", "us pelvis"]),
+    ("Ultrasound_Breast.txt",       ["ultrasound breast", "breast ultrasound", "us breast"]),
+    ("Ultrasound_Thyroid.txt",      ["ultrasound thyroid", "thyroid ultrasound", "us thyroid"]),
+    ("Echocardiography.txt",        ["echo", "echocardiogram", "echocardiography"]),
+    ("Bone_Scan.txt",               ["bone scan", "nuclear bone", "tc99 bone"]),
+    ("PET_CT.txt",                  ["pet ct", "pet scan", "pet-ct", "fdg pet"]),
+]
+
+def _keyword_select_template(transcript: str) -> Optional[str]:
+    """Fast keyword-based template selection with no LLM call.
+
+    Returns a template filename if a confident match is found, else None.
+    """
+    available = set(_get_templates())
+    lower = transcript.lower()
+    for template, keywords in _KEYWORD_MAP:
+        if template in available and any(kw in lower for kw in keywords):
+            logger.info("Keyword match → template: %s", template)
+            return template
+    return None
+
+
 import re
 def _select_template(transcript: str, attempt: int = 1) -> Optional[str]:
     """Use function calling to select template name, with fallback to JSON chat completion"""
@@ -425,9 +475,14 @@ def format_text(text):
     try:
         template_name = None  # Captured for FHIR export below
         if not config.global_md_text_content:
-            update_status("Selecting template using AI...🤖")
-            logger.info("Selecting template using AI...")
-            template_name = _select_template(text)
+            # Try fast keyword match first; fall back to LLM only if needed.
+            template_name = _keyword_select_template(text)
+            if template_name:
+                update_status(f"Template selected: {template_name}")
+            else:
+                update_status("Selecting template using AI...🤖")
+                logger.info("Selecting template using AI...")
+                template_name = _select_template(text)
             if template_name:
                 update_status(f"Template selected: {template_name}")
                 logger.info(f"Template selected: {template_name}")
@@ -450,24 +505,8 @@ def format_text(text):
             report_content = _create_structured_report(text, template_content)
 
         if report_content:
-            needs_recommendations, selected_guidelines = _analyze_recommendation_needs(report_content)
-            update_status(f"Needs recommendations: {needs_recommendations}, Selected guidelines: {', '.join(selected_guidelines)}")
-            logger.info(f"Needs recommendations: {needs_recommendations}, Selected guidelines: {', '.join(selected_guidelines)}")
-            if needs_recommendations:
-                # _validate_guidelines could be added here if needed
-                valid_guidelines, missing_guidelines = _validate_guidelines(selected_guidelines)
-                if missing_guidelines:
-                    update_status(f"Warning: Some selected guideline files were not found: {', '.join(missing_guidelines)}")
-
-                recommendations = _generate_recommendations(report_content, valid_guidelines)
-                if recommendations:
-                    report_content += f"\n\nRECOMMENDATIONS:\n{recommendations}"
-
-            # Remove <think> tags and their content.
+            # Remove <think> tags and their content (reasoning models).
             report_content = re.sub(r'<think>.*?</think>', '', report_content, flags=re.DOTALL)
-
-            update_status("Performing AI analysis.🤖")
-            logger.info("Performing AI analysis.")
 
             if config.fhir_export_enabled:
                 from llm.fhir_export import save_fhir_report

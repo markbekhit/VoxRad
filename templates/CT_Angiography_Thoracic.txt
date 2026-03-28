@@ -48,11 +48,4 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen following 
   - No evidence of pulmonary embolism.
   - Normal thoracic aorta; no dissection or aneurysm.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Anticoagulation therapy should be considered in confirmed pulmonary embolism — discuss with the clinical team.'
-- 'Vascular surgery consultation is advised for significant aortic pathology.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

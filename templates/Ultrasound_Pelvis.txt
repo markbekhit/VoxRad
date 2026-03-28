@@ -48,11 +48,4 @@ Ultrasound Pelvis
   - Uterine fibroid as described. Normal endometrium.
   - Normal bilateral ovaries. No adnexal mass or free fluid.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'MRI pelvis is recommended for further characterisation of [fibroid / adnexal mass].'
-- 'Gynaecological consultation is advised.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

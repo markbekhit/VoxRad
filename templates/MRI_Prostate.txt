@@ -49,11 +49,4 @@ Multiparametric MRI of the prostate was performed using a 3T scanner. Sequences 
   - Right posterior mid-peripheral zone lesion — PI-RADS 5 (clinically significant prostate cancer highly likely).
   - No evidence of extracapsular extension or seminal vesicle invasion.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- Follow PI-RADS v2.1 management recommendations.
-- 'MRI-targeted transperineal biopsy is recommended for PI-RADS ≥ 3 lesions — urology consultation advised.'
-- 'Staging CT chest/abdomen/pelvis and bone scan may be warranted for confirmed high-grade prostate cancer.'
-
 ---

@@ -88,11 +88,4 @@ Cover all groups in this order:
   - ACL intact. No significant ligamentous injury.
   - No joint effusion.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Base recommendations strictly on the findings.
-- 'Orthopaedic consultation is advised for surgical planning of meniscal tear or ligament reconstruction.'
-- 'Physiotherapy may be appropriate for stable ligamentous injuries or minor tendinopathy.'
-- If no significant pathology: 'No further radiological workup required.'
-
 ---

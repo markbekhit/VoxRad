@@ -48,11 +48,4 @@ MRI of the lumbar spine was performed using T1-weighted, T2-weighted, and STIR s
   - Lumbar spondylosis most significant at [level] with [disc protrusion / canal stenosis] affecting [nerve root].
   - No acute fracture or marrow signal abnormality.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Neurosurgical/orthopaedic consultation is advised if radiculopathy or cauda equina symptoms are present.'
-- 'Physiotherapy and conservative management may be appropriate for mild disc disease.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

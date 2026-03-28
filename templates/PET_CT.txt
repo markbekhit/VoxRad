@@ -48,11 +48,4 @@ Whole-body FDG PET-CT was performed from the vertex to the mid-thighs following 
   - FDG-avid [primary tumour] at [site] with [mediastinal / pelvic] lymph node involvement — [Stage].
   - No evidence of distant metastatic disease.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Multidisciplinary oncology team review is recommended for staging and treatment planning.'
-- 'Biopsy confirmation of [FDG-avid lesion] is recommended before treatment.'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---

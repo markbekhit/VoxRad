@@ -48,10 +48,4 @@ Abdominal X-Ray (AXR)
   - Non-specific bowel gas pattern. No free air or obstruction.
   - No radioopaque calculi in the KUB region.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'CT abdomen is recommended for definitive evaluation of [obstruction / perforation / mass].'
-- If no significant findings are identified, state 'No further radiological workup required.'
-
 ---
