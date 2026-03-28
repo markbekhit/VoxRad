@@ -209,10 +209,19 @@ def _is_hallucination(text: str) -> bool:
     normalised = text.strip().lower().rstrip(".,!?;: ").strip()
     if normalised in _HALLUCINATIONS:
         return True
-    # Single-word, non-medical short tokens are almost certainly hallucinations
+    # Single short non-medical word
     words = normalised.split()
     if len(words) == 1 and len(normalised) <= 6 and normalised.isalpha():
         return True
+    # Repetition loop: any 5-word ngram appearing more than once is a
+    # hallucination (Whisper loops prompt text on silent audio).
+    if len(words) >= 10:
+        seen: set[tuple] = set()
+        for i in range(len(words) - 4):
+            ngram = tuple(words[i:i+5])
+            if ngram in seen:
+                return True
+            seen.add(ngram)
     return False
 
 
@@ -222,19 +231,12 @@ def _is_hallucination(text: str) -> bool:
 # ---------------------------------------------------------------------------
 _RADIOLOGY_PROMPT = (
     "Radiology report dictation. "
-    "There is no marrow oedema, contusion, or fracture. No joint effusion identified. "
-    "There is an oblique undersurface tear of the posterior horn of the medial meniscus. "
-    "Small Baker's cyst without features of rupture. "
-    "The ACL and PCL are intact. The MCL and LCL are intact. "
-    "No pleural effusion or pneumothorax. No consolidation or atelectasis. "
-    "No lymphadenopathy. The mediastinum is unremarkable. "
-    "Supraspinatus tendon shows a partial thickness tear at the critical zone. "
-    "The labrum is intact with no SLAP lesion. "
-    "There is mild foraminal stenosis at L4/L5 with contact of the exiting nerve root. "
-    "No significant spinal canal stenosis. No disc protrusion. "
-    "No acute intracranial haemorrhage or midline shift. "
-    "No hydronephrosis. No nephrolithiasis or cholelithiasis. "
-    "Hepatomegaly with heterogeneous echotexture. Splenomegaly noted."
+    "No marrow oedema, contusion, or fracture. No joint effusion. "
+    "Oblique undersurface tear of the posterior horn of the medial meniscus. "
+    "Baker's cyst without features of rupture. "
+    "ACL and PCL intact. No pleural effusion or pneumothorax. "
+    "No consolidation or atelectasis. No lymphadenopathy. "
+    "Partial thickness tear of the supraspinatus tendon."
 )
 
 
