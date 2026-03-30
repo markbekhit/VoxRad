@@ -12,6 +12,7 @@ Always run behind an HTTPS reverse proxy (e.g. nginx with TLS) in
 production. See docs/web-server-setup.md.
 """
 
+import json
 import logging
 import os
 import re
@@ -24,7 +25,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -33,7 +34,7 @@ from pydantic import BaseModel
 
 from config.config import config
 from llm.fhir_export import save_fhir_report
-from llm.format import format_text
+from llm.format import format_text, stream_format_text
 
 logger = logging.getLogger(__name__)
 
@@ -467,3 +468,75 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
 
     logger.info("Report formatted (%d chars), fhir_saved=%s", len(report), fhir_saved)
     return {"report": report, "fhir_saved": fhir_saved}
+
+
+@app.post("/format/stream")
+def format_report_stream(req: FormatRequest, username: str = Depends(_verify_auth)):
+    """Stream a structured radiology report as Server-Sent Events.
+
+    Each SSE event is one of:
+      data: {"token": "..."}       — a text chunk from the LLM
+      data: {"done": true, "fhir_saved": bool}  — signals completion
+      data: {"error": "..."}       — an error occurred
+    """
+    if _MOCK_MODE:
+        def _mock_stream():
+            import time
+            for word in _MOCK_REPORT.split(" "):
+                yield f'data: {{"token": {json.dumps(word + " ")}}}\n\n'
+                time.sleep(0.03)
+            yield 'data: {"done": true, "fhir_saved": false}\n\n'
+        return StreamingResponse(_mock_stream(), media_type="text/event-stream")
+
+    if not config.TEXT_API_KEY:
+        def _err():
+            yield 'data: {"error": "Text model API key not loaded on server."}\n\n'
+        return StreamingResponse(_err(), media_type="text/event-stream")
+
+    def _generate():
+        # We hold the config lock only while pulling template content, then release
+        # it so the generator can stream without blocking other requests.
+        with _format_lock:
+            old_template = config.global_md_text_content
+            config.global_md_text_content = (
+                _load_template_content(req.template_name) if req.template_name else ""
+            )
+            # Snapshot the template content so we can release the lock
+            _template_snapshot = config.global_md_text_content
+            config.global_md_text_content = old_template
+
+        # Temporarily set the template for this call using a thread-local approach:
+        # inject directly then restore after iteration completes.
+        with _format_lock:
+            config.global_md_text_content = _template_snapshot
+        try:
+            full_report = ""
+            for chunk in stream_format_text(req.transcription):
+                if chunk:
+                    full_report += chunk
+                    yield f'data: {json.dumps({"token": chunk})}\n\n'
+        except Exception as e:
+            logger.error("Streaming format error: %s", e, exc_info=True)
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+            return
+        finally:
+            with _format_lock:
+                config.global_md_text_content = old_template
+
+        fhir_saved = False
+        if config.fhir_export_enabled and full_report:
+            try:
+                path = save_fhir_report(
+                    report_text=full_report,
+                    template_name=req.template_name,
+                    patient_id=req.patient_id or None,
+                    accession=req.accession or None,
+                    radiologist=req.radiologist or None,
+                )
+                fhir_saved = path is not None
+            except Exception as e:
+                logger.warning("FHIR save failed during streaming: %s", e)
+
+        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved})}\n\n'
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")

@@ -279,9 +279,14 @@ function stopRecording() {
       state.stream = null;
     }
     const hasText = $("transcription").value.trim();
-    setUI(hasText ? "transcribed" : "idle");
-    setStatus(hasText ? "Transcription complete. Edit if needed, then Format." : "No speech detected.", hasText ? "success" : "error");
     state.isSegmentTranscribing = false;
+    if (hasText) {
+      setUI("transcribed");
+      formatReport();
+    } else {
+      setUI("idle");
+      setStatus("No speech detected.", "error");
+    }
   }
 }
 
@@ -331,13 +336,14 @@ async function submitAudioSegment(chunks, isFinal) {
 
     if (isFinal) {
       const hasText = $("transcription").value.trim();
-      setUI(hasText ? "transcribed" : "idle");
-      setStatus(
-        hasText
-          ? "Transcription complete. Record again to add more, edit if needed, then Format."
-          : "No speech detected.",
-        hasText ? "success" : "error"
-      );
+      if (hasText) {
+        // Auto-format immediately — no button press needed
+        setUI("transcribed");
+        formatReport();
+      } else {
+        setUI("idle");
+        setStatus("No speech detected.", "error");
+      }
     } else {
       // Mid-recording segment done — recorder already restarted
       setStatus("Recording… pause briefly to see live transcription.", "active");
@@ -353,7 +359,7 @@ async function submitAudioSegment(chunks, isFinal) {
 }
 
 // ---------------------------------------------------------------------------
-// Format
+// Format — streaming SSE
 // ---------------------------------------------------------------------------
 async function formatReport() {
   const transcription = $("transcription").value.trim();
@@ -366,16 +372,21 @@ async function formatReport() {
     transcription,
     template_name: $("template-select").value || null,
     session_id: state.sessionId || null,
-    patient_id: $("patient-id").value.trim() || null,
-    accession: $("accession").value.trim() || null,
-    radiologist: $("radiologist").value.trim() || null,
+    patient_id: $("patient-id") ? $("patient-id").value.trim() || null : null,
+    accession: $("accession") ? $("accession").value.trim() || null : null,
+    radiologist: $("radiologist") ? $("radiologist").value.trim() || null : null,
   };
 
   setUI("formatting");
-  setStatus("Generating structured report…", "active");
+  setStatus("Generating report…", "active");
+
+  // Clear report area and start streaming into it
+  $("report-raw").value = "";
+  $("report-rendered").innerHTML = "";
+  _setReportEditMode(false);
 
   try {
-    const resp = await fetch("/format", {
+    const resp = await fetch("/format/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -384,12 +395,43 @@ async function formatReport() {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
       throw new Error(err.detail || resp.statusText);
     }
-    const data = await resp.json();
-    setReport(data.report);
-    const fhirNote = data.fhir_saved ? " · FHIR R4 JSON saved." : "";
-    setUI("done");
-    setStatus("Report generated." + fhirNote, "success");
-    $("report-rendered").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let accumulated = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE lines
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // keep incomplete last line
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (!payload) continue;
+        let msg;
+        try { msg = JSON.parse(payload); } catch { continue; }
+
+        if (msg.token) {
+          accumulated += msg.token;
+          // Re-render the markdown live as tokens arrive
+          $("report-raw").value = accumulated;
+          $("report-rendered").innerHTML = marked.parse(accumulated);
+        } else if (msg.done) {
+          const fhirNote = msg.fhir_saved ? " · FHIR R4 JSON saved." : "";
+          setUI("done");
+          setStatus("Report ready." + fhirNote, "success");
+          $("report-rendered").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (msg.error) {
+          throw new Error(msg.error);
+        }
+      }
+    }
   } catch (err) {
     setUI("transcribed");
     setStatus(`Format error: ${err.message}`, "error");
