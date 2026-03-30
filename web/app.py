@@ -241,29 +241,20 @@ def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
 # Template-specific [correct spellings] blocks override this entirely.
 # ---------------------------------------------------------------------------
 _RADIOLOGY_PROMPT = (
-    # Context
-    "Radiology report dictation. "
-    # Musculoskeletal / joint
+    # Context sentence + RadLex-derived vocabulary list (≤ 896 chars for Groq)
+    "Radiology dictation. "
     "oedema, meniscus, menisci, supraspinatus, infraspinatus, subscapularis, "
-    "teres minor, acromioclavicular, glenohumeral, coracohumeral, "
     "chondromalacia, chondral, subchondral, osteochondral, trabecular, "
-    "Baker's cyst, Hoffa's fat pad, trochanteric, iliopsoas, "
-    "ACL, PCL, MCL, LCL, posterolateral corner, MPFL, "
-    "Bankart lesion, Hill-Sachs, SLAP tear, rotator cuff, "
+    "Baker's cyst, Hoffa's fat pad, trochanteric, ACL, PCL, MCL, LCL, MPFL, "
+    "Bankart, Hill-Sachs, SLAP, rotator cuff, "
     "effusion, synovitis, tenosynovitis, enthesopathy, bursitis, "
-    # Chest / abdomen / pelvis
     "consolidation, atelectasis, bronchiectasis, pneumothorax, "
-    "pleural effusion, mediastinum, hilum, hilar, parenchyma, "
+    "pleural effusion, mediastinum, hilar, parenchyma, "
     "hepatomegaly, splenomegaly, cholelithiasis, nephrolithiasis, "
-    "lymphadenopathy, pericardial, pericardium, "
-    # Neuro / spine
-    "herniation, spondylosis, spondylolisthesis, stenosis, "
-    "cauda equina, conus medullaris, ligamentum flavum, "
-    "intraosseous, cortical, periosteal, cancellous, "
-    # Modality / technique
-    "T1-weighted, T2-weighted, STIR, gradient echo, "
-    "Hounsfield units, attenuation, diffusion-weighted, "
-    "coronal, sagittal, axial, multiplanar."
+    "lymphadenopathy, herniation, spondylosis, spondylolisthesis, stenosis, "
+    "cauda equina, ligamentum flavum, intraosseous, cortical, cancellous, "
+    "T1-weighted, T2-weighted, STIR, gradient echo, Hounsfield, "
+    "coronal, sagittal, axial."
 )
 
 # ---------------------------------------------------------------------------
@@ -385,7 +376,7 @@ async def transcribe(
                 r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
             )
             if match:
-                asr_prompt = match.group(1).strip()
+                asr_prompt = match.group(1).strip()[:896]  # Groq hard limit
 
         client = OpenAI(
             api_key=config.TRANSCRIPTION_API_KEY,
