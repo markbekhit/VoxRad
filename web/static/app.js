@@ -19,6 +19,8 @@ const state = {
   isSegmentTranscribing: false,
   // VAD: true only if RMS exceeded SPEECH_THRESHOLD during this segment
   speechDetected: false,
+  // Count of in-flight submitAudioSegment calls — auto-format fires only when 0
+  pendingSegments: 0,
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
@@ -248,6 +250,7 @@ async function startRecording() {
     state.silenceStart = null;
     state.isSegmentTranscribing = false;
     state.speechDetected = false;
+    state.pendingSegments = 0;
     _startMediaRecorder();
     state.isRecording = true;
     startTimer();
@@ -278,15 +281,24 @@ function stopRecording() {
       state.stream.getTracks().forEach((t) => t.stop());
       state.stream = null;
     }
-    const hasText = $("transcription").value.trim();
     state.isSegmentTranscribing = false;
-    if (hasText) {
-      setUI("transcribed");
-      formatReport();
-    } else {
-      setUI("idle");
-      setStatus("No speech detected.", "error");
-    }
+    // Defer to _maybeAutoFormat — a mid-recording segment may still be in-flight
+    _maybeAutoFormat();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-format gate: fire only when recording stopped AND no segments in-flight
+// ---------------------------------------------------------------------------
+function _maybeAutoFormat() {
+  if (state.isRecording || state.pendingSegments > 0) return;
+  const hasText = $("transcription").value.trim();
+  if (hasText) {
+    setUI("transcribed");
+    formatReport();
+  } else {
+    setUI("idle");
+    setStatus("No speech detected.", "error");
   }
 }
 
@@ -294,23 +306,14 @@ function stopRecording() {
 // Transcribe segment (called from onstop for both mid-recording and final)
 // ---------------------------------------------------------------------------
 async function submitAudioSegment(chunks, isFinal) {
+  state.pendingSegments++;
   const blob = new Blob(chunks, { type: "audio/webm" });
 
   if (blob.size < MIN_SEGMENT_BYTES) {
     // Too small — silence or noise only, nothing to transcribe.
-    if (isFinal) {
-      const hasText = $("transcription").value.trim();
-      state.isSegmentTranscribing = false;
-      if (hasText) {
-        setUI("transcribed");
-        formatReport(); // auto-format even when final blob is tiny
-      } else {
-        setUI("idle");
-        setStatus("No speech detected.", "error");
-      }
-    } else {
-      state.isSegmentTranscribing = false;
-    }
+    state.isSegmentTranscribing = false;
+    state.pendingSegments--;
+    _maybeAutoFormat();
     return;
   }
 
@@ -323,10 +326,7 @@ async function submitAudioSegment(chunks, isFinal) {
     const resp = await fetch("/transcribe", { method: "POST", body: formData });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-      if (isFinal) {
-        setUI("idle");
-        setStatus(`Transcription error: ${err.detail}`, "error");
-      }
+      setStatus(`Transcription error: ${err.detail}`, "error");
       return;
     }
     const data = await resp.json();
@@ -338,27 +338,16 @@ async function submitAudioSegment(chunks, isFinal) {
       $("transcription").value = existing ? existing + " " + newText : newText;
     }
 
-    if (isFinal) {
-      const hasText = $("transcription").value.trim();
-      if (hasText) {
-        // Auto-format immediately — no button press needed
-        setUI("transcribed");
-        formatReport();
-      } else {
-        setUI("idle");
-        setStatus("No speech detected.", "error");
-      }
-    } else {
+    if (state.isRecording) {
       // Mid-recording segment done — recorder already restarted
       setStatus("Recording… pause briefly to see live transcription.", "active");
     }
   } catch (err) {
-    if (isFinal) {
-      setUI("idle");
-      setStatus(`Transcription error: ${err.message}`, "error");
-    }
+    setStatus(`Transcription error: ${err.message}`, "error");
   } finally {
     state.isSegmentTranscribing = false;
+    state.pendingSegments--;
+    _maybeAutoFormat();
   }
 }
 
