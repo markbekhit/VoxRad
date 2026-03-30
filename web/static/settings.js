@@ -1,0 +1,155 @@
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------------------
+// Badge helpers
+// ---------------------------------------------------------------------------
+function makeBadge(configured) {
+  const span = document.createElement("span");
+  span.className = `key-badge ${configured ? "configured" : "missing"}`;
+  span.textContent = configured ? "✓ Configured" : "✗ Not set";
+  return span;
+}
+
+function setBadge(elementId, configured) {
+  const el = $(elementId);
+  if (!el) return;
+  el.innerHTML = "";
+  el.appendChild(makeBadge(configured));
+}
+
+// ---------------------------------------------------------------------------
+// Provider selection UI
+// ---------------------------------------------------------------------------
+let _currentProvider = "";
+let _keys = { transcription: false, text: false, deepgram: false, assemblyai: false };
+
+function _updateProviderUI() {
+  const val = _currentProvider;
+  ["none", "deepgram", "assemblyai"].forEach((id) => {
+    const opt = $(`opt-${id}`);
+    if (opt) opt.classList.toggle("selected", (id === "none" ? "" : id) === val);
+  });
+
+  // Show Groq fields only when no streaming provider selected
+  const groqFields = $("groq-fields");
+  if (groqFields) groqFields.style.display = val === "" ? "" : "none";
+
+  // Show warning if selected provider has no key
+  const warn = $("warn-no-key");
+  if (warn) {
+    const needsKey = val === "deepgram" ? !_keys.deepgram
+                   : val === "assemblyai" ? !_keys.assemblyai
+                   : false;
+    warn.style.display = needsKey ? "" : "none";
+  }
+}
+
+document.querySelectorAll('input[name="streaming_stt_provider"]').forEach((radio) => {
+  radio.addEventListener("change", () => {
+    _currentProvider = radio.value;
+    _updateProviderUI();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Load settings from API
+// ---------------------------------------------------------------------------
+async function loadSettings() {
+  try {
+    const resp = await fetch("/api/settings");
+    if (!resp.ok) throw new Error(resp.statusText);
+    const data = await resp.json();
+
+    _keys = data.keys;
+    _currentProvider = data.streaming_stt_provider || "";
+
+    // Set radio
+    const radio = document.querySelector(
+      `input[name="streaming_stt_provider"][value="${_currentProvider}"]`
+    );
+    if (radio) radio.checked = true;
+
+    // Set text fields
+    if ($("transcription_base_url")) $("transcription_base_url").value = data.transcription_base_url || "";
+    if ($("transcription_model"))    $("transcription_model").value    = data.transcription_model    || "";
+    if ($("text_base_url"))          $("text_base_url").value          = data.text_base_url          || "";
+    if ($("text_model"))             $("text_model").value             = data.text_model             || "";
+    if ($("fhir_export_enabled"))    $("fhir_export_enabled").checked  = !!data.fhir_export_enabled;
+
+    // Render badges
+    setBadge("badge-groq",       data.keys.transcription);
+    setBadge("badge-deepgram",   data.keys.deepgram);
+    setBadge("badge-assemblyai", data.keys.assemblyai);
+    setBadge("badge-text",       data.keys.text);
+
+    // Key status panel
+    setBadge("key-transcription", data.keys.transcription);
+    setBadge("key-text",          data.keys.text);
+    setBadge("key-deepgram",      data.keys.deepgram);
+    setBadge("key-assemblyai",    data.keys.assemblyai);
+
+    _updateProviderUI();
+  } catch (err) {
+    showStatus(`Failed to load settings: ${err.message}`, "error");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Save settings
+// ---------------------------------------------------------------------------
+async function saveSettings() {
+  const body = {
+    streaming_stt_provider: _currentProvider || null,
+    transcription_base_url: ($("transcription_base_url") || {}).value || null,
+    transcription_model:    ($("transcription_model")    || {}).value || null,
+    text_base_url:          ($("text_base_url")          || {}).value || null,
+    text_model:             ($("text_model")             || {}).value || null,
+    fhir_export_enabled:    !!($("fhir_export_enabled")  || {}).checked,
+  };
+
+  const btn = $("btn-save");
+  btn.disabled = true;
+  const msg = $("save-msg");
+  msg.textContent = "Saving…";
+  msg.style.color = "var(--muted)";
+
+  try {
+    const resp = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    msg.textContent = "✓ Saved";
+    msg.style.color = "var(--green)";
+    setTimeout(() => { msg.textContent = ""; }, 3000);
+  } catch (err) {
+    msg.textContent = `Error: ${err.message}`;
+    msg.style.color = "var(--red)";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showStatus(text, type) {
+  const el = $("settings-status");
+  if (!el) return;
+  el.textContent = text;
+  el.className = type || "";
+  el.style.cssText = `padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:10px;
+    border:1px solid ${type === "error" ? "var(--red)" : "var(--border)"};
+    color:${type === "error" ? "var(--red)" : "var(--text)"};`;
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  loadSettings();
+  $("btn-save").addEventListener("click", saveSettings);
+});

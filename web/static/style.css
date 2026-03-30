@@ -99,14 +99,17 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
+  text-decoration: none;
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-.btn-primary  { background: var(--yellow);  color: #0E1118; }
-.btn-danger   { background: var(--red);     color: #fff; }
-.btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--text); }
-.btn-sm       { padding: 5px 10px; font-size: 12px; }
+.btn-primary   { background: var(--yellow);  color: #0E1118; }
+.btn-danger    { background: var(--red);     color: #fff; }
+.btn-ghost     { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-secondary { background: var(--surface); border: 1px solid var(--yellow); color: var(--yellow); }
+.btn-secondary:hover { background: rgba(255,215,0,0.08); }
+.btn-sm        { padding: 5px 10px; font-size: 12px; }
 
 /* ── Recording section ── */
 .record-row {
@@ -150,10 +153,10 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 #status.success { border-color: var(--green);  color: var(--green); }
 #status.active  { border-color: var(--yellow); }
 
-/* ── Grid for FHIR fields ── */
+/* ── Grid for patient context fields ── */
 .fhir-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 6px;
 }
@@ -179,19 +182,64 @@ details > summary::before { content: "▶ "; font-size: 10px; }
 details[open] > summary::before { content: "▼ "; }
 details > summary::-webkit-details-marker { display: none; }
 
-/* ── Report output ── */
-#report-output {
-  font-family: "Menlo", "Consolas", monospace;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
+/* ── Report card header ── */
+.report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+/* ── Rendered markdown report ── */
+.report-rendered {
   min-height: 160px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 13px;
+}
+.report-rendered:empty::before {
+  content: "Formatted report will appear here…";
+  color: var(--muted);
+}
+.report-rendered h1,
+.report-rendered h2,
+.report-rendered h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--yellow);
+  margin: 14px 0 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+.report-rendered h1:first-child,
+.report-rendered h2:first-child,
+.report-rendered h3:first-child { margin-top: 0; }
+.report-rendered strong { color: var(--text); font-weight: 600; }
+.report-rendered p { margin: 4px 0; }
+.report-rendered ul, .report-rendered ol {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+.report-rendered li { margin: 2px 0; }
+.report-rendered li + li { margin-top: 1px; }
+
+/* ── Raw edit textarea ── */
+#report-raw {
+  width: 100%;
+  resize: vertical;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px;
   color: var(--text);
   line-height: 1.6;
+  box-sizing: border-box;
 }
 
 /* ── Row utils ── */
@@ -207,3 +255,36 @@ details > summary::-webkit-details-marker { display: none; }
 /* ── Spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* ── Streaming live dot (green, shown when streaming STT active) ── */
+.streaming-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; margin-right: 2px; }
+
+/* ── API key status badges ── */
+.key-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+.key-badge.configured { background: rgba(82,192,101,0.15); color: var(--green); }
+.key-badge.missing { background: rgba(224,82,82,0.12); color: var(--red); }
+
+/* ── Provider radio options ── */
+.provider-option { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s; }
+.provider-option:hover { border-color: var(--yellow2); }
+.provider-option.selected { border-color: var(--yellow); background: rgba(255,215,0,0.04); }
+.provider-option input[type=radio] { accent-color: var(--yellow); }
+.provider-label { flex: 1; }
+.provider-name { font-size: 13px; font-weight: 600; }
+.provider-desc { font-size: 11px; color: var(--muted); }
+
+/* ── Settings page sections ── */
+.settings-section { margin-bottom: 22px; }
+.settings-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.settings-field { margin-bottom: 10px; }
+.settings-field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
+.settings-info { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.settings-warning { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+
+/* ── Settings save bar ── */
+.save-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 0; margin-top: 16px; display: flex; gap: 8px; align-items: center; }
+
+/* ── Keys status grid ── */
+.keys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 500px) { .keys-grid { grid-template-columns: 1fr; } }
+.key-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 12px; }

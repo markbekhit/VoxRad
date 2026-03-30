@@ -13,7 +13,26 @@ const state = {
   audioCtx: null,
   analyser: null,
   animFrameId: null,
+  // Silence-triggered real-time transcription
+  silenceStart: null,
+  isSegmentTranscribing: false,
+  // VAD: true only if RMS exceeded SPEECH_THRESHOLD during this segment
+  speechDetected: false,
+  // Count of in-flight submitAudioSegment calls — auto-format fires only when 0
+  pendingSegments: 0,
+  // Streaming STT state
+  streamingSupported: false,
+  streamingWs: null,
+  streamingWorkletNode: null,
+  streamingAudioCtx: null,
+  confirmedText: "",
+  interimText: "",
 };
+
+const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
+const SPEECH_THRESHOLD    = 0.015;  // RMS above this = speech
+const SILENCE_DURATION_MS = 800;    // 800 ms pause triggers segment
+const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this
 
 // ---------------------------------------------------------------------------
 // UI helpers
@@ -28,10 +47,11 @@ function setStatus(msg, type = "") {
 
 function setUI(mode) {
   // mode: idle | recording | processing | transcribed | formatting | done
-  $("btn-record").disabled = mode !== "idle";
-  $("btn-stop").disabled   = mode !== "recording";
-  $("btn-format").disabled = !["transcribed", "done"].includes(mode);
-  $("btn-copy").disabled   = mode !== "done";
+  $("btn-record").disabled      = !["idle", "transcribed", "done"].includes(mode);
+  $("btn-stop").disabled        = mode !== "recording";
+  $("btn-format").disabled      = !["transcribed", "done"].includes(mode);
+  $("btn-copy").disabled        = mode !== "done";
+  $("btn-edit-toggle").disabled = mode !== "done";
 
   const dot = $("rec-dot");
   if (dot) dot.style.display = mode === "recording" ? "inline-block" : "none";
@@ -70,8 +90,17 @@ function stopTimer() {
 }
 
 // ---------------------------------------------------------------------------
-// Waveform (Web Audio API AnalyserNode)
+// Waveform + silence detection (Web Audio API AnalyserNode)
 // ---------------------------------------------------------------------------
+function getRMS(dataArr) {
+  let sum = 0;
+  for (let i = 0; i < dataArr.length; i++) {
+    const v = (dataArr[i] - 128) / 128.0;
+    sum += v * v;
+  }
+  return Math.sqrt(sum / dataArr.length);
+}
+
 function startWaveform(stream) {
   const canvas = $("waveform");
   const ctx = canvas.getContext("2d");
@@ -88,6 +117,38 @@ function startWaveform(stream) {
   function draw() {
     state.animFrameId = requestAnimationFrame(draw);
     state.analyser.getByteTimeDomainData(dataArr);
+
+    // ── VAD + Silence detection ────────────────────────────────────────────
+    if (state.isRecording && !state.isSegmentTranscribing) {
+      const rms = getRMS(dataArr);
+      const now = Date.now();
+
+      if (rms >= SPEECH_THRESHOLD) {
+        state.speechDetected = true;
+      }
+      if (rms >= SILENCE_THRESHOLD) {
+        state.silenceStart = null;
+      } else {
+        if (!state.silenceStart) {
+          state.silenceStart = now;
+        } else if (now - state.silenceStart >= SILENCE_DURATION_MS) {
+          const approxBytes = state.audioChunks.reduce((s, c) => s + c.size, 0);
+          if (state.speechDetected && approxBytes >= MIN_SEGMENT_BYTES) {
+            state.silenceStart = null;
+            state.isSegmentTranscribing = true;
+            if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+              state.mediaRecorder.stop();
+            }
+          } else if (!state.speechDetected && approxBytes >= MIN_SEGMENT_BYTES * 3) {
+            state.silenceStart = null;
+            state.audioChunks = [];
+            if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+              state.mediaRecorder.stop();
+            }
+          }
+        }
+      }
+    }
 
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
@@ -135,34 +196,75 @@ function stopWaveform() {
 }
 
 // ---------------------------------------------------------------------------
-// Recording
+// MediaRecorder management
+// ---------------------------------------------------------------------------
+function _startMediaRecorder() {
+  const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    ? "audio/webm;codecs=opus"
+    : "audio/webm";
+
+  state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
+  state.audioChunks = [];
+  state.speechDetected = false;  // reset VAD flag for new segment
+  state.silenceStart = null;
+
+  state.mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) state.audioChunks.push(e.data);
+  };
+
+  state.mediaRecorder.onstop = () => {
+    const chunks = state.audioChunks.splice(0); // take and clear
+    const isFinal = !state.isRecording;
+    const hadSpeech = state.speechDetected;
+
+    if (state.isRecording) {
+      // Silence-triggered segment — restart recorder immediately so the mic
+      // stays active while we send this segment in the background.
+      _startMediaRecorder();
+    } else {
+      // User clicked Stop — release the microphone.
+      if (state.stream) {
+        state.stream.getTracks().forEach((t) => t.stop());
+        state.stream = null;
+      }
+    }
+
+    // VAD gate: only send to Whisper if speech was detected in this segment
+    if (!isFinal && !hadSpeech) {
+      state.isSegmentTranscribing = false;
+      return; // discard silent segment silently
+    }
+
+    submitAudioSegment(chunks, isFinal);
+  };
+
+  state.mediaRecorder.start(250);
+}
+
+// ---------------------------------------------------------------------------
+// Recording — branches to streaming or segment mode based on capabilities
 // ---------------------------------------------------------------------------
 async function startRecording() {
+  if (state.streamingSupported) {
+    await startStreamingRecording();
+  } else {
+    await startSegmentRecording();
+  }
+}
+
+async function startSegmentRecording() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    startWaveform(stream);
-
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/webm";
-
-    state.mediaRecorder = new MediaRecorder(stream, { mimeType });
-    state.audioChunks = [];
-
-    state.mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) state.audioChunks.push(e.data);
-    };
-
-    state.mediaRecorder.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      submitAudio();
-    };
-
-    state.mediaRecorder.start(250); // collect chunks every 250ms
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startWaveform(state.stream);
+    state.silenceStart = null;
+    state.isSegmentTranscribing = false;
+    state.speechDetected = false;
+    state.pendingSegments = 0;
+    _startMediaRecorder();
     state.isRecording = true;
     startTimer();
     setUI("recording");
-    setStatus("Recording… click Stop when finished.", "active");
+    setStatus("Recording… pause briefly to see live transcription.", "active");
   } catch (err) {
     setStatus(
       `Microphone access denied: ${err.message}. Check browser permissions.`,
@@ -171,49 +273,299 @@ async function startRecording() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Streaming STT recording
+// ---------------------------------------------------------------------------
+async function startStreamingRecording() {
+  const wsToken = document.body.dataset.wsToken || "";
+  const proto   = location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl   = `${proto}//${location.host}/ws/transcribe?token=${encodeURIComponent(wsToken)}`;
+
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    setStatus(`Microphone access denied: ${err.message}. Check browser permissions.`, "error");
+    return;
+  }
+
+  state.streamingWs = new WebSocket(wsUrl);
+  state.streamingWs.binaryType = "arraybuffer";
+
+  state.streamingWs.onopen = async () => {
+    // Send config
+    state.streamingWs.send(JSON.stringify({
+      template_name: $("template-select").value || null,
+    }));
+
+    // Set up AudioContext + AudioWorklet
+    try {
+      state.streamingAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await state.streamingAudioCtx.audioWorklet.addModule("/static/pcm-worklet.js");
+      const source = state.streamingAudioCtx.createMediaStreamSource(state.stream);
+      state.streamingWorkletNode = new AudioWorkletNode(state.streamingAudioCtx, "pcm-processor");
+      state.streamingWorkletNode.port.onmessage = (e) => {
+        if (state.streamingWs && state.streamingWs.readyState === WebSocket.OPEN) {
+          state.streamingWs.send(e.data);
+        }
+      };
+      source.connect(state.streamingWorkletNode);
+      // Connect to destination to keep AudioContext alive in some browsers
+      state.streamingWorkletNode.connect(state.streamingAudioCtx.destination);
+    } catch (err) {
+      setStatus(`AudioWorklet setup failed: ${err.message}`, "error");
+      _cleanupStreaming();
+      return;
+    }
+
+    // Also start visual waveform using the same stream
+    startWaveform(state.stream);
+
+    state.confirmedText = "";
+    state.interimText   = "";
+    state.isRecording   = true;
+    startTimer();
+    setUI("recording");
+    const sdot = $("streaming-dot");
+    if (sdot) sdot.style.display = "inline-block";
+    setStatus("Streaming STT active — words appear in real time.", "active");
+  };
+
+  state.streamingWs.onmessage = (e) => handleStreamingMessage(JSON.parse(e.data));
+
+  state.streamingWs.onerror = (e) => {
+    setStatus("Streaming connection error.", "error");
+    _cleanupStreaming();
+  };
+
+  state.streamingWs.onclose = (e) => {
+    if (e.code === 4001) {
+      setStatus("Streaming auth failed. Please reload.", "error");
+    }
+  };
+}
+
+function handleStreamingMessage(msg) {
+  switch (msg.type) {
+    case "interim":
+      state.interimText = msg.text || "";
+      _updateStreamingDisplay();
+      break;
+    case "final":
+      state.confirmedText = state.confirmedText
+        ? state.confirmedText + " " + (msg.text || "")
+        : (msg.text || "");
+      state.interimText = "";
+      _updateStreamingDisplay();
+      break;
+    case "session_complete":
+      if (msg.session_id) state.sessionId = msg.session_id;
+      $("transcription").value = msg.transcription || "";
+      _cleanupStreaming();
+      if (msg.transcription && msg.transcription.trim()) {
+        setUI("transcribed");
+        formatReport();
+      } else {
+        setUI("idle");
+        setStatus("No speech detected.", "error");
+      }
+      break;
+    case "error":
+      setStatus(`Streaming error: ${msg.message}`, "error");
+      _cleanupStreaming();
+      setUI("idle");
+      break;
+    default:
+      break;
+  }
+}
+
+function _updateStreamingDisplay() {
+  const text = state.confirmedText +
+    (state.interimText ? (state.confirmedText ? " " : "") + state.interimText : "");
+  $("transcription").value = text;
+}
+
+function _cleanupStreaming() {
+  const sdot = $("streaming-dot");
+  if (sdot) sdot.style.display = "none";
+
+  if (state.streamingWorkletNode) {
+    try { state.streamingWorkletNode.disconnect(); } catch (_) {}
+    state.streamingWorkletNode = null;
+  }
+  if (state.streamingAudioCtx) {
+    state.streamingAudioCtx.close().catch(() => {});
+    state.streamingAudioCtx = null;
+  }
+  if (state.stream) {
+    state.stream.getTracks().forEach((t) => t.stop());
+    state.stream = null;
+  }
+  if (state.streamingWs) {
+    if (state.streamingWs.readyState === WebSocket.OPEN ||
+        state.streamingWs.readyState === WebSocket.CONNECTING) {
+      state.streamingWs.close();
+    }
+    state.streamingWs = null;
+  }
+  state.isRecording  = false;
+  state.confirmedText = "";
+  state.interimText   = "";
+}
+
 function stopRecording() {
-  if (state.mediaRecorder && state.isRecording) {
-    state.mediaRecorder.stop();
-    state.isRecording = false;
-    stopTimer();
-    stopWaveform();
-    setUI("processing");
-    setStatus("Processing audio…", "active");
+  if (!state.isRecording) return;
+
+  if (state.streamingSupported && state.streamingWs) {
+    stopStreamingRecording();
+    return;
+  }
+
+  // Segment (Groq Whisper) path
+  state.isRecording = false;
+  stopTimer();
+  stopWaveform();
+  setUI("processing");
+  setStatus("Processing remaining audio…", "active");
+
+  if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+    state.mediaRecorder.stop(); // onstop handles stream teardown + final transcription
+  } else {
+    // Edge case: recorder already stopped mid-silence-segment restart.
+    // Stream cleanup happened (or will happen) in that onstop. Just update UI.
+    if (state.stream) {
+      state.stream.getTracks().forEach((t) => t.stop());
+      state.stream = null;
+    }
+    state.isSegmentTranscribing = false;
+    // Defer to _maybeAutoFormat — a mid-recording segment may still be in-flight
+    _maybeAutoFormat();
+  }
+}
+
+function stopStreamingRecording() {
+  state.isRecording = false;
+  stopTimer();
+  stopWaveform();
+  setUI("processing");
+  setStatus("Processing final audio…", "active");
+
+  // Disconnect worklet so no more audio frames are sent
+  if (state.streamingWorkletNode) {
+    try { state.streamingWorkletNode.disconnect(); } catch (_) {}
+  }
+
+  // Tell server to flush and finalize
+  if (state.streamingWs && state.streamingWs.readyState === WebSocket.OPEN) {
+    state.streamingWs.send(JSON.stringify({ type: "stop" }));
+  } else {
+    // WS already closed; treat as no speech
+    _cleanupStreaming();
+    setUI("idle");
+    setStatus("No speech detected.", "error");
   }
 }
 
 // ---------------------------------------------------------------------------
-// Transcribe
+// Auto-format gate: fire only when recording stopped AND no segments in-flight
 // ---------------------------------------------------------------------------
-async function submitAudio() {
-  const blob = new Blob(state.audioChunks, { type: "audio/webm" });
-  const formData = new FormData();
-  formData.append("audio", blob, "recording.webm");
+function _maybeAutoFormat() {
+  if (state.isRecording || state.pendingSegments > 0) return;
+  const hasText = $("transcription").value.trim();
+  if (hasText) {
+    setUI("transcribed");
+    formatReport();
+  } else {
+    setUI("idle");
+    setStatus("No speech detected.", "error");
+  }
+}
 
+// ---------------------------------------------------------------------------
+// Transcribe segment (called from onstop for both mid-recording and final)
+// ---------------------------------------------------------------------------
+async function submitAudioSegment(chunks, isFinal) {
+  state.pendingSegments++;
+  const blob = new Blob(chunks, { type: "audio/webm" });
+
+  if (blob.size < MIN_SEGMENT_BYTES) {
+    state.isSegmentTranscribing = false;
+    state.pendingSegments--;
+    _maybeAutoFormat();
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("audio", blob, "segment.webm");
   const templateName = $("template-select").value;
   if (templateName) formData.append("template_name", templateName);
-
-  setStatus("Transcribing audio…", "active");
 
   try {
     const resp = await fetch("/transcribe", { method: "POST", body: formData });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-      throw new Error(err.detail || resp.statusText);
+      setStatus(`Transcription error: ${err.detail}`, "error");
+      return;
     }
     const data = await resp.json();
-    state.sessionId = data.session_id;
-    $("transcription").value = data.transcription;
-    setUI("transcribed");
-    setStatus("Transcription complete. Edit if needed, then click Format.", "success");
+    if (data.session_id) state.sessionId = data.session_id;
+
+    const newText = data.transcription ? data.transcription.trim() : "";
+    if (newText) {
+      const existing = $("transcription").value.trim();
+      $("transcription").value = existing ? existing + " " + newText : newText;
+    }
+
+    if (state.isRecording) {
+      setStatus("Recording… pause briefly to see live transcription.", "active");
+    }
   } catch (err) {
-    setUI("idle");
     setStatus(`Transcription error: ${err.message}`, "error");
+  } finally {
+    state.isSegmentTranscribing = false;
+    state.pendingSegments--;
+    _maybeAutoFormat();
   }
 }
 
 // ---------------------------------------------------------------------------
-// Format
+// FHIR patient lookup — populates patient context fields from RIS
+// ---------------------------------------------------------------------------
+async function lookupPatient() {
+  const accession = $("accession").value.trim();
+  if (!accession) {
+    setStatus("Enter an accession number first.", "error");
+    return;
+  }
+  const btn = $("btn-lookup");
+  btn.disabled = true;
+  const prevText = btn.textContent;
+  btn.textContent = "…";
+  try {
+    const resp = await fetch(`/patient/${encodeURIComponent(accession)}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      setStatus(`FHIR lookup: ${err.detail}`, "error");
+      return;
+    }
+    const data = await resp.json();
+    if (data.patient_name)        $("patient-name").value        = data.patient_name;
+    if (data.patient_dob)         $("patient-dob").value         = data.patient_dob;
+    if (data.patient_id)          $("patient-id").value          = data.patient_id;
+    if (data.modality)            $("modality").value            = data.modality;
+    if (data.body_part)           $("body-part").value           = data.body_part;
+    if (data.referring_physician) $("referring-physician").value = data.referring_physician;
+    setStatus("Patient details populated from FHIR RIS.", "success");
+  } catch (err) {
+    setStatus(`FHIR lookup failed: ${err.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevText;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Format — streaming SSE
 // ---------------------------------------------------------------------------
 async function formatReport() {
   const transcription = $("transcription").value.trim();
@@ -226,16 +578,26 @@ async function formatReport() {
     transcription,
     template_name: $("template-select").value || null,
     session_id: state.sessionId || null,
-    patient_id: $("patient-id").value.trim() || null,
-    accession: $("accession").value.trim() || null,
-    radiologist: $("radiologist").value.trim() || null,
+    patient_name:         $("patient-name").value.trim()        || null,
+    patient_dob:          $("patient-dob").value.trim()         || null,
+    patient_id:           $("patient-id").value.trim()          || null,
+    accession:            $("accession").value.trim()            || null,
+    modality:             $("modality").value.trim()             || null,
+    body_part:            $("body-part").value.trim()            || null,
+    referring_physician:  $("referring-physician").value.trim()  || null,
+    radiologist:          $("radiologist").value.trim()          || null,
   };
 
   setUI("formatting");
-  setStatus("Generating structured report…", "active");
+  setStatus("Generating report…", "active");
+
+  // Clear report area and start streaming into it
+  $("report-raw").value = "";
+  $("report-rendered").innerHTML = "";
+  _setReportEditMode(false);
 
   try {
-    const resp = await fetch("/format", {
+    const resp = await fetch("/format/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -244,12 +606,41 @@ async function formatReport() {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
       throw new Error(err.detail || resp.statusText);
     }
-    const data = await resp.json();
-    $("report-output").textContent = data.report;
-    const fhirNote = data.fhir_saved ? " · FHIR R4 JSON saved." : "";
-    setUI("done");
-    setStatus("Report generated." + fhirNote, "success");
-    $("report-output").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let accumulated = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (!payload) continue;
+        let msg;
+        try { msg = JSON.parse(payload); } catch { continue; }
+
+        if (msg.token) {
+          accumulated += msg.token;
+          $("report-raw").value = accumulated;
+          $("report-rendered").innerHTML = marked.parse(accumulated);
+        } else if (msg.done) {
+          const fhirNote = msg.fhir_saved ? " · FHIR R4 JSON saved." : "";
+          setUI("done");
+          setStatus("Report ready." + fhirNote, "success");
+          $("report-rendered").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (msg.error) {
+          throw new Error(msg.error);
+        }
+      }
+    }
   } catch (err) {
     setUI("transcribed");
     setStatus(`Format error: ${err.message}`, "error");
@@ -257,16 +648,42 @@ async function formatReport() {
 }
 
 // ---------------------------------------------------------------------------
+// Report: render markdown + edit/preview toggle
+// ---------------------------------------------------------------------------
+let _reportEditMode = false;
+
+function setReport(markdown) {
+  $("report-raw").value = markdown;
+  $("report-rendered").innerHTML = marked.parse(markdown);
+  if (_reportEditMode) _setReportEditMode(false);
+}
+
+function _setReportEditMode(editing) {
+  _reportEditMode = editing;
+  $("report-rendered").style.display = editing ? "none" : "";
+  $("report-raw").style.display      = editing ? "" : "none";
+  $("btn-edit-toggle").textContent   = editing ? "✓ Done" : "✎ Edit";
+}
+
+function toggleReportEdit() {
+  if (!_reportEditMode) {
+    _setReportEditMode(true);
+  } else {
+    $("report-rendered").innerHTML = marked.parse($("report-raw").value);
+    _setReportEditMode(false);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Copy report
 // ---------------------------------------------------------------------------
 async function copyReport() {
-  const text = $("report-output").textContent;
+  const text = $("report-raw").value;
   if (!text.trim()) return;
   try {
     await navigator.clipboard.writeText(text);
     setStatus("Report copied to clipboard.", "success");
   } catch {
-    // Fallback for older browsers / HTTP contexts
     const ta = document.createElement("textarea");
     ta.value = text;
     ta.style.position = "fixed";
@@ -298,7 +715,7 @@ function initCanvasResize() {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   initCanvasResize();
   setUI("idle");
   setStatus("Press Record to start dictating.");
@@ -307,4 +724,22 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);
   $("btn-copy").addEventListener("click", copyReport);
+  $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
+  $("btn-lookup").addEventListener("click", lookupPatient);
+
+  // Check streaming STT capability
+  try {
+    const resp = await fetch("/api/capabilities");
+    if (resp.ok) {
+      const caps = await resp.json();
+      state.streamingSupported = !!caps.streaming_stt;
+      if (state.streamingSupported) {
+        setStatus(
+          `Press Record to start dictating. (Streaming STT: ${caps.provider || "enabled"})`,
+        );
+      }
+    }
+  } catch (_) {
+    // Non-critical — fall back to segment mode silently
+  }
 });

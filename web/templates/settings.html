@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxRad · Settings</title>
+  <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>VOXRAD</h1>
+    <div class="subtitle">Settings</div>
+  </div>
+  <div class="ml-auto" style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:12px;color:var(--muted);">{{ username }}</span>
+    <a href="/" class="btn btn-ghost btn-sm">&#8592; Back</a>
+  </div>
+</header>
+
+<main>
+  <div id="settings-status"></div>
+
+  <!-- ── Transcription (STT) ── -->
+  <div class="card">
+    <div class="settings-section">
+      <div class="settings-section-title">Transcription (Speech-to-Text)</div>
+
+      <p class="settings-info" style="margin-bottom:10px;">
+        Select a real-time streaming provider for word-by-word transcription during dictation.
+        Choosing <strong>None</strong> uses the existing Groq Whisper segment pipeline.
+      </p>
+
+      <!-- None / Groq Whisper -->
+      <label class="provider-option" id="opt-none">
+        <input type="radio" name="streaming_stt_provider" value="" id="radio-none" />
+        <div class="provider-label">
+          <div class="provider-name">None &mdash; Groq Whisper</div>
+          <div class="provider-desc">Segment-based transcription after each pause. No streaming key required.</div>
+        </div>
+        <span id="badge-groq"></span>
+      </label>
+
+      <!-- Deepgram -->
+      <label class="provider-option" id="opt-deepgram">
+        <input type="radio" name="streaming_stt_provider" value="deepgram" id="radio-deepgram" />
+        <div class="provider-label">
+          <div class="provider-name">Deepgram Nova-2 Medical</div>
+          <div class="provider-desc">Real-time streaming &mdash; word-by-word results, medical vocabulary.</div>
+        </div>
+        <span id="badge-deepgram"></span>
+      </label>
+
+      <!-- AssemblyAI -->
+      <label class="provider-option" id="opt-assemblyai">
+        <input type="radio" name="streaming_stt_provider" value="assemblyai" id="radio-assemblyai" />
+        <div class="provider-label">
+          <div class="provider-name">AssemblyAI Streaming</div>
+          <div class="provider-desc">Real-time streaming with word boost for medical terminology.</div>
+        </div>
+        <span id="badge-assemblyai"></span>
+      </label>
+
+      <p id="warn-no-key" class="settings-warning">
+        &#9888; The selected provider's API key is not configured on this server. Set the environment variable and restart.
+      </p>
+
+      <!-- Groq model fields (shown when provider = none) -->
+      <div id="groq-fields" style="margin-top:12px;">
+        <div class="settings-field">
+          <label for="transcription_base_url">Groq / Whisper Base URL</label>
+          <input type="text" id="transcription_base_url" placeholder="https://api.groq.com/openai/v1" />
+        </div>
+        <div class="settings-field">
+          <label for="transcription_model">Transcription Model</label>
+          <input type="text" id="transcription_model" placeholder="whisper-large-v3-turbo" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Report Generation (LLM) ── -->
+  <div class="card">
+    <div class="settings-section">
+      <div class="settings-section-title">Report Generation (LLM)</div>
+      <div class="settings-field">
+        <label for="text_base_url">Text Model Base URL</label>
+        <input type="text" id="text_base_url" placeholder="https://api.openai.com/v1" />
+      </div>
+      <div class="settings-field">
+        <label for="text_model">Text Model Name</label>
+        <input type="text" id="text_model" placeholder="gpt-4o-mini" />
+      </div>
+      <p class="settings-info">Key status: <span id="badge-text"></span></p>
+    </div>
+  </div>
+
+  <!-- ── FHIR Export ── -->
+  <div class="card">
+    <div class="settings-section">
+      <div class="settings-section-title">FHIR Export</div>
+      <label class="provider-option" style="cursor:pointer;">
+        <input type="checkbox" id="fhir_export_enabled" style="accent-color:var(--yellow);width:16px;height:16px;" />
+        <div class="provider-label">
+          <div class="provider-name">Export FHIR R4 JSON after each report</div>
+          <div class="provider-desc">Saves a DiagnosticReport resource to the working directory. Requires FHIR_BASE_URL for RIS lookup.</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <!-- ── API Key Status ── -->
+  <div class="card">
+    <div class="settings-section">
+      <div class="settings-section-title">API Key Status <span style="font-weight:400;text-transform:none;letter-spacing:0;">(read-only &mdash; set via environment variables)</span></div>
+      <div class="keys-grid">
+        <div class="key-row">
+          <span>VOXRAD_TRANSCRIPTION_API_KEY</span>
+          <span id="key-transcription"></span>
+        </div>
+        <div class="key-row">
+          <span>VOXRAD_TEXT_API_KEY</span>
+          <span id="key-text"></span>
+        </div>
+        <div class="key-row">
+          <span>DEEPGRAM_API_KEY</span>
+          <span id="key-deepgram"></span>
+        </div>
+        <div class="key-row">
+          <span>ASSEMBLYAI_API_KEY</span>
+          <span id="key-assemblyai"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save bar ── -->
+  <div class="save-bar">
+    <button id="btn-save" class="btn btn-secondary">&#10003; Save Settings</button>
+    <span id="save-msg" style="font-size:12px;color:var(--muted);"></span>
+  </div>
+</main>
+
+<footer>
+  Settings are persisted to settings.ini (non-sensitive values only). API keys are read from environment variables at startup.
+</footer>
+
+<script src="/static/settings.js?v={{ static_version }}"></script>
+</body>
+</html>

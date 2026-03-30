@@ -52,6 +52,7 @@ def load_settings(web_mode: bool = False):
         config.audio_device = config_parser['DEFAULT'].get('AudioDevice', config.audio_device)
         config.secure_paste_shortcut = config_parser["DEFAULT"].get("SecurePasteShortcut", "ctrl+shift+v")
         config.fhir_export_enabled = config_parser["DEFAULT"].getboolean("FhirExportEnabled", False)
+        config.STREAMING_STT_PROVIDER = config_parser["DEFAULT"].get("StreamingSTTProvider", "") or None
     else:
         logger.warning("'DEFAULT' section not found in settings.ini. Using default values.")
         config.save_directory = os.path.dirname(config_path)
@@ -153,6 +154,11 @@ def load_settings(web_mode: bool = False):
                 if not load_mm_key(mm_key_path, password):
                     messagebox.showerror("Error", "Incorrect password for Multimodal Model Key.")
 
+    # ── Streaming STT API keys (env-var only, never in settings.ini) ──────
+    if web_mode:
+        config.DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY")
+        config.ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
+
     # ── Plaintext API key env vars (Docker / 12-factor fallback) ──────────
     # Applied after the encrypted-key loading so encrypted keys always win.
     # Only active in web_mode to avoid accidentally bypassing the desktop
@@ -173,6 +179,28 @@ def load_settings(web_mode: bool = False):
             if raw:
                 config.MM_API_KEY = raw
                 logger.info("[web] Using VOXRAD_MM_API_KEY from environment.")
+
+
+def save_web_settings():
+    """Persist non-sensitive web settings to settings.ini.
+
+    Only writes provider/model choices — API keys are never written to disk.
+    """
+    config_parser = configparser.ConfigParser()
+    try:
+        config_parser.read(get_default_config_path())
+    except configparser.Error:
+        pass
+    if "DEFAULT" not in config_parser:
+        config_parser["DEFAULT"] = {}
+    config_parser["DEFAULT"]["TranscriptionBaseURL"] = config.TRANSCRIPTION_BASE_URL or ""
+    config_parser["DEFAULT"]["SelectedTranscriptionModel"] = config.SELECTED_TRANSCRIPTION_MODEL or ""
+    config_parser["DEFAULT"]["TextBaseURL"] = config.BASE_URL or ""
+    config_parser["DEFAULT"]["SelectedModel"] = config.SELECTED_MODEL or ""
+    config_parser["DEFAULT"]["FhirExportEnabled"] = str(config.fhir_export_enabled)
+    config_parser["DEFAULT"]["StreamingSTTProvider"] = config.STREAMING_STT_PROVIDER or ""
+    with open(get_default_config_path(), "w") as f:
+        config_parser.write(f)
 
 
 def save_settings():

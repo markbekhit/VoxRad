@@ -12,6 +12,9 @@ Always run behind an HTTPS reverse proxy (e.g. nginx with TLS) in
 production. See docs/web-server-setup.md.
 """
 
+import asyncio
+import base64
+import json
 import logging
 import os
 import re
@@ -22,7 +25,7 @@ import time
 import uuid
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -32,8 +35,10 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from config.config import config
+from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
-from llm.format import format_text
+from llm.format import format_text, stream_format_text
+from web.stt_providers import get_streaming_provider
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +154,50 @@ def health():
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# WebSocket auth helpers
+# ---------------------------------------------------------------------------
+
+def _make_ws_token(username: str) -> str:
+    """Return a base64-encoded token embedding username:password for WS auth."""
+    password = os.environ.get("VOXRAD_WEB_PASSWORD", _DEFAULT_WEB_PASSWORD)
+    return base64.b64encode(f"{username}:{password}".encode()).decode()
+
+
+def _verify_ws_token(token: str) -> bool:
+    """Verify a WS auth token produced by _make_ws_token()."""
+    try:
+        decoded = base64.b64decode(token).decode()
+        _, pw = decoded.split(":", 1)
+        expected = os.environ.get("VOXRAD_WEB_PASSWORD", _DEFAULT_WEB_PASSWORD)
+        return secrets.compare_digest(pw.encode(), expected.encode())
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Keyword list builder — used for provider-side vocabulary boosting
+# ---------------------------------------------------------------------------
+
+def _build_keyword_list(template_name: Optional[str]) -> list[str]:
+    """Return a list of medical terms for STT keyword boosting.
+
+    Prefers the [correct spellings] block from the selected template;
+    falls back to extracting terms from _RADIOLOGY_PROMPT.
+    """
+    text = _RADIOLOGY_PROMPT
+    if template_name:
+        content = _load_template_content(template_name)
+        match = re.search(
+            r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
+        )
+        if match:
+            text = match.group(1).strip()
+    parts = re.split(r"[,\n.]+", text)
+    keywords = [p.strip() for p in parts if p.strip() and len(p.strip()) > 2]
+    return keywords[:200]
+
+
 # Mount mock OpenAI-compatible routes when running without real API keys.
 if os.environ.get("VOXRAD_MOCK_MODE"):
     from web.mock_routes import router as _mock_router
@@ -166,6 +215,21 @@ def index(request: Request, username: str = Depends(_verify_auth)):
             "templates": _list_templates(),
             "username": username,
             "fhir_enabled": config.fhir_export_enabled,
+            "ws_token": _make_ws_token(username),
+            "static_version": _STATIC_VERSION,
+        },
+    )
+
+
+@app.get("/settings")
+def settings_page(request: Request, username: str = Depends(_verify_auth)):
+    return _jinja.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "request": request,
+            "username": username,
+            "static_version": _STATIC_VERSION,
         },
     )
 
@@ -244,9 +308,30 @@ class FormatRequest(BaseModel):
     transcription: str
     template_name: Optional[str] = None
     session_id: Optional[str] = None
+    # Patient context fields
+    patient_name: Optional[str] = None
+    patient_dob: Optional[str] = None
     patient_id: Optional[str] = None
     accession: Optional[str] = None
+    modality: Optional[str] = None
+    body_part: Optional[str] = None
+    referring_physician: Optional[str] = None
     radiologist: Optional[str] = None
+
+
+def _patient_context(req: "FormatRequest") -> Optional[dict]:
+    """Build a patient context dict from a FormatRequest, returning None if all fields empty."""
+    ctx = {k: v for k, v in {
+        "patient_name": req.patient_name,
+        "patient_dob": req.patient_dob,
+        "patient_id": req.patient_id,
+        "accession": req.accession,
+        "modality": req.modality,
+        "body_part": req.body_part,
+        "referring_physician": req.referring_physician,
+        "radiologist": req.radiologist,
+    }.items() if v}
+    return ctx or None
 
 
 @app.post("/format")
@@ -264,7 +349,7 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
             _load_template_content(req.template_name) if req.template_name else ""
         )
         try:
-            report = format_text(req.transcription)
+            report = format_text(req.transcription, patient_context=_patient_context(req))
         finally:
             config.global_md_text_content = old_template
 
@@ -284,3 +369,375 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
 
     logger.info("Report formatted (%d chars), fhir_saved=%s", len(report), fhir_saved)
     return {"report": report, "fhir_saved": fhir_saved}
+
+
+@app.post("/format/stream")
+def format_report_stream(req: FormatRequest, username: str = Depends(_verify_auth)):
+    """Stream a structured radiology report as Server-Sent Events.
+
+    Each SSE event is one of:
+      data: {"token": "..."}       — a text chunk from the LLM
+      data: {"done": true, "fhir_saved": bool}  — signals completion
+      data: {"error": "..."}       — an error occurred
+    """
+    if _MOCK_MODE:
+        def _mock_stream():
+            import time
+            for word in _MOCK_REPORT.split(" "):
+                yield f'data: {{"token": {json.dumps(word + " ")}}}\n\n'
+                time.sleep(0.03)
+            yield 'data: {"done": true, "fhir_saved": false}\n\n'
+        return StreamingResponse(_mock_stream(), media_type="text/event-stream")
+
+    if not config.TEXT_API_KEY:
+        def _err():
+            yield 'data: {"error": "Text model API key not loaded on server."}\n\n'
+        return StreamingResponse(_err(), media_type="text/event-stream")
+
+    _ctx = _patient_context(req)
+
+    def _generate():
+        # We hold the config lock only while pulling template content, then release
+        # it so the generator can stream without blocking other requests.
+        with _format_lock:
+            old_template = config.global_md_text_content
+            config.global_md_text_content = (
+                _load_template_content(req.template_name) if req.template_name else ""
+            )
+            # Snapshot the template content so we can release the lock
+            _template_snapshot = config.global_md_text_content
+            config.global_md_text_content = old_template
+
+        # Temporarily set the template for this call using a thread-local approach:
+        # inject directly then restore after iteration completes.
+        with _format_lock:
+            config.global_md_text_content = _template_snapshot
+        try:
+            full_report = ""
+            for chunk in stream_format_text(req.transcription, patient_context=_ctx):
+                if chunk:
+                    full_report += chunk
+                    yield f'data: {json.dumps({"token": chunk})}\n\n'
+        except Exception as e:
+            logger.error("Streaming format error: %s", e, exc_info=True)
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+            return
+        finally:
+            with _format_lock:
+                config.global_md_text_content = old_template
+
+        fhir_saved = False
+        if config.fhir_export_enabled and full_report:
+            try:
+                path = save_fhir_report(
+                    report_text=full_report,
+                    template_name=req.template_name,
+                    patient_id=req.patient_id or None,
+                    accession=req.accession or None,
+                    radiologist=req.radiologist or None,
+                )
+                fhir_saved = path is not None
+            except Exception as e:
+                logger.warning("FHIR save failed during streaming: %s", e)
+
+        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved})}\n\n'
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# FHIR RIS patient lookup
+# ---------------------------------------------------------------------------
+
+@app.get("/patient/{accession}")
+async def lookup_patient(accession: str, username: str = Depends(_verify_auth)):
+    """Look up patient data from a configured FHIR R4 server by accession number.
+
+    Requires FHIR_BASE_URL env var (e.g. https://fhir.hospital.org/r4).
+    Optional FHIR_BEARER_TOKEN env var for Bearer auth.
+
+    Returns a JSON object with any of:
+      patient_name, patient_dob, patient_id, accession,
+      modality, body_part, referring_physician
+    """
+    import httpx
+
+    fhir_base = os.environ.get("FHIR_BASE_URL", "").rstrip("/")
+    if not fhir_base:
+        raise HTTPException(
+            status_code=503,
+            detail="FHIR_BASE_URL is not configured on this server.",
+        )
+
+    headers: dict = {"Accept": "application/fhir+json"}
+    token = os.environ.get("FHIR_BEARER_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Search ImagingStudy by identifier, requesting inline Patient
+            resp = await client.get(
+                f"{fhir_base}/ImagingStudy",
+                params={"identifier": accession, "_include": "ImagingStudy:patient"},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            bundle = resp.json()
+
+        result: dict = {"accession": accession}
+        patient_ref: Optional[str] = None
+
+        for entry in bundle.get("entry", []):
+            resource = entry.get("resource", {})
+            rt = resource.get("resourceType", "")
+
+            if rt == "ImagingStudy":
+                series = resource.get("series", [])
+                if series:
+                    s = series[0]
+                    mod = s.get("modality", {})
+                    if mod:
+                        result["modality"] = mod.get("code", "")
+                    site = s.get("bodySite", {})
+                    if site:
+                        result["body_part"] = site.get("display", "")
+                subject = resource.get("subject", {})
+                patient_ref = subject.get("reference") or patient_ref
+
+            elif rt == "Patient":
+                _extract_patient_fields(resource, result)
+
+        # If patient wasn't bundled via _include, fetch separately
+        if patient_ref and "patient_name" not in result:
+            url = patient_ref if patient_ref.startswith("http") else f"{fhir_base}/{patient_ref}"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                p_resp = await client.get(url, headers=headers)
+            if p_resp.status_code == 200:
+                _extract_patient_fields(p_resp.json(), result)
+
+        if len(result) <= 1:  # only "accession" key — nothing found
+            raise HTTPException(
+                status_code=404,
+                detail=f"No imaging study found for accession: {accession}",
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"Accession not found: {accession}")
+        raise HTTPException(status_code=503, detail=f"FHIR server error: {exc.response.status_code}")
+    except Exception as exc:
+        logger.error("FHIR lookup failed: %s", exc)
+        raise HTTPException(status_code=503, detail=f"FHIR lookup failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Settings API
+# ---------------------------------------------------------------------------
+
+class SettingsRequest(BaseModel):
+    streaming_stt_provider: Optional[str] = None
+    transcription_base_url: Optional[str] = None
+    transcription_model: Optional[str] = None
+    text_base_url: Optional[str] = None
+    text_model: Optional[str] = None
+    fhir_export_enabled: bool = False
+
+
+@app.get("/api/capabilities")
+def api_capabilities():
+    """Return streaming STT availability — no auth required."""
+    provider = get_streaming_provider()
+    return {
+        "streaming_stt": provider is not None,
+        "provider": config.STREAMING_STT_PROVIDER,
+    }
+
+
+@app.get("/api/settings")
+def api_get_settings(username: str = Depends(_verify_auth)):
+    """Return current (non-sensitive) configuration state."""
+    return {
+        "streaming_stt_provider": config.STREAMING_STT_PROVIDER or "",
+        "transcription_base_url": config.TRANSCRIPTION_BASE_URL or "",
+        "transcription_model": config.SELECTED_TRANSCRIPTION_MODEL or "",
+        "text_base_url": config.BASE_URL or "",
+        "text_model": config.SELECTED_MODEL or "",
+        "fhir_export_enabled": config.fhir_export_enabled,
+        "keys": {
+            "transcription": bool(config.TRANSCRIPTION_API_KEY),
+            "text": bool(config.TEXT_API_KEY),
+            "deepgram": bool(config.DEEPGRAM_API_KEY),
+            "assemblyai": bool(config.ASSEMBLYAI_API_KEY),
+        },
+    }
+
+
+@app.post("/api/settings")
+def api_save_settings(req: SettingsRequest, username: str = Depends(_verify_auth)):
+    """Persist non-sensitive settings to settings.ini."""
+    config.STREAMING_STT_PROVIDER = req.streaming_stt_provider or None
+    if req.transcription_base_url:
+        config.TRANSCRIPTION_BASE_URL = req.transcription_base_url
+    if req.transcription_model:
+        config.SELECTED_TRANSCRIPTION_MODEL = req.transcription_model
+    if req.text_base_url:
+        config.BASE_URL = req.text_base_url
+    if req.text_model:
+        config.SELECTED_MODEL = req.text_model
+    config.fhir_export_enabled = req.fhir_export_enabled
+    save_web_settings()
+    logger.info("Settings saved by %s", username)
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# WebSocket: real-time streaming STT proxy
+# ---------------------------------------------------------------------------
+
+@app.websocket("/ws/transcribe")
+async def ws_transcribe(websocket: WebSocket, token: str = ""):
+    """Proxy PCM audio from browser to Deepgram/AssemblyAI; stream transcripts back.
+
+    Protocol:
+      1. Client connects with ?token=<base64(user:pass)>
+      2. Client sends JSON: {"template_name": "..."}
+      3. Client sends binary frames: raw PCM 16kHz mono int16
+      4. Server sends JSON: {"type":"interim","text":"..."} or {"type":"final","text":"..."}
+      5. Client sends JSON: {"type":"stop"} when done recording
+      6. Server sends JSON: {"type":"session_complete","transcription":"...","session_id":"..."}
+    """
+    if not _verify_ws_token(token):
+        await websocket.close(code=4001)
+        return
+
+    await websocket.accept()
+    provider = None
+    try:
+        # Step 1: receive config message
+        config_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+        template_name = config_msg.get("template_name")
+        keywords = _build_keyword_list(template_name)
+
+        provider = get_streaming_provider()
+        if not provider:
+            await websocket.send_json({
+                "type": "error",
+                "message": "No streaming STT provider configured. Configure one in Settings.",
+            })
+            return
+
+        provider_name = (config.STREAMING_STT_PROVIDER or "").lower()
+        if provider_name == "deepgram":
+            api_key = config.DEEPGRAM_API_KEY or ""
+        elif provider_name == "assemblyai":
+            api_key = config.ASSEMBLYAI_API_KEY or ""
+        else:
+            api_key = ""
+
+        await provider.connect(api_key, 16000, keywords)
+
+        finals: list[str] = []
+        stop_event = asyncio.Event()
+
+        async def receive_loop():
+            """Read from browser: binary frames are audio, text frames are control."""
+            try:
+                while not stop_event.is_set():
+                    msg = await websocket.receive()
+                    if msg.get("type") == "websocket.disconnect":
+                        stop_event.set()
+                        break
+                    raw_bytes = msg.get("bytes")
+                    if raw_bytes:
+                        await provider.send_audio(raw_bytes)
+                    raw_text = msg.get("text")
+                    if raw_text:
+                        try:
+                            ctrl = json.loads(raw_text)
+                            if ctrl.get("type") == "stop":
+                                stop_event.set()
+                        except (json.JSONDecodeError, KeyError):
+                            pass
+            except Exception:
+                stop_event.set()
+
+        async def results_loop():
+            """Forward transcript events from provider to browser."""
+            try:
+                async for event in provider.receive_results():
+                    if stop_event.is_set():
+                        break
+                    if not _is_hallucination(event.text):
+                        if event.is_final:
+                            finals.append(event.text)
+                            await websocket.send_json({"type": "final", "text": event.text})
+                        else:
+                            await websocket.send_json({"type": "interim", "text": event.text})
+            except Exception as e:
+                logger.warning("Results loop error: %s", e)
+            finally:
+                stop_event.set()
+
+        receive_task = asyncio.create_task(receive_loop())
+        results_task = asyncio.create_task(results_loop())
+
+        await stop_event.wait()
+
+        receive_task.cancel()
+        results_task.cancel()
+        await asyncio.gather(receive_task, results_task, return_exceptions=True)
+
+        await provider.close()
+        provider = None
+
+        full_text = " ".join(finals).strip()
+        corrected = _correct_asr_text(full_text) if full_text else ""
+
+        _prune_sessions()
+        session_id = _create_session(corrected) if corrected else ""
+
+        await websocket.send_json({
+            "type": "session_complete",
+            "transcription": corrected,
+            "session_id": session_id,
+        })
+
+    except WebSocketDisconnect:
+        logger.info("WS client disconnected during streaming")
+    except Exception as e:
+        logger.error("WS transcribe error: %s", e, exc_info=True)
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except Exception:
+            pass
+    finally:
+        if provider:
+            try:
+                await provider.close()
+            except Exception:
+                pass
+
+
+def _extract_patient_fields(resource: dict, result: dict) -> None:
+    """Pull name, DOB, and MRN from a FHIR Patient resource into result dict."""
+    names = resource.get("name", [])
+    if names:
+        n = names[0]
+        given = " ".join(n.get("given", []))
+        family = n.get("family", "")
+        full = f"{given} {family}".strip()
+        if full:
+            result["patient_name"] = full
+    dob = resource.get("birthDate", "")
+    if dob:
+        result["patient_dob"] = dob
+    for ident in resource.get("identifier", []):
+        code = (ident.get("type", {}).get("coding") or [{}])[0].get("code", "")
+        if code == "MR":
+            result["patient_id"] = ident.get("value", "")
+            break

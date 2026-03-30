@@ -4,21 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VoxRad</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
 </head>
-<body>
+<body data-ws-token="{{ ws_token }}">
 
 <header>
   <div>
     <h1>VOXRAD</h1>
     <div class="subtitle">Voice Radiology Dictation &nbsp;·&nbsp; Web Interface</div>
   </div>
-  <div class="ml-auto" style="font-size:12px;color:var(--muted);">{{ username }}</div>
+  <div class="ml-auto" style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:12px;color:var(--muted);">{{ username }}</span>
+    <a href="/settings" class="btn btn-ghost btn-sm" title="Settings">&#9881; Settings</a>
+  </div>
 </header>
 
 <main>
 
-  <!-- ── Template + FHIR settings ── -->
+  <!-- ── Template + Patient Context ── -->
   <div class="card">
     <div class="card-title">Report Settings</div>
 
@@ -34,25 +37,48 @@
       </div>
     </div>
 
-    <details style="margin-top:10px;">
-      <summary>Optional FHIR Patient Fields</summary>
+    <details style="margin-top:10px;" open>
+      <summary>Patient Context</summary>
       <div class="fhir-grid mt-8">
         <div>
-          <label class="fhir-label" for="patient-id">Patient ID (MRN)</label>
-          <input type="text" id="patient-id" placeholder="e.g. MRN-00123" />
+          <label class="fhir-label" for="patient-name">Patient Name</label>
+          <input type="text" id="patient-name" placeholder="e.g. Jane Smith" autocomplete="off" />
         </div>
         <div>
-          <label class="fhir-label" for="accession">Accession Number</label>
-          <input type="text" id="accession" placeholder="e.g. ACC-2026-001" />
+          <label class="fhir-label" for="patient-dob">Date of Birth</label>
+          <input type="text" id="patient-dob" placeholder="e.g. 15/03/1965" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="modality">Modality</label>
+          <input type="text" id="modality" placeholder="e.g. MRI" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="body-part">Body Part</label>
+          <input type="text" id="body-part" placeholder="e.g. Right Knee" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="referring-physician">Referring Physician</label>
+          <input type="text" id="referring-physician" placeholder="e.g. Dr. Jones" autocomplete="off" />
         </div>
         <div>
           <label class="fhir-label" for="radiologist">Radiologist</label>
-          <input type="text" id="radiologist" placeholder="e.g. Dr. Smith" />
+          <input type="text" id="radiologist" placeholder="e.g. Dr. Smith" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="patient-id">Patient ID (MRN)</label>
+          <input type="text" id="patient-id" placeholder="e.g. MRN-00123" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="accession">Accession Number</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="accession" placeholder="e.g. ACC-2026-001" autocomplete="off" style="flex:1;min-width:0;" />
+            <button id="btn-lookup" class="btn btn-ghost btn-sm" type="button" title="Look up patient from FHIR RIS">Lookup</button>
+          </div>
         </div>
       </div>
       {% if not fhir_enabled %}
       <p style="font-size:11px;color:var(--muted);margin-top:6px;">
-        FHIR export is disabled. Enable it in Settings → General → Export FHIR R4 JSON.
+        FHIR export is disabled. Set FHIR_BASE_URL to enable RIS patient lookup.
       </p>
       {% endif %}
     </details>
@@ -70,6 +96,7 @@
         <span>&#9632;</span> Stop
       </button>
       <span id="rec-dot" class="rec-dot" style="display:none;"></span>
+      <span id="streaming-dot" class="streaming-dot" style="display:none;" title="Streaming STT active"></span>
       <span id="timer">0:00</span>
       <canvas id="waveform"></canvas>
     </div>
@@ -80,24 +107,28 @@
 
   <!-- ── Transcription ── -->
   <div class="card mt-8">
-    <div class="card-title">Transcription <span style="font-weight:400;text-transform:none;">(editable — correct before formatting)</span></div>
+    <div class="card-title">Transcription <span style="font-weight:400;text-transform:none;">(editable — report auto-generates on stop)</span></div>
     <textarea id="transcription" rows="5" placeholder="Transcription will appear here after recording…"></textarea>
     <div class="row mt-8">
-      <button id="btn-format" class="btn btn-primary" disabled>
-        <span>&#9881;</span> Format Report
+      <button id="btn-format" class="btn btn-secondary" disabled style="font-size:0.8rem;padding:6px 12px;opacity:0.7;">
+        <span>&#9881;</span> Re-format
       </button>
     </div>
   </div>
 
   <!-- ── Report ── -->
   <div class="card">
-    <div class="card-title">Structured Report</div>
-    <pre id="report-output"></pre>
-    <div class="row mt-8">
-      <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>
-        &#128203; Copy Report
-      </button>
+    <div class="report-card-header">
+      <div class="card-title" style="margin-bottom:0;">Structured Report</div>
+      <div class="row" style="gap:6px;">
+        <button id="btn-edit-toggle" class="btn btn-ghost btn-sm" disabled>&#9998; Edit</button>
+        <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>&#128203; Copy</button>
+      </div>
     </div>
+    <!-- Rendered markdown view (default) -->
+    <div id="report-rendered" class="report-rendered"></div>
+    <!-- Raw edit textarea (shown when editing) -->
+    <textarea id="report-raw" rows="16" style="display:none;" placeholder="Formatted report will appear here…"></textarea>
   </div>
 
 </main>
@@ -108,6 +139,7 @@
   Reports contain PHI: treat this server accordingly.
 </footer>
 
-<script src="/static/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/app.js?v={{ static_version }}"></script>
 </body>
 </html>
