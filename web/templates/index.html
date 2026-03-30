@@ -34,25 +34,48 @@
       </div>
     </div>
 
-    <details style="margin-top:10px;">
-      <summary>Optional FHIR Patient Fields</summary>
+    <details style="margin-top:10px;" open>
+      <summary>Patient Context</summary>
       <div class="fhir-grid mt-8">
         <div>
-          <label class="fhir-label" for="patient-id">Patient ID (MRN)</label>
-          <input type="text" id="patient-id" placeholder="e.g. MRN-00123" />
+          <label class="fhir-label" for="patient-name">Patient Name</label>
+          <input type="text" id="patient-name" placeholder="e.g. Jane Smith" autocomplete="off" />
         </div>
         <div>
-          <label class="fhir-label" for="accession">Accession Number</label>
-          <input type="text" id="accession" placeholder="e.g. ACC-2026-001" />
+          <label class="fhir-label" for="patient-dob">Date of Birth</label>
+          <input type="text" id="patient-dob" placeholder="e.g. 15/03/1965" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="modality">Modality</label>
+          <input type="text" id="modality" placeholder="e.g. MRI" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="body-part">Body Part</label>
+          <input type="text" id="body-part" placeholder="e.g. Right Knee" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="referring-physician">Referring Physician</label>
+          <input type="text" id="referring-physician" placeholder="e.g. Dr. Jones" autocomplete="off" />
         </div>
         <div>
           <label class="fhir-label" for="radiologist">Radiologist</label>
-          <input type="text" id="radiologist" placeholder="e.g. Dr. Smith" />
+          <input type="text" id="radiologist" placeholder="e.g. Dr. Smith" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="patient-id">Patient ID (MRN)</label>
+          <input type="text" id="patient-id" placeholder="e.g. MRN-00123" autocomplete="off" />
+        </div>
+        <div>
+          <label class="fhir-label" for="accession">Accession Number</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="accession" placeholder="e.g. ACC-2026-001" autocomplete="off" style="flex:1;min-width:0;" />
+            <button id="btn-lookup" class="btn btn-ghost btn-sm" type="button" title="Look up patient from FHIR RIS">Lookup</button>
+          </div>
         </div>
       </div>
       {% if not fhir_enabled %}
       <p style="font-size:11px;color:var(--muted);margin-top:6px;">
-        FHIR export is disabled. Enable it in Settings → General → Export FHIR R4 JSON.
+        FHIR export is disabled. Set FHIR_BASE_URL to enable RIS patient lookup.
       </p>
       {% endif %}
     </details>

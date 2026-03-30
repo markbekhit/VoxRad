@@ -437,9 +437,30 @@ class FormatRequest(BaseModel):
     transcription: str
     template_name: Optional[str] = None
     session_id: Optional[str] = None
+    # Patient context fields
+    patient_name: Optional[str] = None
+    patient_dob: Optional[str] = None
     patient_id: Optional[str] = None
     accession: Optional[str] = None
+    modality: Optional[str] = None
+    body_part: Optional[str] = None
+    referring_physician: Optional[str] = None
     radiologist: Optional[str] = None
+
+
+def _patient_context(req: "FormatRequest") -> Optional[dict]:
+    """Build a patient context dict from a FormatRequest, returning None if all fields empty."""
+    ctx = {k: v for k, v in {
+        "patient_name": req.patient_name,
+        "patient_dob": req.patient_dob,
+        "patient_id": req.patient_id,
+        "accession": req.accession,
+        "modality": req.modality,
+        "body_part": req.body_part,
+        "referring_physician": req.referring_physician,
+        "radiologist": req.radiologist,
+    }.items() if v}
+    return ctx or None
 
 
 @app.post("/format")
@@ -461,7 +482,7 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
             _load_template_content(req.template_name) if req.template_name else ""
         )
         try:
-            report = format_text(req.transcription)
+            report = format_text(req.transcription, patient_context=_patient_context(req))
         finally:
             config.global_md_text_content = old_template
 
@@ -506,6 +527,8 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
             yield 'data: {"error": "Text model API key not loaded on server."}\n\n'
         return StreamingResponse(_err(), media_type="text/event-stream")
 
+    _ctx = _patient_context(req)
+
     def _generate():
         # We hold the config lock only while pulling template content, then release
         # it so the generator can stream without blocking other requests.
@@ -524,7 +547,7 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
             config.global_md_text_content = _template_snapshot
         try:
             full_report = ""
-            for chunk in stream_format_text(req.transcription):
+            for chunk in stream_format_text(req.transcription, patient_context=_ctx):
                 if chunk:
                     full_report += chunk
                     yield f'data: {json.dumps({"token": chunk})}\n\n'
@@ -553,3 +576,113 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
         yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# FHIR RIS patient lookup
+# ---------------------------------------------------------------------------
+
+@app.get("/patient/{accession}")
+async def lookup_patient(accession: str, username: str = Depends(_verify_auth)):
+    """Look up patient data from a configured FHIR R4 server by accession number.
+
+    Requires FHIR_BASE_URL env var (e.g. https://fhir.hospital.org/r4).
+    Optional FHIR_BEARER_TOKEN env var for Bearer auth.
+
+    Returns a JSON object with any of:
+      patient_name, patient_dob, patient_id, accession,
+      modality, body_part, referring_physician
+    """
+    import httpx
+
+    fhir_base = os.environ.get("FHIR_BASE_URL", "").rstrip("/")
+    if not fhir_base:
+        raise HTTPException(
+            status_code=503,
+            detail="FHIR_BASE_URL is not configured on this server.",
+        )
+
+    headers: dict = {"Accept": "application/fhir+json"}
+    token = os.environ.get("FHIR_BEARER_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Search ImagingStudy by identifier, requesting inline Patient
+            resp = await client.get(
+                f"{fhir_base}/ImagingStudy",
+                params={"identifier": accession, "_include": "ImagingStudy:patient"},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            bundle = resp.json()
+
+        result: dict = {"accession": accession}
+        patient_ref: Optional[str] = None
+
+        for entry in bundle.get("entry", []):
+            resource = entry.get("resource", {})
+            rt = resource.get("resourceType", "")
+
+            if rt == "ImagingStudy":
+                series = resource.get("series", [])
+                if series:
+                    s = series[0]
+                    mod = s.get("modality", {})
+                    if mod:
+                        result["modality"] = mod.get("code", "")
+                    site = s.get("bodySite", {})
+                    if site:
+                        result["body_part"] = site.get("display", "")
+                subject = resource.get("subject", {})
+                patient_ref = subject.get("reference") or patient_ref
+
+            elif rt == "Patient":
+                _extract_patient_fields(resource, result)
+
+        # If patient wasn't bundled via _include, fetch separately
+        if patient_ref and "patient_name" not in result:
+            url = patient_ref if patient_ref.startswith("http") else f"{fhir_base}/{patient_ref}"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                p_resp = await client.get(url, headers=headers)
+            if p_resp.status_code == 200:
+                _extract_patient_fields(p_resp.json(), result)
+
+        if len(result) <= 1:  # only "accession" key — nothing found
+            raise HTTPException(
+                status_code=404,
+                detail=f"No imaging study found for accession: {accession}",
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"Accession not found: {accession}")
+        raise HTTPException(status_code=503, detail=f"FHIR server error: {exc.response.status_code}")
+    except Exception as exc:
+        logger.error("FHIR lookup failed: %s", exc)
+        raise HTTPException(status_code=503, detail=f"FHIR lookup failed: {exc}")
+
+
+def _extract_patient_fields(resource: dict, result: dict) -> None:
+    """Pull name, DOB, and MRN from a FHIR Patient resource into result dict."""
+    names = resource.get("name", [])
+    if names:
+        n = names[0]
+        given = " ".join(n.get("given", []))
+        family = n.get("family", "")
+        full = f"{given} {family}".strip()
+        if full:
+            result["patient_name"] = full
+    dob = resource.get("birthDate", "")
+    if dob:
+        result["patient_dob"] = dob
+    for ident in resource.get("identifier", []):
+        code = (ident.get("type", {}).get("coding") or [{}])[0].get("code", "")
+        if code == "MR":
+            result["patient_id"] = ident.get("value", "")
+            break

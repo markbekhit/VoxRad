@@ -352,6 +352,42 @@ async function submitAudioSegment(chunks, isFinal) {
 }
 
 // ---------------------------------------------------------------------------
+// FHIR patient lookup — populates patient context fields from RIS
+// ---------------------------------------------------------------------------
+async function lookupPatient() {
+  const accession = $("accession").value.trim();
+  if (!accession) {
+    setStatus("Enter an accession number first.", "error");
+    return;
+  }
+  const btn = $("btn-lookup");
+  btn.disabled = true;
+  const prevText = btn.textContent;
+  btn.textContent = "…";
+  try {
+    const resp = await fetch(`/patient/${encodeURIComponent(accession)}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      setStatus(`FHIR lookup: ${err.detail}`, "error");
+      return;
+    }
+    const data = await resp.json();
+    if (data.patient_name)        $("patient-name").value        = data.patient_name;
+    if (data.patient_dob)         $("patient-dob").value         = data.patient_dob;
+    if (data.patient_id)          $("patient-id").value          = data.patient_id;
+    if (data.modality)            $("modality").value            = data.modality;
+    if (data.body_part)           $("body-part").value           = data.body_part;
+    if (data.referring_physician) $("referring-physician").value = data.referring_physician;
+    setStatus("Patient details populated from FHIR RIS.", "success");
+  } catch (err) {
+    setStatus(`FHIR lookup failed: ${err.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevText;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Format — streaming SSE
 // ---------------------------------------------------------------------------
 async function formatReport() {
@@ -365,9 +401,14 @@ async function formatReport() {
     transcription,
     template_name: $("template-select").value || null,
     session_id: state.sessionId || null,
-    patient_id: $("patient-id") ? $("patient-id").value.trim() || null : null,
-    accession: $("accession") ? $("accession").value.trim() || null : null,
-    radiologist: $("radiologist") ? $("radiologist").value.trim() || null : null,
+    patient_name:         $("patient-name").value.trim()        || null,
+    patient_dob:          $("patient-dob").value.trim()         || null,
+    patient_id:           $("patient-id").value.trim()          || null,
+    accession:            $("accession").value.trim()            || null,
+    modality:             $("modality").value.trim()             || null,
+    body_part:            $("body-part").value.trim()            || null,
+    referring_physician:  $("referring-physician").value.trim()  || null,
+    radiologist:          $("radiologist").value.trim()          || null,
   };
 
   setUI("formatting");
@@ -510,4 +551,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btn-format").addEventListener("click", formatReport);
   $("btn-copy").addEventListener("click", copyReport);
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
+  $("btn-lookup").addEventListener("click", lookupPatient);
 });

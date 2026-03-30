@@ -150,10 +150,10 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 #status.success { border-color: var(--green);  color: var(--green); }
 #status.active  { border-color: var(--yellow); }
 
-/* ── Grid for FHIR fields ── */
+/* ── Grid for patient context fields ── */
 .fhir-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 6px;
 }
