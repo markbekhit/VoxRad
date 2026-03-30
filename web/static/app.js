@@ -300,13 +300,17 @@ async function submitAudioSegment(chunks, isFinal) {
     // Too small — silence or noise only, nothing to transcribe.
     if (isFinal) {
       const hasText = $("transcription").value.trim();
-      setUI(hasText ? "transcribed" : "idle");
-      setStatus(
-        hasText ? "Transcription complete. Edit if needed, then Format." : "No speech detected.",
-        hasText ? "success" : "error"
-      );
+      state.isSegmentTranscribing = false;
+      if (hasText) {
+        setUI("transcribed");
+        formatReport(); // auto-format even when final blob is tiny
+      } else {
+        setUI("idle");
+        setStatus("No speech detected.", "error");
+      }
+    } else {
+      state.isSegmentTranscribing = false;
     }
-    state.isSegmentTranscribing = false;
     return;
   }
 
