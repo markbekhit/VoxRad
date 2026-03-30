@@ -22,7 +22,7 @@ const state = {
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
-const SPEECH_THRESHOLD    = 0.04;   // RMS above this = real speech (filters background noise)
+const SPEECH_THRESHOLD    = 0.015;  // RMS above this = speech (just above background hum)
 const SILENCE_DURATION_MS = 800;    // 800 ms pause triggers segment
 const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this (~600 ms of silence encodes to ~8-10 KB)
 
@@ -118,8 +118,10 @@ function startWaveform(stream) {
       // Track whether real speech occurred in this segment
       if (rms >= SPEECH_THRESHOLD) {
         state.speechDetected = true;
-        state.silenceStart = null;   // reset silence timer while speaking
-      } else if (rms < SILENCE_THRESHOLD) {
+      }
+      if (rms >= SILENCE_THRESHOLD) {
+        state.silenceStart = null;   // any audio above noise floor resets silence timer
+      } else {  // rms < SILENCE_THRESHOLD
         if (!state.silenceStart) {
           state.silenceStart = now;
         } else if (now - state.silenceStart >= SILENCE_DURATION_MS) {
