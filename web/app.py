@@ -125,12 +125,16 @@ _BUNDLED_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__))
 
 def _list_templates() -> list[str]:
     # Prefer user templates in the working directory; fall back to bundled ones.
+    # Only use a directory if it exists AND contains template files — an empty
+    # user templates dir should fall through to the bundled templates.
     for d in [
         os.path.join(config.save_directory or "", "templates"),
         _BUNDLED_TEMPLATES_DIR,
     ]:
         if os.path.isdir(d):
-            return sorted(f for f in os.listdir(d) if f.endswith((".txt", ".md")))
+            files = sorted(f for f in os.listdir(d) if f.endswith((".txt", ".md")))
+            if files:
+                return files
     return []
 
 
