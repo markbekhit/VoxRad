@@ -277,13 +277,13 @@ def _correct_asr_text(raw: str) -> str:
     Uses the text LLM (GPT-4o-mini / configured model). Skips correction if
     the text LLM is not configured or if the text is very short (≤ 3 words).
     """
-    if not config.API_KEY:
+    if not config.TEXT_API_KEY:
         return raw
     words = raw.split()
     if len(words) <= 3:
         return raw  # too short to bother; unlikely to have complex errors
     try:
-        client = OpenAI(api_key=config.API_KEY, base_url=config.BASE_URL)
+        client = OpenAI(api_key=config.TEXT_API_KEY, base_url=config.BASE_URL)
         resp = client.chat.completions.create(
             model=config.SELECTED_MODEL,
             messages=[
