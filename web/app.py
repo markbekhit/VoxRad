@@ -53,6 +53,18 @@ app.mount(
 )
 _jinja = Jinja2Templates(directory=os.path.join(_BASE_DIR, "templates"))
 
+# Cache-busting: use the current git commit hash (or a timestamp fallback)
+# so browsers always load fresh JS/CSS after each deploy.
+try:
+    import subprocess
+    _STATIC_VERSION = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=os.path.dirname(_BASE_DIR),
+        stderr=subprocess.DEVNULL,
+    ).decode().strip()
+except Exception:
+    _STATIC_VERSION = str(int(time.time()))
+
 # ---------------------------------------------------------------------------
 # HTTP Basic Auth
 # ---------------------------------------------------------------------------
@@ -180,6 +192,7 @@ def index(request: Request, username: str = Depends(_verify_auth)):
             "templates": _list_templates(),
             "username": username,
             "fhir_enabled": config.fhir_export_enabled,
+            "static_version": _STATIC_VERSION,
         },
     )
 
