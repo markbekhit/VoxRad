@@ -234,17 +234,83 @@ def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
 
 # ---------------------------------------------------------------------------
 # Radiology vocabulary prompt for Whisper
-# Biases ASR toward medical terms; template-specific spellings override this.
+# Two-part design per OpenAI Whisper docs:
+#   1. A short context sentence (tells Whisper this is medical dictation)
+#   2. A curated vocabulary list of RadLex-derived terms Whisper commonly
+#      confuses — comma-separated so Whisper learns their spelling/casing.
+# Template-specific [correct spellings] blocks override this entirely.
 # ---------------------------------------------------------------------------
 _RADIOLOGY_PROMPT = (
+    # Context
     "Radiology report dictation. "
-    "No marrow oedema, contusion, or fracture. No joint effusion. "
-    "Oblique undersurface tear of the posterior horn of the medial meniscus. "
-    "Baker's cyst without features of rupture. "
-    "ACL and PCL intact. No pleural effusion or pneumothorax. "
-    "No consolidation or atelectasis. No lymphadenopathy. "
-    "Partial thickness tear of the supraspinatus tendon."
+    # Musculoskeletal / joint
+    "oedema, meniscus, menisci, supraspinatus, infraspinatus, subscapularis, "
+    "teres minor, acromioclavicular, glenohumeral, coracohumeral, "
+    "chondromalacia, chondral, subchondral, osteochondral, trabecular, "
+    "Baker's cyst, Hoffa's fat pad, trochanteric, iliopsoas, "
+    "ACL, PCL, MCL, LCL, posterolateral corner, MPFL, "
+    "Bankart lesion, Hill-Sachs, SLAP tear, rotator cuff, "
+    "effusion, synovitis, tenosynovitis, enthesopathy, bursitis, "
+    # Chest / abdomen / pelvis
+    "consolidation, atelectasis, bronchiectasis, pneumothorax, "
+    "pleural effusion, mediastinum, hilum, hilar, parenchyma, "
+    "hepatomegaly, splenomegaly, cholelithiasis, nephrolithiasis, "
+    "lymphadenopathy, pericardial, pericardium, "
+    # Neuro / spine
+    "herniation, spondylosis, spondylolisthesis, stenosis, "
+    "cauda equina, conus medullaris, ligamentum flavum, "
+    "intraosseous, cortical, periosteal, cancellous, "
+    # Modality / technique
+    "T1-weighted, T2-weighted, STIR, gradient echo, "
+    "Hounsfield units, attenuation, diffusion-weighted, "
+    "coronal, sagittal, axial, multiplanar."
 )
+
+# ---------------------------------------------------------------------------
+# LLM post-correction for raw Whisper output
+# A fast, tight prompt that fixes medical ASR errors without rephrasing.
+# ---------------------------------------------------------------------------
+_CORRECTION_SYSTEM = """\
+You are a medical transcription corrector for radiology dictation.
+Fix ONLY obvious speech recognition errors: misspelled medical terms, \
+mangled anatomy, and garbled drug or procedure names.
+Do NOT rephrase, reorder, summarise, or add any words not present in the input.
+Return the corrected text only — no explanation, no prefix, no punctuation changes \
+beyond fixing the erroneous word itself.\
+"""
+
+
+def _correct_asr_text(raw: str) -> str:
+    """Pass raw Whisper output through a fast LLM to fix medical terminology errors.
+
+    Uses the text LLM (GPT-4o-mini / configured model). Skips correction if
+    the text LLM is not configured or if the text is very short (≤ 3 words).
+    """
+    if not config.API_KEY:
+        return raw
+    words = raw.split()
+    if len(words) <= 3:
+        return raw  # too short to bother; unlikely to have complex errors
+    try:
+        client = OpenAI(api_key=config.API_KEY, base_url=config.BASE_URL)
+        resp = client.chat.completions.create(
+            model=config.SELECTED_MODEL,
+            messages=[
+                {"role": "system", "content": _CORRECTION_SYSTEM},
+                {"role": "user", "content": raw},
+            ],
+            temperature=0.0,
+            max_tokens=len(words) + 30,  # corrected text won't be longer
+        )
+        corrected = resp.choices[0].message.content.strip()
+        # Safety: if the LLM somehow returns nothing or drastically expands the
+        # text, fall back to the original Whisper output.
+        if not corrected or len(corrected) > len(raw) * 2:
+            return raw
+        return corrected
+    except Exception as exc:
+        logger.warning("ASR correction skipped: %s", exc)
+        return raw
 
 
 _MOCK_TRANSCRIPTION = (
@@ -338,6 +404,10 @@ async def transcribe(
         if _is_hallucination(text, asr_prompt):
             logger.debug("Discarded hallucination: %r", text)
             return {"transcription": "", "session_id": ""}
+
+        # LLM post-correction: fix medical ASR errors (e.g. "bake assist" →
+        # "Baker's cyst") using the text LLM before returning to the client.
+        text = _correct_asr_text(text)
 
         _prune_sessions()
         session_id = _create_session(text)
