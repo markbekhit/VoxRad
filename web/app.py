@@ -27,7 +27,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -56,6 +56,143 @@ app.mount(
     name="static",
 )
 _jinja = Jinja2Templates(directory=os.path.join(_BASE_DIR, "templates"))
+
+# ---------------------------------------------------------------------------
+# Static version for cache-busting
+# ---------------------------------------------------------------------------
+
+try:
+    import subprocess as _sp
+    _STATIC_VERSION = _sp.check_output(
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=_BASE_DIR,
+        stderr=_sp.DEVNULL,
+    ).decode().strip()
+except Exception:
+    _STATIC_VERSION = str(int(time.time()))
+
+# ---------------------------------------------------------------------------
+# Mock mode — activated by VOXRAD_MOCK_MODE env var
+# ---------------------------------------------------------------------------
+
+_MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
+
+_MOCK_TRANSCRIPTION = (
+    "There is a 1.2 cm nodule in the right upper lobe. "
+    "No pleural effusion. Heart size is normal. "
+    "Impression: solitary pulmonary nodule, right upper lobe. "
+    "Recommend CT chest with contrast for further evaluation."
+)
+
+_MOCK_REPORT = """## CHEST X-RAY
+
+**Clinical History:** Routine screening.
+
+### Findings
+
+- **Lungs:** 1.2 cm nodule right upper lobe. No consolidation or pleural effusion.
+- **Heart:** Normal size and contour.
+- **Mediastinum:** Unremarkable.
+- **Bones:** No acute osseous abnormality.
+
+### Impression
+
+1. Solitary pulmonary nodule, right upper lobe (1.2 cm). Recommend CT chest with contrast.
+"""
+
+# ---------------------------------------------------------------------------
+# Bundled templates directory (shipped with the app)
+# ---------------------------------------------------------------------------
+
+_BUNDLED_TEMPLATES_DIR = os.path.join(
+    os.path.dirname(_BASE_DIR), "templates"
+)
+
+# ---------------------------------------------------------------------------
+# RadLex-derived ASR vocabulary prompt for Whisper-compatible APIs
+# ---------------------------------------------------------------------------
+
+_RADIOLOGY_PROMPT = (
+    "adenopathy, atelectasis, attenuation, calcification, cardiomegaly, "
+    "consolidation, costophrenic, diaphragm, effusion, emphysema, hepatomegaly, "
+    "hilar, hydronephrosis, hyperechoic, hypoechoic, infiltrate, interstitial, "
+    "mediastinum, nodule, opacity, osseous, parenchyma, pericardial, pleural, "
+    "pneumothorax, splenomegaly, subsegmental, thoracic, vertebral, BIRADS, "
+    "TIRADS, PIRADS, LIRADS, Fleischner, T1, T2, FLAIR, DWI, ADC, SUV, "
+    "Hounsfield, coronal, sagittal, axial, bilateral, ipsilateral, contralateral, "
+    "anterolisthesis, spondylosis, stenosis, foraminal, ligamentum flavum, "
+    "pneumonia, edema, infarct, hemorrhage, aneurysm, dissection, thrombosis"
+)
+
+# ---------------------------------------------------------------------------
+# Hallucination filter — common Whisper ghost outputs
+# ---------------------------------------------------------------------------
+
+_HALLUCINATIONS: set[str] = {
+    "thank you",
+    "thank you for watching",
+    "thanks for watching",
+    "you",
+    ".",
+    "please subscribe",
+    "transcribed by",
+    "subtitles by",
+    "www.",
+    "http",
+}
+
+
+def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
+    """Return True if *text* looks like an ASR hallucination to be discarded."""
+    t = text.strip().lower()
+    if not t or len(t) < 3:
+        return True
+    for h in _HALLUCINATIONS:
+        if t == h or t.startswith(h):
+            return True
+    # If text is identical to the ASR prompt seed, discard
+    if asr_prompt and t == asr_prompt.strip().lower():
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# ASR post-correction via text LLM
+# ---------------------------------------------------------------------------
+
+_CORRECTION_SYSTEM = (
+    "You are a radiology transcription editor. "
+    "Correct only obvious speech-to-text errors (wrong homophones, "
+    "mis-spelled medical terms, punctuation). "
+    "Do NOT add, remove, or reorder clinical content. "
+    "Return ONLY the corrected text with no preamble."
+)
+
+
+def _correct_asr_text(raw: str) -> str:
+    """Post-correct raw ASR output using the configured text LLM.
+
+    Returns the corrected text, or the original *raw* string on any error.
+    """
+    if not raw or not config.TEXT_API_KEY:
+        return raw
+    try:
+        client = OpenAI(api_key=config.TEXT_API_KEY, base_url=config.BASE_URL)
+        resp = client.chat.completions.create(
+            model=config.SELECTED_MODEL,
+            messages=[
+                {"role": "system", "content": _CORRECTION_SYSTEM},
+                {"role": "user", "content": raw},
+            ],
+            temperature=0.0,
+            max_tokens=2048,
+        )
+        corrected = (resp.choices[0].message.content or "").strip()
+        return corrected if corrected else raw
+    except Exception as e:
+        logger.warning("ASR correction failed, using raw text: %s", e)
+        return raw
+
 
 # ---------------------------------------------------------------------------
 # HTTP Basic Auth
@@ -127,20 +264,24 @@ _format_lock = threading.Lock()
 
 def _list_templates() -> list[str]:
     template_dir = os.path.join(config.save_directory or "", "templates")
-    if not os.path.isdir(template_dir):
-        return []
-    return sorted(
-        f for f in os.listdir(template_dir) if f.endswith((".txt", ".md"))
-    )
+    names: set[str] = set()
+    for d in (template_dir, _BUNDLED_TEMPLATES_DIR):
+        if os.path.isdir(d):
+            names.update(f for f in os.listdir(d) if f.endswith((".txt", ".md")))
+    return sorted(names)
 
 
 def _load_template_content(template_name: str) -> str:
     if not template_name:
         return ""
-    path = os.path.join(config.save_directory or "", "templates", template_name)
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
+    for d in (
+        os.path.join(config.save_directory or "", "templates"),
+        _BUNDLED_TEMPLATES_DIR,
+    ):
+        path = os.path.join(d, template_name)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
     return ""
 
 
