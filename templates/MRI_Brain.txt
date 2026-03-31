@@ -48,11 +48,4 @@ MRI of the brain was performed using a standard brain protocol including T1-weig
   - No acute intracranial abnormality identified on MRI.
   - *Overall, the MRI brain is within normal limits.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'MR spectroscopy / perfusion imaging is recommended for further characterisation of [lesion].'
-- 'Neurology/Neurosurgical consultation is advised.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

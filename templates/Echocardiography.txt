@@ -49,11 +49,4 @@ Echocardiography (Transthoracic / Transoesophageal)
   - Mild mitral regurgitation. No significant valvular stenosis.
   - Small pericardial effusion without tamponade physiology.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Cardiology consultation is advised for [valvular disease / cardiomyopathy / pericardial effusion].'
-- 'Follow-up echocardiogram in [6–12] months is recommended to monitor [finding].'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

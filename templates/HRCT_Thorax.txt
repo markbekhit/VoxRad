@@ -51,13 +51,4 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Sagittal 
   - No significant abnormality in the thoracic structures.
   - *Overall, the imaging findings are within normal limits.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- **Sample Descriptive Style:**
-  - 'Further clinical evaluation or follow-up imaging may be warranted to assess [specific abnormality or concern].'
-  - Correlation with Histopathological findings is suggested (if its a neoplastic mass which warrants biopsy) 
-  - 'Consultation with [relevant medical specialty] is advised for appropriate management.'
-  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

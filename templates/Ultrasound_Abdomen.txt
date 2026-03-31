@@ -49,11 +49,4 @@ Ultrasound examination of the abdomen was performed using a curvilinear transduc
   - No intrahepatic biliary dilatation. CBD not dilated.
   - Normal bilateral kidneys.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'CT abdomen or MRI liver is recommended for further characterisation of [lesion].'
-- 'Hepatobiliary surgery consultation is advised for symptomatic cholelithiasis.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

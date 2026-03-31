@@ -51,12 +51,4 @@ Axial cuts were obtained from the skull base to the vertex. Bone window and soft
   - No intracranial haemorrhage, mass lesion, or midline shift identified.
   - *Overall, the CT head is within normal limits.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- **Sample Descriptive Style:**
-  - 'MRI brain with contrast is recommended for further characterisation of [specific finding].'
-  - 'Neurosurgical consultation is advised for appropriate management.'
-  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

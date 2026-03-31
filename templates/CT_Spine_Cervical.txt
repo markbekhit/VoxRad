@@ -49,12 +49,4 @@ Axial cuts were obtained from the skull base to the cervicothoracic junction. Sa
   - Cervical spondylosis with [level-specific] disc osteophyte complex causing [mild/moderate/severe] foraminal narrowing.
   - *No acute fracture or subluxation identified.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- **Sample Descriptive Style:**
-  - 'MRI cervical spine is recommended for further evaluation of the spinal cord and disc-neural interface.'
-  - 'Clinical correlation and orthopaedic/neurosurgical consultation is advised.'
-  - Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

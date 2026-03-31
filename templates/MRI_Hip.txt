@@ -43,10 +43,4 @@ MRI of the [right/left / bilateral] hip was performed using T1-weighted, T2-weig
   - Early avascular necrosis of the [right/left] femoral head, Ficat stage [I/II].
   - No significant labral tear or femoroacetabular impingement.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Orthopaedic consultation is advised for further management of [avascular necrosis / labral tear].'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

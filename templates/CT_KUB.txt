@@ -48,11 +48,4 @@ Non-contrast axial CT was performed from the upper poles of the kidneys to the b
   - [Right/Left] ureteric calculus measuring [X] mm at [location] with [mild/moderate] proximal hydronephrosis.
   - No calculi identified in the contralateral urinary tract.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Urological consultation is advised for calculi causing obstruction or symptomatic nephrolithiasis.'
-- 'Follow-up imaging may be required to assess stone passage or resolution of hydronephrosis.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 const state = {
   mediaRecorder: null,
+  stream: null,          // kept open between segments so mic stays active
   audioChunks: [],
   sessionId: null,
   isRecording: false,
@@ -181,7 +182,6 @@ function stopWaveform() {
     state.audioCtx = null;
     state.analyser = null;
   }
-  // Draw flat line
   const canvas = $("waveform");
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -697,19 +697,19 @@ async function copyReport() {
 }
 
 // ---------------------------------------------------------------------------
-// Canvas resize observer — keep canvas pixel dimensions in sync
+// Canvas resize observer
 // ---------------------------------------------------------------------------
 function initCanvasResize() {
   const canvas = $("waveform");
   const ro = new ResizeObserver(() => {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    if (!state.isRecording) stopWaveform(); // redraw flat line
+    if (!state.isRecording) stopWaveform();
   });
   ro.observe(canvas);
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
-  stopWaveform(); // draw initial flat line
+  stopWaveform();
 }
 
 // ---------------------------------------------------------------------------

@@ -50,11 +50,4 @@ Ultrasound examination of the thyroid gland was performed using a high-frequency
   - [X] mm right thyroid nodule — ACR TI-RADS [category]. [FNA / follow-up / no action] recommended per guidelines.
   - No cervical lymphadenopathy.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Follow ACR TI-RADS management recommendations for each nodule.
-- 'Ultrasound-guided FNA biopsy is recommended for [TR4/TR5] nodules meeting size threshold.'
-- 'Follow-up ultrasound in [1/2/3] year(s) is recommended for [TR3] nodules.'
-- 'Endocrinology consultation is advised.'
-
 ---

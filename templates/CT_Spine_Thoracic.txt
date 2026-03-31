@@ -43,10 +43,4 @@ Axial cuts were obtained from the cervicothoracic junction to the thoracolumbar 
   - Thoracic spondylosis with [level-specific] findings.
   - *No acute fracture or significant cord compromise identified.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'MRI thoracic spine is recommended if cord compression is clinically suspected.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

@@ -57,6 +57,18 @@ app.mount(
 )
 _jinja = Jinja2Templates(directory=os.path.join(_BASE_DIR, "templates"))
 
+# Cache-busting: use the current git commit hash (or a timestamp fallback)
+# so browsers always load fresh JS/CSS after each deploy.
+try:
+    import subprocess
+    _STATIC_VERSION = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=os.path.dirname(_BASE_DIR),
+        stderr=subprocess.DEVNULL,
+    ).decode().strip()
+except Exception:
+    _STATIC_VERSION = str(int(time.time()))
+
 # ---------------------------------------------------------------------------
 # Static version for cache-busting
 # ---------------------------------------------------------------------------
@@ -262,6 +274,9 @@ _format_lock = threading.Lock()
 # Helper: list available templates
 # ---------------------------------------------------------------------------
 
+_BUNDLED_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+
+
 def _list_templates() -> list[str]:
     template_dir = os.path.join(config.save_directory or "", "templates")
     names: set[str] = set()
@@ -380,6 +395,155 @@ def list_templates(username: str = Depends(_verify_auth)):
     return {"templates": _list_templates()}
 
 
+# ---------------------------------------------------------------------------
+# Whisper hallucination filter
+# ---------------------------------------------------------------------------
+
+# Whisper reliably hallucinates these phrases on silent/noisy audio.
+# Normalise to lowercase, strip trailing punctuation before comparing.
+_HALLUCINATIONS: set[str] = {
+    "", "thank you", "thanks", "thank you so much", "thank you very much",
+    "thank you for watching", "thanks for watching", "thank you for listening",
+    "thanks for listening", "please like and subscribe", "don't forget to subscribe",
+    "okay", "ok", "alright", "right", "sure", "yes", "no", "yep", "nope",
+    "bye", "goodbye", "see you", "see you next time", "take care",
+    "hello", "hi", "hey", "welcome", "welcome back",
+    "you", "hmm", "mm", "mm-hmm", "um", "uh", "ah", "oh",
+    "of course", "absolutely", "indeed", "certainly",
+    "subtitles by", "subtitles", "captions by", "captions",
+    "transcribed by", "translated by",
+    "john", "omar", "james", "michael", "david",  # common single-name hallucinations
+}
+
+
+def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
+    normalised = text.strip().lower().rstrip(".,!?;: ").strip()
+    if normalised in _HALLUCINATIONS:
+        return True
+    # Single short non-medical word
+    words = normalised.split()
+    if len(words) == 1 and len(normalised) <= 6 and normalised.isalpha():
+        return True
+    # Repetition loop: any 5-word ngram appearing more than once
+    if len(words) >= 10:
+        seen: set[tuple] = set()
+        for i in range(len(words) - 4):
+            ngram = tuple(words[i:i+5])
+            if ngram in seen:
+                return True
+            seen.add(ngram)
+    # Prompt-echo detection: discard if the transcription matches any sentence
+    # from the ASR prompt (Whisper completes/repeats prompt on silent audio)
+    if asr_prompt:
+        text_norm = text.strip().lower().rstrip(".,!?;: ")
+        for sentence in re.split(r"[.!?]", asr_prompt):
+            s = sentence.strip().lower().rstrip(".,!?;: ")
+            if len(s) > 15 and (text_norm == s or text_norm in s or s in text_norm):
+                return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Radiology vocabulary prompt for Whisper
+# Two-part design per OpenAI Whisper docs:
+#   1. A short context sentence (tells Whisper this is medical dictation)
+#   2. A curated vocabulary list of RadLex-derived terms Whisper commonly
+#      confuses — comma-separated so Whisper learns their spelling/casing.
+# Template-specific [correct spellings] blocks override this entirely.
+# ---------------------------------------------------------------------------
+_RADIOLOGY_PROMPT = (
+    # Context sentence + RadLex-derived vocabulary list (≤ 896 chars for Groq)
+    "Radiology dictation. "
+    "oedema, meniscus, menisci, supraspinatus, infraspinatus, subscapularis, "
+    "chondromalacia, chondral, subchondral, osteochondral, trabecular, "
+    "Baker's cyst, Hoffa's fat pad, trochanteric, ACL, PCL, MCL, LCL, MPFL, "
+    "Bankart, Hill-Sachs, SLAP, rotator cuff, "
+    "effusion, synovitis, tenosynovitis, enthesopathy, bursitis, "
+    "consolidation, atelectasis, bronchiectasis, pneumothorax, "
+    "pleural effusion, mediastinum, hilar, parenchyma, "
+    "hepatomegaly, splenomegaly, cholelithiasis, nephrolithiasis, "
+    "lymphadenopathy, herniation, spondylosis, spondylolisthesis, stenosis, "
+    "cauda equina, ligamentum flavum, intraosseous, cortical, cancellous, "
+    "T1-weighted, T2-weighted, STIR, gradient echo, Hounsfield, "
+    "coronal, sagittal, axial."
+)
+
+# ---------------------------------------------------------------------------
+# LLM post-correction for raw Whisper output
+# A fast, tight prompt that fixes medical ASR errors without rephrasing.
+# ---------------------------------------------------------------------------
+_CORRECTION_SYSTEM = """\
+You are a medical transcription corrector for radiology dictation.
+Fix ONLY obvious speech recognition errors: misspelled medical terms, \
+mangled anatomy, and garbled drug or procedure names.
+Do NOT rephrase, reorder, summarise, or add any words not present in the input.
+Return the corrected text only — no explanation, no prefix, no punctuation changes \
+beyond fixing the erroneous word itself.\
+"""
+
+
+def _correct_asr_text(raw: str) -> str:
+    """Pass raw Whisper output through a fast LLM to fix medical terminology errors.
+
+    Uses the text LLM (GPT-4o-mini / configured model). Skips correction if
+    the text LLM is not configured or if the text is very short (≤ 3 words).
+    """
+    if not config.TEXT_API_KEY:
+        return raw
+    words = raw.split()
+    if len(words) <= 3:
+        return raw  # too short to bother; unlikely to have complex errors
+    try:
+        client = OpenAI(api_key=config.TEXT_API_KEY, base_url=config.BASE_URL)
+        resp = client.chat.completions.create(
+            model=config.SELECTED_MODEL,
+            messages=[
+                {"role": "system", "content": _CORRECTION_SYSTEM},
+                {"role": "user", "content": raw},
+            ],
+            temperature=0.0,
+            max_tokens=len(words) + 30,  # corrected text won't be longer
+        )
+        corrected = resp.choices[0].message.content.strip()
+        # Safety: if the LLM somehow returns nothing or drastically expands the
+        # text, fall back to the original Whisper output.
+        if not corrected or len(corrected) > len(raw) * 2:
+            return raw
+        return corrected
+    except Exception as exc:
+        logger.warning("ASR correction skipped: %s", exc)
+        return raw
+
+
+_MOCK_TRANSCRIPTION = (
+    "CT chest with contrast. "
+    "The lungs are clear. No focal consolidation, pleural effusion, or pneumothorax. "
+    "The heart size is normal. The mediastinum is unremarkable. "
+    "No axillary, mediastinal, or hilar lymphadenopathy. "
+    "Impression: No acute cardiopulmonary abnormality."
+)
+
+_MOCK_REPORT = """\
+CT CHEST WITH CONTRAST
+
+TECHNIQUE: Axial CT images of the chest were obtained with IV contrast.
+
+FINDINGS:
+
+Lungs: Clear bilaterally. No focal consolidation, mass, nodule, or pleural effusion.
+       No pneumothorax.
+
+Heart: Normal in size. No pericardial effusion.
+
+Mediastinum: Normal width. No lymphadenopathy.
+
+IMPRESSION:
+1. No acute cardiopulmonary abnormality.
+"""
+
+_MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
+
+
 @app.post("/transcribe")
 async def transcribe(
     audio: UploadFile = File(...),
@@ -387,6 +551,13 @@ async def transcribe(
     username: str = Depends(_verify_auth),
 ):
     """Accept a WebM audio blob, transcribe via Whisper-compatible API."""
+    if _MOCK_MODE:
+        _ = await audio.read()
+        _prune_sessions()
+        session_id = _create_session(_MOCK_TRANSCRIPTION)
+        logger.info("[mock] Returning canned transcription for session %s", session_id)
+        return {"transcription": _MOCK_TRANSCRIPTION, "session_id": session_id}
+
     if not config.TRANSCRIPTION_API_KEY:
         raise HTTPException(
             status_code=503, detail="Transcription API key not loaded on server."
@@ -398,7 +569,6 @@ async def transcribe(
     if len(audio_bytes) > 100 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Audio exceeds 100 MB limit.")
 
-    _prune_sessions()
 
     tmp_path = None
     try:
@@ -408,15 +578,16 @@ async def transcribe(
             tmp.write(audio_bytes)
             tmp_path = tmp.name
 
-        # Extract [correct spellings] block from template for ASR prompt
-        prompt_spellings = " "
+        # Build ASR prompt: template-specific spellings take priority over the
+        # general radiology vocabulary prompt.
+        asr_prompt = _RADIOLOGY_PROMPT
         if template_name:
             content = _load_template_content(template_name)
             match = re.search(
                 r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
             )
             if match:
-                prompt_spellings = match.group(1).strip()
+                asr_prompt = match.group(1).strip()[:896]  # Groq hard limit
 
         client = OpenAI(
             api_key=config.TRANSCRIPTION_API_KEY,
@@ -426,14 +597,24 @@ async def transcribe(
             result = client.audio.transcriptions.create(
                 file=(os.path.basename(tmp_path), f.read()),
                 model=config.SELECTED_TRANSCRIPTION_MODEL,
-                prompt=prompt_spellings,
+                prompt=asr_prompt,
                 language="en",
                 temperature=0.0,
             )
 
-        session_id = _create_session(result.text)
-        logger.info("Transcription complete for session %s (%d chars)", session_id, len(result.text))
-        return {"transcription": result.text, "session_id": session_id}
+        text = result.text.strip()
+        if _is_hallucination(text, asr_prompt):
+            logger.debug("Discarded hallucination: %r", text)
+            return {"transcription": "", "session_id": ""}
+
+        # LLM post-correction: fix medical ASR errors (e.g. "bake assist" →
+        # "Baker's cyst") using the text LLM before returning to the client.
+        text = _correct_asr_text(text)
+
+        _prune_sessions()
+        session_id = _create_session(text)
+        logger.info("Transcription complete for session %s (%d chars)", session_id, len(text))
+        return {"transcription": text, "session_id": session_id}
 
     except HTTPException:
         raise
@@ -478,6 +659,10 @@ def _patient_context(req: "FormatRequest") -> Optional[dict]:
 @app.post("/format")
 def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
     """Format a transcription into a structured radiology report."""
+    if _MOCK_MODE:
+        logger.info("[mock] Returning canned report")
+        return {"report": _MOCK_REPORT, "fhir_saved": False}
+
     if not config.TEXT_API_KEY:
         raise HTTPException(
             status_code=503, detail="Text model API key not loaded on server."

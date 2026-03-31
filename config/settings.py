@@ -43,10 +43,10 @@ def load_settings(web_mode: bool = False):
 
     if "DEFAULT" in config_parser:
         config.save_directory = config_parser["DEFAULT"].get("WorkingDirectory", os.path.dirname(config_path))
-        config.TRANSCRIPTION_BASE_URL = config_parser["DEFAULT"].get("TranscriptionBaseURL", "http://localhost:8000/v1")
-        config.SELECTED_TRANSCRIPTION_MODEL = config_parser["DEFAULT"].get("SelectedTranscriptionModel", "Systran/faster-whisper-large-v3")
-        config.BASE_URL = config_parser["DEFAULT"].get("TextBaseURL", "http://localhost:11434/v1")
-        config.SELECTED_MODEL = config_parser["DEFAULT"].get("SelectedModel", "llama3.1:latest")
+        config.TRANSCRIPTION_BASE_URL = config_parser["DEFAULT"].get("TranscriptionBaseURL", "https://api.groq.com/openai/v1")
+        config.SELECTED_TRANSCRIPTION_MODEL = config_parser["DEFAULT"].get("SelectedTranscriptionModel", "whisper-large-v3-turbo")
+        config.BASE_URL = config_parser["DEFAULT"].get("TextBaseURL", "https://api.openai.com/v1")
+        config.SELECTED_MODEL = config_parser["DEFAULT"].get("SelectedModel", "gpt-4o-mini")
         config.multimodal_pref = config_parser["DEFAULT"].getboolean("MultimodalPref", False)
         config.multimodal_model = config_parser["DEFAULT"].get("MultimodalModel", None)
         config.audio_device = config_parser['DEFAULT'].get('AudioDevice', config.audio_device)
@@ -56,8 +56,10 @@ def load_settings(web_mode: bool = False):
     else:
         logger.warning("'DEFAULT' section not found in settings.ini. Using default values.")
         config.save_directory = os.path.dirname(config_path)
-        config.BASE_URL = "http://localhost:11434/v1"
-        config.TRANSCRIPTION_BASE_URL = "http://localhost:8000/v1"
+        config.TRANSCRIPTION_BASE_URL = "https://api.groq.com/openai/v1"
+        config.SELECTED_TRANSCRIPTION_MODEL = "whisper-large-v3-turbo"
+        config.BASE_URL = "https://api.openai.com/v1"
+        config.SELECTED_MODEL = "gpt-4o-mini"
 
     logger.debug("Using save_directory: %s", config.save_directory)
     logger.debug("Using Transcription Base URL: %s", config.TRANSCRIPTION_BASE_URL)
@@ -78,6 +80,21 @@ def load_settings(web_mode: bool = False):
             config.save_directory = working_dir_env
             os.makedirs(working_dir_env, exist_ok=True)
             logger.info("[web] Using VOXRAD_WORKING_DIR: %s", working_dir_env)
+
+        # Base URL + model overrides — essential for cloud deployments where
+        # local Whisper / Ollama are not available.
+        if os.environ.get("VOXRAD_TRANSCRIPTION_BASE_URL"):
+            config.TRANSCRIPTION_BASE_URL = os.environ["VOXRAD_TRANSCRIPTION_BASE_URL"]
+            logger.info("[web] Using VOXRAD_TRANSCRIPTION_BASE_URL: %s", config.TRANSCRIPTION_BASE_URL)
+        if os.environ.get("VOXRAD_TRANSCRIPTION_MODEL"):
+            config.SELECTED_TRANSCRIPTION_MODEL = os.environ["VOXRAD_TRANSCRIPTION_MODEL"]
+            logger.info("[web] Using VOXRAD_TRANSCRIPTION_MODEL: %s", config.SELECTED_TRANSCRIPTION_MODEL)
+        if os.environ.get("VOXRAD_TEXT_BASE_URL"):
+            config.BASE_URL = os.environ["VOXRAD_TEXT_BASE_URL"]
+            logger.info("[web] Using VOXRAD_TEXT_BASE_URL: %s", config.BASE_URL)
+        if os.environ.get("VOXRAD_TEXT_MODEL"):
+            config.SELECTED_MODEL = os.environ["VOXRAD_TEXT_MODEL"]
+            logger.info("[web] Using VOXRAD_TEXT_MODEL: %s", config.SELECTED_MODEL)
 
     config_dir = os.path.dirname(config.config_path)
 

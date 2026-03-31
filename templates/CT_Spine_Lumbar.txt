@@ -48,11 +48,4 @@ Axial cuts were obtained from the T12/L1 junction to the sacrum. Sagittal and co
   - Lumbar spondylosis with [level-specific] disc disease causing [mild/moderate/severe] canal/foraminal narrowing.
   - *No acute fracture identified.*
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'MRI lumbar spine is recommended for further evaluation of the thecal sac, neural elements and disc–nerve root interface.'
-- 'Clinical correlation and neurosurgical/orthopaedic consultation is advised if radiculopathy is present.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---

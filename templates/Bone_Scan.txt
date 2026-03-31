@@ -43,11 +43,4 @@ Whole-body planar bone scintigraphy was performed approximately 3 hours followin
   - Multifocal areas of increased tracer uptake in the [regions] consistent with [skeletal metastases / degenerative changes].
   - No superscan pattern. Kidneys demonstrate symmetric physiological uptake.
 
-### Advice/Recommendation(s):
-**Instructions:**
-- Offer recommendations for further evaluation or management based on the impression of the report.
-- 'Targeted CT or MRI is recommended for further characterisation of [specific lesion].'
-- 'Nuclear medicine / oncology consultation is advised.'
-- Otherwise offer a general statement 'Clinical correlation is recommended for further evaluation and management.'
-
 ---
