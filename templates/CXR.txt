@@ -29,14 +29,7 @@ Chest X-Ray (CXR)
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a CXR report involves Technical Adequacy (rotation, inspiratory effort, exposure), Lungs (each zone: upper, mid, lower zones — right and left), Hila (size and density), Pleura (costophrenic angles, pleural effusion, pneumothorax), Trachea and Mediastinum (width, contour, position), Cardiac Silhouette (size — cardiothoracic ratio, contour), Aortic Knuckle, Hemidiaphragms (right and left), Costophrenic Angles, Bones (ribs, clavicles, scapulae, visible spine, shoulder joints), Soft Tissues, and Visible Abdominal Structures (subdiaphragmatic gas). Lines, tubes, and implanted devices should be commented on if present. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Lungs:** Homogeneous opacity in the right lower zone consistent with consolidation. No nodules in the remaining lung fields.
-    - **Pleura:** No pleural effusion or pneumothorax.
-    - **Cardiac Silhouette:** Normal in size, cardiothoracic ratio < 0.5.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] consolidation, atelectasis, pneumothorax, pleural effusion, cardiomegaly, mediastinal widening, costophrenic angle, hilar, opacification, interstitial, reticulonodular [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

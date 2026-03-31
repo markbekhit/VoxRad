@@ -29,13 +29,12 @@ MRI of the cervical spine was performed using T1-weighted, T2-weighted, and STIR
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an MRI Cervical Spine report involves Vertebral Bodies (C1–C7), Intervertebral Discs (C2/3 through C7/T1), Disc Height and Signal (T2 hypointensity indicating desiccation), Facet Joints, Spinal Canal (AP diameter), Spinal Cord (signal, contour, calibre), Neural Foramina (bilateral, each level), Atlantoaxial Joint and Odontoid Process, Prevertebral Soft Tissues, Paraspinal Muscles, and Visualized Posterior Fossa and Upper Thoracic Spine. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Describe each abnormal disc level specifically. Normal disc levels may be grouped: e.g. "Remaining disc levels show preserved height and normal T2 signal." Other structures (spinal cord, facet joints, prevertebral soft tissues) may be combined if normal.
     For instance:
     - **C5/C6:** Posterior disc osteophyte complex causing moderate central canal stenosis with cord flattening. No intrinsic cord signal change.
     - **C6/C7:** Mild disc bulge causing mild bilateral foraminal narrowing.
-    - **Spinal Cord:** Normal signal and calibre throughout the remaining visualized cord.
+    - **Remaining Levels (C2/3–C4/5, C7/T1):** Normal disc height and T2 signal, no significant canal or foraminal compromise.
+    - **Spinal Cord:** Normal signal and calibre throughout.
     - and so on...
 - **Commonly Misspelled Words:**
 [correct spellings] myelopathy, radiculopathy, spondylosis, spondylolisthesis, foraminal stenosis, disc osteophyte, cord signal, T2 hyperintensity, desiccation, uncovertebral, atlantoaxial, prevertebral [correct spellings]

@@ -29,15 +29,7 @@ Ultrasound examination of the thyroid gland was performed using a high-frequency
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a Thyroid Ultrasound report involves Right Thyroid Lobe (size in three dimensions, echogenicity, nodules), Left Thyroid Lobe, Isthmus (anteroposterior dimension), Overall Gland Volume, Vascularity (colour Doppler pattern), Pyramidal Lobe (if present), Parathyroid Regions, and Cervical Lymph Nodes (levels II–VI). If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Right Thyroid Lobe:** Normal in size ([X × Y × Z] cm). A [X] mm solid hypoechoic nodule with irregular margins in the mid-pole — ACR TI-RADS 4.
-    - **Left Thyroid Lobe:** Normal in size and echogenicity. No nodule identified.
-    - **Isthmus:** [X] mm in anteroposterior dimension.
-    - **Cervical Lymph Nodes:** No pathologically enlarged cervical lymph nodes.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] thyroid, hypoechoic, hyperechoic, isoechoic, echogenicity, vascularity, TI-RADS, parathyroid, goitre, Hashimoto, follicular, macrocalcification, microcalcification, trachea deviation [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

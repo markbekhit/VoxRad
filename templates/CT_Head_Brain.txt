@@ -30,14 +30,7 @@ Axial cuts were obtained from the skull base to the vertex. Bone window and soft
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Head. For your guidance, a CT Head report involves regions like Brain Parenchyma (cerebral hemispheres, cerebellum, brainstem), White Matter, Basal Ganglia, Thalami, Internal Capsules, Ventricles (lateral, third, fourth), Sulci and Gyri, Basal Cisterns, Corpus Callosum, Cerebellopontine Angles, Sella and Parasellar Region, Skull Vault and Calvarium, Paranasal Sinuses, Mastoid Air Cells, Orbits (if included), and Extracranial Soft Tissues. If the transcript doesn't mention anything about a certain structure, mention that "{the structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Brain Parenchyma:** No focal hypodense or hyperdense lesion identified.
-    - **Ventricles:** Normal in size and configuration.
-    - **Basal Ganglia and Thalami:** Normal.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
 - **Consolidation of Similar Findings:** Consolidate similar findings across different locations into a single comprehensive statement.
 - **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:

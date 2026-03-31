@@ -29,14 +29,7 @@ Non-contrast axial CT was performed from the upper poles of the kidneys to the b
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a CT KUB report involves Right Kidney (size, cortical thickness, parenchymal density, collecting system, calculi), Left Kidney, Right Ureter (proximal, mid, distal, vesicoureteric junction), Left Ureter, Urinary Bladder, Perinephric Fat and Fascia, Adrenal Glands (if visualised), Aorta and IVC, Lymph Nodes, Bony Pelvis and Lumbar Spine, and Visualized Bowel. If not mentioned in transcript, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Right Kidney:** Calculus measuring [X] mm at the [pelviureteric junction / mid-ureter / vesicoureteric junction] with mild upstream hydronephrosis.
-    - **Left Kidney:** Normal in size and parenchymal density, no calculi.
-    - **Ureters:** No calculi or hydroureter identified on the left.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] nephrolithiasis, ureterolithiasis, hydronephrosis, hydroureter, pelviureteric junction, vesicoureteric junction, urothelial, perinephric, nephrogram, renal papilla, calyceal, Hounsfield [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

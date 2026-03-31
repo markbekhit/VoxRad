@@ -30,14 +30,7 @@ Axial cuts were obtained from the dome of the diaphragm to the pubic symphysis. 
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Abdomen and Pelvis. For your guidance, a CT Abdomen and Pelvis report involves regions like Liver, Gallbladder and Biliary System, Spleen, Pancreas, Kidneys and Ureters, Adrenal Glands, Bowel (Small Bowel and Large Bowel), Mesentery and Omentum, Peritoneum and Ascites, Abdominal Aorta and IVC, Lymph Nodes, Urinary Bladder, Prostate/Uterus and Ovaries (if visualized), Rectum, Pelvic Sidewalls, and Visualized Bony Pelvis and Lumbar Spine. If the transcript doesn't mention anything about a certain structure, mention that "{the organ} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Liver:** No focal hepatic lesion identified.
-    - **Gallbladder:** Normal in size and wall thickness, no calculi.
-    - **Spleen:** Normal.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
 - **Consolidation of Similar Findings:** Assess the transcript for mentions of similar radiological findings located in different locations. These similar findings should be consolidated into a single, comprehensive statement.
 - **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:

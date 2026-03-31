@@ -29,14 +29,7 @@ Echocardiography (Transthoracic / Transoesophageal)
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an Echocardiography report involves Left Ventricle (size — LVEDD/LVESD, wall thickness — IVS/LVPW, systolic function — EF%, wall motion), Right Ventricle (size, systolic function — TAPSE, FAC), Left Atrium (size, volume), Right Atrium (size), Mitral Valve (morphology, opening, regurgitation — grade, stenosis — MVA), Aortic Valve (morphology, number of cusps, gradient — peak/mean, AVA, regurgitation), Tricuspid Valve (morphology, regurgitation — grade, RVSP), Pulmonary Valve (gradient, regurgitation), Interatrial Septum (PFO, ASD), Interventricular Septum (VSD, LVOTO), Pericardium (effusion — size and haemodynamic significance), Aortic Root and Ascending Aorta (dimensions), and Inferior Vena Cava (size, collapsibility). If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Left Ventricle:** Not dilated (LVEDD [X] mm). Concentric hypertrophy (IVS [X] mm, LVPW [X] mm). Preserved systolic function, EF [X]%.
-    - **Mitral Valve:** Mild mitral regurgitation. No mitral stenosis.
-    - **Pericardium:** Small pericardial effusion without haemodynamic compromise.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] echocardiography, ejection fraction, regurgitation, stenosis, tricuspid, pulmonary, pericardial, diastolic dysfunction, hypertrophy, cardiomyopathy, ventricular, atrial fibrillation [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

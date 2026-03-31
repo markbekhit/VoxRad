@@ -29,9 +29,7 @@ MRI of the abdomen was performed using T1-weighted in-phase and out-of-phase, T2
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an MRI Abdomen–Liver report involves Liver (lobes, segments I–VIII, parenchymal signal, focal lesions), Gallbladder and Biliary System (intrahepatic and extrahepatic bile ducts), Spleen, Pancreas (head, neck, body, tail, main pancreatic duct), Kidneys and Adrenal Glands, Portal Vein and Hepatic Veins, Inferior Vena Cava, Bowel (if visualised), Mesentery and Peritoneum, Ascites, Lymph Nodes, and Visualized Bony Structures. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Normal structures within the same anatomical group may be combined. Only itemise individually when pathology is present.
     For instance:
     - **Liver:** Segment VI lesion measuring [X] cm — T1 hypointense, T2 hyperintense, arterial phase enhancement with portal venous washout and capsule appearance, consistent with hepatocellular carcinoma (LI-RADS 5).
     - **Portal Vein:** Patent, no thrombosis.

@@ -29,14 +29,7 @@ MRI of both breasts was performed in the prone position using bilateral dedicate
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an MRI Breast report involves Right Breast (each quadrant/clock position, nipple, subareolar region), Left Breast, Background Parenchymal Enhancement (BPE — minimal/mild/moderate/marked), Axillary Lymph Nodes (bilateral), Skin and Nipple–Areolar Complex, Pectoral Muscles, Chest Wall, Sternum, and Visualized Upper Abdomen. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Right Breast:** 1.8 cm irregular mass at the 10 o'clock position, 3 cm from nipple. Initial rapid enhancement with washout kinetics. Spiculated margins. BI-RADS 5.
-    - **Left Breast:** No suspicious enhancement identified.
-    - **Axillary Lymph Nodes:** No pathologically enlarged lymph nodes bilaterally.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] BI-RADS, kinetics, enhancement, background parenchymal enhancement, non-mass enhancement, spiculated, circumscribed, heterogeneous, washout, plateau, persistent, subareolar, axillary [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

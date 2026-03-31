@@ -30,14 +30,7 @@ Axial cuts were obtained from the skull base to the cervicothoracic junction. Sa
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a CT Cervical Spine report involves Vertebral Bodies (C1–C7), Intervertebral Disc Spaces, Facet Joints, Pedicles and Posterior Elements, Spinal Canal and Thecal Sac, Neural Foramina (bilateral, each level), Uncovertebral Joints, Prevertebral Soft Tissues, Atlantoaxial Joint and Odontoid Process, and Visualized Posterior Fossa and Cervicothoracic Junction. If the transcript doesn't mention anything about a certain structure or level, mention that it "appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **C1–C2:** Atlantoaxial alignment maintained. Odontoid process intact.
-    - **C3–C4:** Mild disc space narrowing with anterior osteophyte formation.
-    - **Neural Foramina:** Patent bilaterally at all levels.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] osteophyte, spondylosis, spondylolisthesis, foraminal, myelopathy, radiculopathy, uncovertebral, facet, listhesis, odontoid, atlantoaxial, prevertebral [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

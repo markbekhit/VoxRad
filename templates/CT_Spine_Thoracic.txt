@@ -29,9 +29,7 @@ Axial cuts were obtained from the cervicothoracic junction to the thoracolumbar 
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a CT Thoracic Spine report involves Vertebral Bodies (T1–T12), Intervertebral Disc Spaces, Facet Joints, Pedicles and Posterior Elements, Rib Articulations, Spinal Canal, Neural Foramina, Paraspinal Soft Tissues, and Visualized Thoracic Organs. If not mentioned in transcript, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] vertebra, spondylosis, spondylolisthesis, kyphosis, scoliosis, pedicle, paraspinal, costovertebral, osteophyte, compression fracture, Schmorl's node [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

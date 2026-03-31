@@ -29,14 +29,7 @@ Abdominal X-Ray (AXR)
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an AXR report involves Bowel Gas Pattern (small bowel loops — calibre, distribution; large bowel — calibre, haustra), Free Air (pneumoperitoneum — subdiaphragmatic or extraluminal), Calcifications (renal, ureteric, gallstones, vascular calcification, pancreatic calcification), Solid Organs (liver outline, spleen, kidney shadows), Psoas Shadows (bilateral), Bladder Outline, Retroperitoneal Structures, Hernias (if visualised), Bones (lumbar vertebrae, pelvis, visible lower ribs, hip joints), Soft Tissues, and Visible Lower Chest (hemidiaphragms). If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Bowel Gas Pattern:** Dilated small bowel loops up to [X] cm without valvulae conniventes — findings in keeping with small bowel obstruction.
-    - **Free Air:** No pneumoperitoneum identified.
-    - **Calcifications:** No radioopaque calculi identified in the KUB region.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] pneumoperitoneum, obstruction, ileus, caecum, volvulus, calculus, radiopaque, psoas, haustral, valvulae conniventes, hepatomegaly, splenomegaly [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

@@ -29,14 +29,12 @@ MRI of the brain was performed using a standard brain protocol including T1-weig
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an MRI Brain report involves Brain Parenchyma (cerebral hemispheres – frontal, parietal, temporal, occipital lobes), Cerebellum and Vermis, Brainstem (midbrain, pons, medulla), Corpus Callosum, Basal Ganglia and Thalami, Internal Capsules, Periventricular and Subcortical White Matter, Cortical Grey Matter, Ventricular System (lateral ventricles, third ventricle, fourth ventricle), Sulci and Cisterns, Hippocampi, Pituitary Gland and Sella, Cerebellopontine Angle Cisterns, Cranial Nerves (if evaluable), Intracranial Vessels (if MRA included), Skull Base, Calvarium, and Extracranial Soft Tissues. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Brain Parenchyma:** No abnormal signal intensity on T2/FLAIR sequences.
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present. For example:
+    - **Cerebral Hemispheres:** No abnormal T2/FLAIR signal.
     - **Diffusion-Weighted Imaging:** No restricted diffusion to suggest acute infarction.
     - **Ventricular System:** Normal in size and configuration.
-    - and so on...
+    - **Posterior Fossa (cerebellum, brainstem):** Unremarkable.
+    - and so on — grouping is acceptable when findings are normal.
 - **Commonly Misspelled Words:**
 [correct spellings] hippocampal, periventricular, leukoaraiosis, gliosis, demyelination, enhancement, susceptibility, diffusion restriction, FLAIR, cerebellopontine, tentorial, uncal, fornix, thalamus, putamen, caudate [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

@@ -29,14 +29,7 @@ Multiparametric MRI of the prostate was performed using a 3T scanner. Sequences 
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an mpMRI Prostate report involves Prostate (size in three dimensions, estimated volume, zonal anatomy: peripheral zone, transition zone, central zone), Prostatic Urethra, Seminal Vesicles (bilateral), Neurovascular Bundles (bilateral), Prostatic Capsule (extracapsular extension), Bladder Neck, Rectum, Pelvic Lymph Nodes, Bony Pelvis (if marrow signal abnormality), and Visualized Pelvic Structures. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Peripheral Zone:** T2 hypointense lesion in the right posterior mid-peripheral zone (sector PRm), measuring 1.4 cm, with restricted diffusion (ADC ~600 µm²/s) and early DCE enhancement. PI-RADS 5.
-    - **Transition Zone:** Heterogeneous signal consistent with benign prostatic hyperplasia (BPH). No dominant nodule meeting PI-RADS ≥ 3 criteria.
-    - **Seminal Vesicles:** No T2 signal abnormality or restricted diffusion. No seminal vesicle invasion.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] PI-RADS, multiparametric, peripheral zone, transition zone, seminal vesicles, extracapsular extension, neurovascular bundle, ADC, diffusion restriction, prostatic capsule, benign prostatic hyperplasia [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

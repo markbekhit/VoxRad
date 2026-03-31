@@ -30,9 +30,7 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Coronal a
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Chest. For your guidance, a CT Chest report involves regions like Lungs (including each lobe), Pleura, Airways (Trachea, Main Bronchi, Lobar and Segmental Bronchi), Mediastinum, Heart and Pericardium, Great Vessels (Aorta, Pulmonary Arteries and Veins, SVC/IVC), Lymph Nodes (mediastinal, hilar, axillary), Chest Wall and Soft Tissues, Bony Thorax (ribs, sternum, clavicles, thoracic spine), Esophagus, Thyroid (if visualized), and Visualized Upper Abdomen. If the transcript doesn't mention anything about a certain structure, mention that "{the organ} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
     For instance:
     - **Lungs:** No evidence of pulmonary nodules or consolidation.
     - **Pleura:** No pleural effusion or thickening.

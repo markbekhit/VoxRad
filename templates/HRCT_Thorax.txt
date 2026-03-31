@@ -30,14 +30,7 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Sagittal 
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a HRCT Thorax. For your guidance, usually a HRCT Thorax report involves regions like Lungs, Pleura, Mediastinum, Heart and Pericardium, Trachea and Main Bronchi, Esophagus, Chest Wall, Diaphragm, Bony ribcage and Cervicodorsal Spine, and Visualized Upper Abdomen. If the transcript doesn't mention anything about a certain structure, mention for each other structure that are seen on HRCT Thorax from your intelligence and mention that "{the organ} appears normal.".
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal (for instance: Heart and Pericardium, Diaphragm: Normal.)
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Lungs:** No evidence of pulmonary nodules or masses.
-    - **Mediastinum:** Normal.
-    - **Pleura:** Normal.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
 - **Consolidation of Similar Findings:** Assess the transcript for mentions of similar radiological findings located in different locations. These similar findings should be consolidated into a single, comprehensive statement that succinctly describes the observations across the various locations.
 - **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as :

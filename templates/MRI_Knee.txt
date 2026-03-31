@@ -25,12 +25,12 @@ MRI of the [right/left] knee was performed using PD-weighted fat-suppressed, T2-
 
 ### Findings:
 **Instructions:**
-- Describe pathological structures first within each group, then normal structures. Separate each anatomical group with a blank line. Every structure must have its own bullet point — no catch-all lines.
+- Describe pathological structures specifically. Normal structures within the same anatomical group may be combined into a single statement — do not force a separate bullet for every structure when all are normal.
 - Use precise radiology terminology for normal structures:
   - Menisci → "intact"
   - Ligaments → "intact"
   - Tendons → "intact"
-  - Articular cartilage surfaces → "intact, no focal chondral defect"
+  - Articular cartilage → "intact, no focal chondral defect"
   - Joint effusion → "no joint effusion"
   - Baker's cyst → "no Baker's cyst identified"
   - Bony structures → "no fracture or aggressive bony lesion"
@@ -44,37 +44,28 @@ Cover all groups in this order:
 - Lateral Meniscus (anterior horn, body, posterior horn)
 
 **Cruciate Ligaments**
-- Anterior Cruciate Ligament (ACL)
-- Posterior Cruciate Ligament (PCL)
+- ACL and PCL (describe individually if pathology; otherwise a single combined statement is acceptable)
 
 **Collateral Ligaments and Posterolateral Corner**
-- Medial Collateral Ligament (MCL)
-- Lateral Collateral Ligament (LCL)
-- Posterolateral Corner Structures
+- MCL, LCL, and posterolateral corner structures (describe individually if pathology; otherwise combine normals)
 
 **Articular Cartilage**
-- Medial femoral condyle
-- Lateral femoral condyle
-- Medial tibial plateau
-- Lateral tibial plateau
-- Patella
-- Trochlear groove
+- If all surfaces are intact, a single statement suffices: "Articular cartilage intact throughout, no focal chondral defect."
+- If pathology is present, report by compartment:
+  - Medial Compartment (medial femoral condyle, medial tibial plateau)
+  - Lateral Compartment (lateral femoral condyle, lateral tibial plateau)
+  - Patellofemoral Compartment (patella, trochlear groove)
 
 **Patellofemoral Joint**
 
 **Tendons**
-- Quadriceps Tendon
-- Patellar Tendon
+- Quadriceps Tendon and Patellar Tendon (combine if both normal)
 
 **Soft Tissues**
-- Joint Effusion
-- Hoffa's Fat Pad
-- Popliteal Fossa
-- Baker's Cyst
+- Joint Effusion, Hoffa's Fat Pad, Popliteal Fossa, Baker's Cyst
 
 **Bony Structures**
-- Femur, tibia, fibula, patella
-- Bone Marrow Signal
+- Femur, tibia, fibula, patella; Bone Marrow Signal
 
 - **ASR Prompt (do not include in report):**
 [correct spellings] MRI of the right knee. Normal body alignment. No marrow oedema, contusion or fracture. No joint effusion. Medial meniscus: oblique undersurface tear at the junction of the body and posterior horn. Lateral meniscus intact. ACL: partial thickness tear, fibres intact. PCL intact. MCL and LCL intact. Posterolateral corner structures intact. Articular cartilage intact, no focal chondral defect. Patellofemoral joint unremarkable. Quadriceps and patellar tendons intact. Hoffa fat pad unremarkable. Popliteal fossa clear. Small Baker's cyst without features of rupture. No bone marrow oedema. Osteophyte formation. Subchondral sclerosis. Trochlear dysplasia. [correct spellings]

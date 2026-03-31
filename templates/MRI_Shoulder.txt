@@ -26,17 +26,13 @@ MRI of the [right/left] shoulder was performed using PD-weighted fat-suppressed,
 ### Findings:
 **Instructions:**
 - First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing morphology, signal, and extent of tear (partial/full-thickness, retraction).
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. For your guidance, an MRI Shoulder report involves Rotator Cuff (supraspinatus, infraspinatus, teres minor, subscapularis — each tendon separately), Long Head of Biceps Tendon, Biceps Tendon Sheath, Glenohumeral Joint and Labrum (anterior, posterior, superior — SLAP), Glenohumeral Articular Cartilage, Subacromial–Subdeltoid Bursa, Acromioclavicular Joint, Acromion (morphology, os acromiale), Coracoclavicular Ligaments, Glenohumeral Capsule and Ligaments, Bony Structures (humeral head, glenoid, acromion, clavicle, coracoid), Deltoid Muscle, and Axillary Recess. If not mentioned, state "{structure} appears normal."
+- First mention the structures having the pathology specifically. Then cover remaining structures, grouping normals within the same anatomical category rather than forcing a separate bullet for every structure.
+- For your guidance, an MRI Shoulder report covers: Rotator Cuff, Long Head of Biceps Tendon, Glenohumeral Labrum, Glenohumeral Articular Cartilage, Subacromial–Subdeltoid Bursa, Acromioclavicular Joint, Acromion, Coracoclavicular Ligaments, Bony Structures, Deltoid Muscle, and Axillary Recess.
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Supraspinatus:** Full-thickness tear at the critical zone with 1.5 cm medial retraction.
-    - **Infraspinatus and Teres Minor:** Intact.
-    - **Subscapularis:** Intact, no tear.
-    - and so on...
+  Grouping guidance:
+  - **Rotator Cuff:** If only one tendon is abnormal, describe it specifically, then state the remaining tendons (by name) as intact in a single line. e.g. "Infraspinatus, teres minor, and subscapularis: intact."  If all four are normal: "Rotator cuff tendons (supraspinatus, infraspinatus, teres minor, subscapularis): intact, no tear."
+  - **Labrum:** Report by compartment (anterior, posterior, superior/SLAP) only if pathology is present; otherwise "Labrum intact."
+  - Other structures may be grouped if all normal within the same category.
 - **Commonly Misspelled Words:**
 [correct spellings] MRI of the right shoulder. Full thickness tear of the supraspinatus tendon at the critical zone with medial retraction. Infraspinatus intact. Teres minor intact. Subscapularis intact. Long head of biceps tendon intact within the bicipital groove. No SLAP lesion. The anterior and posterior labrum are intact. Glenohumeral articular cartilage intact. Subacromial subdeltoid bursa: mild bursitis. Acromioclavicular joint: mild degenerative change. Acromion: type two morphology, no os acromiale. Coracoclavicular ligaments intact. No significant glenohumeral joint effusion. Humeral head, glenoid, and clavicle: no fracture. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

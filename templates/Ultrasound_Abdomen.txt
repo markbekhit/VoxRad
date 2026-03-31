@@ -29,14 +29,7 @@ Ultrasound examination of the abdomen was performed using a curvilinear transduc
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an Ultrasound Abdomen report involves Liver (size, echogenicity, surface, focal lesions), Gallbladder (size, wall, calculi, polyps, CBD diameter), Common Bile Duct, Spleen (size, echogenicity), Pancreas (head, body, tail, main pancreatic duct — if visualised), Right Kidney (size, cortical thickness, echogenicity, collecting system, calculi), Left Kidney, Urinary Bladder (if filled), Aorta and IVC (calibre, aneurysm), Free Fluid (ascites), Lymph Nodes (para-aortic, coeliac), and Visualized Bowel. If not mentioned, state "{structure} appears normal/not visualised."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Liver:** Mildly enlarged liver (craniocaudal span [X] cm) with diffusely increased echogenicity consistent with hepatic steatosis.
-    - **Gallbladder:** Multiple echogenic foci with posterior acoustic shadowing, in keeping with cholelithiasis. No wall thickening or pericholecystic fluid.
-    - **Common Bile Duct:** Not dilated ([X] mm).
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] echogenicity, echogenic, hypoechoic, hyperechoic, anechoic, hepatomegaly, splenomegaly, cholelithiasis, cholecystitis, nephrolithiasis, hydronephrosis, acoustic shadowing, posterior enhancement, hepatic steatosis [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

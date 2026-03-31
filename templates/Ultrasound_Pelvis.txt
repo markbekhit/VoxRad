@@ -29,14 +29,7 @@ Ultrasound Pelvis
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a Pelvic Ultrasound report (female) involves Uterus (position — anteverted/retroverted, size in three dimensions, myometrial echotexture, fibroids), Endometrium (thickness, echogenicity, regularity), Cervix, Right Ovary (size in three dimensions, follicles, dominant follicle, cysts, masses), Left Ovary, Adnexae (free fluid, masses), Pouch of Douglas (free fluid), Urinary Bladder (wall, volume), and Visualized Bowel. [For male patients: Urinary Bladder, Prostate (size, echotexture, residual volume), Seminal Vesicles.] If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Uterus:** Anteverted, measures [X × Y × Z] cm. A posterior intramural fibroid measuring [X] cm is noted.
-    - **Endometrium:** Measures [X] mm, homogeneous.
-    - **Right Ovary:** Normal in size ([X × Y × Z] cm), no dominant cyst or mass.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] endometrium, myometrium, fibroid, leiomyoma, anteverted, retroverted, follicle, corpus luteum, hydrosalpinx, endometriosis, adenomyosis, ovarian torsion, polycystic [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

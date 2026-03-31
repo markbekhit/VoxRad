@@ -29,14 +29,7 @@ Ultrasound examination of [the right / the left / both] breast(s) was performed 
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, a Breast Ultrasound report involves Right Breast (each quadrant and clock position, retroareolar region, skin and subcutaneous fat), Left Breast, Nipple–Areolar Complex (bilateral), Right Axilla and Axillary Lymph Nodes, Left Axilla and Axillary Lymph Nodes, and Tissue Composition (fatty / fibroglandular). If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Right Breast 2 o'clock, 4 cm from nipple:** Oval, parallel, circumscribed hypoechoic mass measuring [X] mm — BI-RADS 3. Likely benign.
-    - **Left Breast:** No discrete mass or architectural distortion.
-    - **Axillary Lymph Nodes:** No pathologically enlarged lymph nodes bilaterally.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] BI-RADS, hypoechoic, hyperechoic, anechoic, circumscribed, spiculated, microlobulated, posterior acoustic enhancement, posterior shadowing, retroareolar, axillary, lymphadenopathy [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

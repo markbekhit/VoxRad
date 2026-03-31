@@ -29,9 +29,7 @@ MRI of the [right/left / bilateral] hip was performed using T1-weighted, T2-weig
 - First mention the structures having the pathology.
 - Then mention ALL the structures that are normal. For your guidance, an MRI Hip report involves Femoral Head (signal, sphericity, subchondral zone), Acetabulum and Acetabular Labrum (anterior, posterior, superior), Articular Cartilage (femoral head and acetabulum), Femoral Neck (angulation, osteonecrosis), Greater and Lesser Trochanters, Hip Joint Capsule and Ligamentum Teres, Iliopsoas Tendon and Bursa, Trochanteric Bursa, Gluteal Tendons (gluteus medius, minimus), Obturator Internus, Piriformis, Hamstring Origin, Sciatic Nerve, Pubic Symphysis, Sacroiliac Joints (if included), and Marrow Signal of Visualized Pelvis. If not mentioned, state "{structure} appears normal."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present. Do not force a separate bullet for every structure when all are normal.
 - **Commonly Misspelled Words:**
 [correct spellings] acetabular, labrum, femoroacetabular impingement, osteonecrosis, avascular necrosis, trochanteric, iliopsoas, gluteus medius, subchondral, cam lesion, pincer lesion [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

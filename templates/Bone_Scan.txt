@@ -29,9 +29,7 @@ Whole-body planar bone scintigraphy was performed approximately 3 hours followin
 - First mention the sites of abnormal uptake.
 - Then mention ALL the regions that demonstrate normal uptake. For your guidance, a Bone Scan report involves Skull and Calvarium, Facial Bones and Mandible, Cervical Spine, Thoracic Spine, Lumbar Spine, Sacrum and Coccyx, Pelvis (iliac wings, acetabulum, pubic rami, ischium), Ribs (each side — upper, mid, lower ribs), Sternum, Clavicles and Acromioclavicular Joints, Scapulae, Humeri, Elbows and Forearms, Wrists and Hands, Femora, Knees, Tibiae and Fibulae, Ankles and Feet, Soft Tissue Uptake, Kidneys and Bladder (physiological), and Renal Uptake Symmetry. If not mentioned, state "{region} demonstrates normal uptake."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] scintigraphy, technetium, methylene diphosphonate, tracer uptake, osteoblastic, osteolytic, superscan, photopenic, metastasis, metastases, degenerative, sacroiliac [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.

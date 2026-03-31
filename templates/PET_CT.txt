@@ -29,14 +29,7 @@ Whole-body FDG PET-CT was performed from the vertex to the mid-thighs following 
 - First mention the sites of abnormal FDG uptake.
 - Then mention ALL the regions surveyed. For your guidance, a PET-CT report involves Head and Neck (brain, oropharynx, larynx, thyroid, cervical lymph nodes), Thorax (lungs, mediastinum, hilar lymph nodes, pleura, chest wall), Abdomen (liver, spleen, stomach, small and large bowel, pancreas, kidneys, adrenal glands, para-aortic lymph nodes), Pelvis (bladder, pelvic lymph nodes, pelvic organs), Skeleton (axial and appendicular), Soft Tissues, Physiological FDG Uptake (brain, myocardium, liver, spleen, bowel, kidneys/bladder). If not mentioned, state "{region} demonstrates no abnormal FDG uptake."
 
-  - DO NOT JUST SAY "No other structures mentioned, assumed to be normal."
-  - DO NOT club rest of the structures to be normal.
-  - BUT RATHER mention each in a new bullet point.
-    For instance:
-    - **Mediastinum:** FDG-avid subcarinal lymph node (SUVmax [X]) measuring [X] mm.
-    - **Liver:** No FDG-avid hepatic lesion. Physiological background uptake.
-    - **Skeleton:** No FDG-avid skeletal lesion.
-    - and so on...
+  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
 - **Commonly Misspelled Words:**
 [correct spellings] fluorodeoxyglucose, SUVmax, FDG-avid, hypermetabolic, hypometabolic, attenuation, standardised uptake value, Deauville, mediastinal blood pool, hepatic uptake, physiological, malignancy [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
