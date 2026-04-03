@@ -254,6 +254,9 @@ function _startMediaRecorder() {
 // Recording — branches to voice-edit, streaming, or segment mode
 // ---------------------------------------------------------------------------
 async function startRecording() {
+  console.log("[VoxRad] startRecording — voiceEditTarget:", state.voiceEditTarget
+    ? `{el:#${state.voiceEditTarget.el.id}, start:${state.voiceEditTarget.start}, end:${state.voiceEditTarget.end}}`
+    : "null");
   if (state.voiceEditTarget) {
     await startVoiceEditRecording();
   } else if (state.streamingSupported) {
@@ -814,6 +817,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // so relatedTarget will be null — but pointerdown fires BEFORE blur,
     // so _pendingSelection has already been consumed by then.
     el.addEventListener("blur", (evt) => {
+      console.log("[VoxRad] blur on #" + id, "| relatedTarget:", evt.relatedTarget ? `#${evt.relatedTarget.id || evt.relatedTarget.tagName}` : "null",
+        "| selStart:", el.selectionStart, "| selEnd:", el.selectionEnd);
       if (!evt.relatedTarget || evt.relatedTarget.id !== "btn-record") {
         _pendingSelection = null;
       }
@@ -824,12 +829,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   // is still the textarea and the selection is still intact when this runs.
   const _grabVoiceEdit = () => {
     const active = document.activeElement;
+    const s = active && active.selectionStart !== undefined ? active.selectionStart : null;
+    const e = active && active.selectionEnd !== undefined ? active.selectionEnd : null;
+    console.log("[VoxRad] pointerdown — activeElement:", active ? `#${active.id || active.tagName}` : "none",
+      "| selStart:", s, "| selEnd:", e, "| _pendingSelection:", _pendingSelection
+        ? `{el:#${_pendingSelection.el.id}, start:${_pendingSelection.start}, end:${_pendingSelection.end}}`
+        : "null");
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
-      const s = active.selectionStart, e = active.selectionEnd;
       state.voiceEditTarget = (s !== e) ? { el: active, start: s, end: e } : _pendingSelection;
     } else {
       state.voiceEditTarget = _pendingSelection || null;
     }
+    console.log("[VoxRad] pointerdown — voiceEditTarget set to:", state.voiceEditTarget
+      ? `{el:#${state.voiceEditTarget.el.id}, start:${state.voiceEditTarget.start}, end:${state.voiceEditTarget.end}}`
+      : "null");
     _pendingSelection = null;
   };
   // Use pointerdown (handles both mouse and touch, fires earliest in event chain).
