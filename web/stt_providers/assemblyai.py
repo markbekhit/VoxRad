@@ -44,13 +44,13 @@ class AssemblyAIProvider(StreamingSTTProvider):
             url,
             additional_headers={"Authorization": api_key},
         )
-        # v3 sends a session_begins message before accepting audio
+        # v3 sends a Begin message before accepting audio
         session_msg = await self._ws.recv()
         data = json.loads(session_msg)
         msg_type = data.get("type") or data.get("message_type", "")
-        if msg_type not in ("session_begins", "SessionBegins"):
+        if msg_type not in ("Begin", "session_begins", "SessionBegins"):
             raise RuntimeError(f"Unexpected AssemblyAI session message: {data}")
-        logger.info("[assemblyai] session began: %s", data.get("session_id"))
+        logger.info("[assemblyai] session began: %s", data.get("id") or data.get("session_id"))
 
     async def send_audio(self, audio_bytes: bytes) -> None:
         if self._ws and not self._closed:
@@ -70,15 +70,20 @@ class AssemblyAIProvider(StreamingSTTProvider):
                 # v3 uses "type"; v2 used "message_type" — handle both
                 msg_type = data.get("type") or data.get("message_type", "")
                 if msg_type not in (
-                    "partial_transcript", "final_transcript",   # v3
-                    "PartialTranscript", "FinalTranscript",     # v2
+                    "Turn",                                      # v3
+                    "partial_transcript", "final_transcript",    # v3 legacy
+                    "PartialTranscript", "FinalTranscript",      # v2
                 ):
                     continue
                 # v3 uses "transcript"; v2 used "text"
                 text = (data.get("transcript") or data.get("text") or "").strip()
                 if not text:
                     continue
-                is_final = msg_type in ("final_transcript", "FinalTranscript")
+                # v3 "Turn": end_of_turn=true means final; v2: message_type name
+                if msg_type == "Turn":
+                    is_final = bool(data.get("end_of_turn", False))
+                else:
+                    is_final = msg_type in ("final_transcript", "FinalTranscript")
                 confidence = float(data.get("confidence", 1.0))
                 yield TranscriptEvent(text=text, is_final=is_final, confidence=confidence)
         except websockets.exceptions.ConnectionClosed:
