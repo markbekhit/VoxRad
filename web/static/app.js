@@ -792,37 +792,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   setUI("idle");
   setStatus("Press Record to start dictating.");
 
-  // Capture textarea selection when the user blurs the textarea toward the Record button.
-  // The blur event fires before click/mousedown and still has the correct selectionStart/End.
-  // relatedTarget on blur is the element receiving focus (the button being clicked).
-  let _blurCaptured = false;
+  // Track the last known selection in the transcription/report textareas.
+  // _pendingSelection is updated continuously on selection events, and cleared:
+  //   - when the textarea loses focus to anywhere except the Record button
+  //   - after it's consumed by the Record button handler
+  // This is more reliable than reading at click/mousedown time because pointerdown
+  // fires before blur in all browsers, and we save selection state as the user makes it.
+  let _pendingSelection = null;
   ["transcription", "report-raw"].forEach(id => {
     const el = $(id);
     if (!el) return;
+    const save = () => {
+      const s = el.selectionStart, e = el.selectionEnd;
+      _pendingSelection = (s !== e) ? { el, start: s, end: e } : null;
+    };
+    el.addEventListener("mouseup", save);
+    el.addEventListener("select", save);
+    el.addEventListener("keyup", save);
+    // Clear if focus leaves for anything other than the Record button.
+    // In Safari on macOS, <button> elements don't receive focus on click,
+    // so relatedTarget will be null — but pointerdown fires BEFORE blur,
+    // so _pendingSelection has already been consumed by then.
     el.addEventListener("blur", (evt) => {
-      const dest = evt.relatedTarget;
-      if (dest && dest.id === "btn-record") {
-        const s = el.selectionStart, e = el.selectionEnd;
-        state.voiceEditTarget = (s !== e) ? { el, start: s, end: e } : null;
-        _blurCaptured = true;
+      if (!evt.relatedTarget || evt.relatedTarget.id !== "btn-record") {
+        _pendingSelection = null;
       }
     });
   });
 
-  // Fallback for touch / browsers where relatedTarget is null on blur:
-  // snapshot selection on mousedown/touchstart before focus shifts.
-  const _snapVoiceEdit = () => {
-    if (_blurCaptured) { _blurCaptured = false; return; } // blur already got it
+  // pointerdown fires before blur in every browser, so document.activeElement
+  // is still the textarea and the selection is still intact when this runs.
+  const _grabVoiceEdit = () => {
     const active = document.activeElement;
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
       const s = active.selectionStart, e = active.selectionEnd;
-      state.voiceEditTarget = (s !== e) ? { el: active, start: s, end: e } : null;
+      state.voiceEditTarget = (s !== e) ? { el: active, start: s, end: e } : _pendingSelection;
     } else {
-      state.voiceEditTarget = null;
+      state.voiceEditTarget = _pendingSelection || null;
     }
+    _pendingSelection = null;
   };
-  $("btn-record").addEventListener("mousedown", _snapVoiceEdit);
-  $("btn-record").addEventListener("touchstart", _snapVoiceEdit, { passive: true });
+  // Use pointerdown (handles both mouse and touch, fires earliest in event chain).
+  $("btn-record").addEventListener("pointerdown", _grabVoiceEdit, { passive: true });
   $("btn-record").addEventListener("click", startRecording);
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);
