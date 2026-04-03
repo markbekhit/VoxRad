@@ -28,10 +28,12 @@ const state = {
   streamingAudioCtx: null,
   confirmedText: "",
   interimText: "",
-  // Voice editing: {el, start, end} of the textarea selection to replace
+  // Cursor-aware insertion: text before/after the insert point when recording started.
+  // Streaming text is spliced in between these, replacing any selection.
+  streamingBefore: "",
+  streamingAfter: "",
+  // Voice editing: {el, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
-  // True when streaming was stopped mid-stream to begin a voice edit
-  _pendingVoiceEdit: false,
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
@@ -52,9 +54,7 @@ function setStatus(msg, type = "") {
 
 function setUI(mode) {
   // mode: idle | recording | processing | transcribed | formatting | done
-  // btn-record is enabled in idle/transcribed/done, AND during recording so the
-  // user can select a mis-transcribed word and press Record mid-stream to replace it.
-  $("btn-record").disabled      = !["idle", "transcribed", "done", "recording"].includes(mode);
+  $("btn-record").disabled      = !["idle", "transcribed", "done"].includes(mode);
   $("btn-stop").disabled        = mode !== "recording";
   $("btn-format").disabled      = !["transcribed", "done"].includes(mode);
   $("btn-copy").disabled        = mode !== "done";
@@ -258,24 +258,14 @@ function _startMediaRecorder() {
 // Recording — branches to voice-edit, streaming, or segment mode
 // ---------------------------------------------------------------------------
 async function startRecording() {
-  console.log("[VoxRad] startRecording — voiceEditTarget:", state.voiceEditTarget
-    ? `{el:#${state.voiceEditTarget.el.id}, start:${state.voiceEditTarget.start}, end:${state.voiceEditTarget.end}}`
-    : "null");
-  if (state.voiceEditTarget) {
-    // If streaming is currently active, stop it first, then voice edit.
-    if (state.isRecording && state.streamingWs) {
-      stopStreamingRecording();
-      // Wait for session_complete (handled in handleStreamingMessage), then
-      // startVoiceEditRecording is called from there.
-      state._pendingVoiceEdit = true;
-    } else {
-      await startVoiceEditRecording();
-    }
-  } else if (state.isRecording) {
-    // Record pressed during recording without a selection — ignore.
+  if (state.isRecording) {
+    // Record pressed during active recording — ignore (Stop button ends recording).
     return;
-  } else if (state.streamingSupported) {
+  }
+  if (state.streamingSupported) {
     await startStreamingRecording();
+  } else if (state.voiceEditTarget) {
+    await startVoiceEditRecording();
   } else {
     await startSegmentRecording();
   }
@@ -334,6 +324,20 @@ async function startSegmentRecording() {
 // Streaming STT recording
 // ---------------------------------------------------------------------------
 async function startStreamingRecording() {
+  // Capture cursor position / selection BEFORE the mic opens.
+  // This makes streaming PowerScribe-style: text is inserted at the cursor,
+  // replacing any selection, rather than always appending to the end.
+  const tx = $("transcription");
+  if (state.voiceEditTarget && state.voiceEditTarget.el === tx) {
+    state.streamingBefore = tx.value.slice(0, state.voiceEditTarget.start);
+    state.streamingAfter  = tx.value.slice(state.voiceEditTarget.end);
+  } else {
+    // No selection — default: append after existing transcript.
+    state.streamingBefore = tx.value;
+    state.streamingAfter  = "";
+  }
+  state.voiceEditTarget = null;
+
   const wsToken = document.body.dataset.wsToken || "";
   const proto   = location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl   = `${proto}//${location.host}/ws/transcribe?token=${encodeURIComponent(wsToken)}`;
@@ -414,32 +418,24 @@ function handleStreamingMessage(msg) {
       state.interimText = "";
       _updateStreamingDisplay();
       break;
-    case "session_complete":
+    case "session_complete": {
       if (msg.session_id) state.sessionId = msg.session_id;
-      $("transcription").value = msg.transcription || "";
+      const speech = (msg.transcription || "").trim();
+      const before = state.streamingBefore;
+      const after  = state.streamingAfter;
+      const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
+      const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
+      $("transcription").value = before + sep1 + speech + sep2 + after;
       _cleanupStreaming();
-      if (state._pendingVoiceEdit && state.voiceEditTarget) {
-        // User pressed Record mid-stream to replace a selection.
-        // Re-anchor the selection in the final (complete) transcript by searching
-        // for the originally selected text, since the transcript may have grown.
-        state._pendingVoiceEdit = false;
-        const vet = state.voiceEditTarget;
-        const finalText = $("transcription").value;
-        const idx = finalText.indexOf(vet.selectedText || "");
-        if (idx !== -1 && vet.selectedText) {
-          vet.start = idx;
-          vet.end = idx + vet.selectedText.length;
-        }
+      if (speech || before || after) {
         setUI("transcribed");
-        startVoiceEditRecording();
-      } else if (msg.transcription && msg.transcription.trim()) {
-        setUI("transcribed");
-        formatReport();
+        if (speech) formatReport();
       } else {
         setUI("idle");
         setStatus("No speech detected.", "error");
       }
       break;
+    }
     case "error":
       setStatus(`Streaming error: ${msg.message}`, "error");
       _cleanupStreaming();
@@ -451,9 +447,13 @@ function handleStreamingMessage(msg) {
 }
 
 function _updateStreamingDisplay() {
-  const text = state.confirmedText +
+  const speech = state.confirmedText +
     (state.interimText ? (state.confirmedText ? " " : "") + state.interimText : "");
-  $("transcription").value = text;
+  const before = state.streamingBefore;
+  const after  = state.streamingAfter;
+  const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
+  const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
+  $("transcription").value = before + sep1 + speech + sep2 + after;
 }
 
 function _cleanupStreaming() {
@@ -468,9 +468,7 @@ function _cleanupStreaming() {
     state.streamingAudioCtx.close().catch(() => {});
     state.streamingAudioCtx = null;
   }
-  // Don't kill the microphone stream if a voice edit is currently recording —
-  // voice edit reuses state.stream for its own MediaRecorder.
-  if (state.stream && !state.voiceEditTarget) {
+  if (state.stream) {
     state.stream.getTracks().forEach((t) => t.stop());
     state.stream = null;
   }
@@ -481,12 +479,11 @@ function _cleanupStreaming() {
     }
     state.streamingWs = null;
   }
-  // Don't reset isRecording if a voice edit is in progress.
-  if (!state.voiceEditTarget) {
-    state.isRecording = false;
-  }
+  state.isRecording   = false;
   state.confirmedText = "";
   state.interimText   = "";
+  state.streamingBefore = "";
+  state.streamingAfter  = "";
 }
 
 function stopRecording() {
