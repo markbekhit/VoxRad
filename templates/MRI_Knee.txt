@@ -55,8 +55,7 @@ Cover all groups in this order:
   - Medial Compartment (medial femoral condyle, medial tibial plateau)
   - Lateral Compartment (lateral femoral condyle, lateral tibial plateau)
   - Patellofemoral Compartment (patella, trochlear groove)
-
-**Patellofemoral Joint**
+- Patellofemoral alignment and tracking are included here; do not create a separate Patellofemoral Joint heading.
 
 **Tendons**
 - Quadriceps Tendon and Patellar Tendon (combine if both normal)

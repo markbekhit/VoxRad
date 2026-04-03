@@ -28,6 +28,8 @@ const state = {
   streamingAudioCtx: null,
   confirmedText: "",
   interimText: "",
+  // Voice editing: {el, start, end} of the textarea selection to replace
+  voiceEditTarget: null,
 };
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
@@ -214,15 +216,22 @@ function _startMediaRecorder() {
 
   state.mediaRecorder.onstop = () => {
     const chunks = state.audioChunks.splice(0); // take and clear
-    const isFinal = !state.isRecording;
+    const isVoiceEdit = !!state.voiceEditTarget;
+    // Voice edit always treats the segment as final (one utterance, then done).
+    const isFinal = !state.isRecording || isVoiceEdit;
     const hadSpeech = state.speechDetected;
 
-    if (state.isRecording) {
+    if (state.isRecording && !isVoiceEdit) {
       // Silence-triggered segment — restart recorder immediately so the mic
       // stays active while we send this segment in the background.
       _startMediaRecorder();
     } else {
-      // User clicked Stop — release the microphone.
+      // Final segment or voice edit: release the microphone.
+      if (isVoiceEdit && state.isRecording) {
+        state.isRecording = false;
+        stopTimer();
+        stopWaveform();
+      }
       if (state.stream) {
         state.stream.getTracks().forEach((t) => t.stop());
         state.stream = null;
@@ -242,13 +251,36 @@ function _startMediaRecorder() {
 }
 
 // ---------------------------------------------------------------------------
-// Recording — branches to streaming or segment mode based on capabilities
+// Recording — branches to voice-edit, streaming, or segment mode
 // ---------------------------------------------------------------------------
 async function startRecording() {
-  if (state.streamingSupported) {
+  if (state.voiceEditTarget) {
+    await startVoiceEditRecording();
+  } else if (state.streamingSupported) {
     await startStreamingRecording();
   } else {
     await startSegmentRecording();
+  }
+}
+
+// Voice edit: record one utterance, replace the saved textarea selection.
+async function startVoiceEditRecording() {
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startWaveform(state.stream);
+    state.silenceStart = null;
+    state.isSegmentTranscribing = false;
+    state.speechDetected = false;
+    state.pendingSegments = 0;
+    _startMediaRecorder();
+    state.isRecording = true;
+    startTimer();
+    setUI("recording");
+    const label = state.voiceEditTarget.el.id === "transcription" ? "transcript" : "report";
+    setStatus(`Voice editing ${label} — dictate replacement, then pause.`, "active");
+  } catch (err) {
+    state.voiceEditTarget = null;
+    setStatus(`Microphone access denied: ${err.message}`, "error");
   }
 }
 
@@ -485,13 +517,17 @@ function _maybeAutoFormat() {
 // Transcribe segment (called from onstop for both mid-recording and final)
 // ---------------------------------------------------------------------------
 async function submitAudioSegment(chunks, isFinal) {
+  // Capture voice edit target at call time — async gaps could clear state later.
+  const editTarget = isFinal ? state.voiceEditTarget : null;
+
   state.pendingSegments++;
   const blob = new Blob(chunks, { type: "audio/webm" });
 
   if (blob.size < MIN_SEGMENT_BYTES) {
     state.isSegmentTranscribing = false;
     state.pendingSegments--;
-    _maybeAutoFormat();
+    if (!editTarget) _maybeAutoFormat();
+    else { state.voiceEditTarget = null; setUI(_inferUIMode()); setStatus("No speech detected — edit unchanged.", "error"); }
     return;
   }
 
@@ -511,21 +547,46 @@ async function submitAudioSegment(chunks, isFinal) {
     if (data.session_id) state.sessionId = data.session_id;
 
     const newText = data.transcription ? data.transcription.trim() : "";
-    if (newText) {
-      const existing = $("transcription").value.trim();
-      $("transcription").value = existing ? existing + " " + newText : newText;
-    }
 
-    if (state.isRecording) {
-      setStatus("Recording… pause briefly to see live transcription.", "active");
+    if (editTarget) {
+      // Voice edit: splice transcription into the selection.
+      const { el, start, end } = editTarget;
+      el.value = el.value.slice(0, start) + (newText || "") + el.value.slice(end);
+      if (newText) {
+        el.selectionStart = el.selectionEnd = start + newText.length;
+        el.focus();
+      }
+      // Re-render markdown if editing the report.
+      if (el.id === "report-raw") {
+        $("report-rendered").innerHTML = marked.parse(el.value);
+      }
+      state.voiceEditTarget = null;
+      setUI(_inferUIMode());
+      setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
+                newText ? "success" : "error");
+    } else {
+      if (newText) {
+        const existing = $("transcription").value.trim();
+        $("transcription").value = existing ? existing + " " + newText : newText;
+      }
+      if (state.isRecording) {
+        setStatus("Recording… pause briefly to see live transcription.", "active");
+      }
     }
   } catch (err) {
     setStatus(`Transcription error: ${err.message}`, "error");
   } finally {
     state.isSegmentTranscribing = false;
     state.pendingSegments--;
-    _maybeAutoFormat();
+    if (!editTarget) _maybeAutoFormat();
   }
+}
+
+// Infer the correct UI mode from current content after a voice edit.
+function _inferUIMode() {
+  if ($("report-raw").value.trim()) return "done";
+  if ($("transcription").value.trim()) return "transcribed";
+  return "idle";
 }
 
 // ---------------------------------------------------------------------------
@@ -663,6 +724,8 @@ function _setReportEditMode(editing) {
   $("report-rendered").style.display = editing ? "none" : "";
   $("report-raw").style.display      = editing ? "" : "none";
   $("btn-edit-toggle").textContent   = editing ? "✓ Done" : "✎ Edit";
+  const hint = $("report-edit-hint");
+  if (hint) hint.style.display = editing ? "" : "none";
 }
 
 function toggleReportEdit() {
@@ -720,6 +783,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   setUI("idle");
   setStatus("Press Record to start dictating.");
 
+  // Capture textarea selection BEFORE focus moves to the button (mousedown fires first).
+  const _captureVoiceEditTarget = () => {
+    const el = document.activeElement;
+    if (el && (el.id === "transcription" || el.id === "report-raw")) {
+      const start = el.selectionStart, end = el.selectionEnd;
+      state.voiceEditTarget = (start !== end) ? { el, start, end } : null;
+    } else {
+      state.voiceEditTarget = null;
+    }
+  };
+  $("btn-record").addEventListener("mousedown", _captureVoiceEditTarget);
+  $("btn-record").addEventListener("touchstart", _captureVoiceEditTarget, { passive: true });
   $("btn-record").addEventListener("click", startRecording);
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);

@@ -109,6 +109,7 @@
   <div class="card mt-8">
     <div class="card-title">Transcription <span style="font-weight:400;text-transform:none;">(editable — report auto-generates on stop)</span></div>
     <textarea id="transcription" rows="5" placeholder="Transcription will appear here after recording…"></textarea>
+    <p class="voice-edit-hint">&#128161; Select any text above, then press Record to replace it by voice.</p>
     <div class="row mt-8">
       <button id="btn-format" class="btn btn-secondary" disabled style="font-size:0.8rem;padding:6px 12px;opacity:0.7;">
         <span>&#9881;</span> Re-format
@@ -129,6 +130,7 @@
     <div id="report-rendered" class="report-rendered"></div>
     <!-- Raw edit textarea (shown when editing) -->
     <textarea id="report-raw" rows="16" style="display:none;" placeholder="Formatted report will appear here…"></textarea>
+    <p class="voice-edit-hint" id="report-edit-hint" style="display:none;">&#128161; Select any text above, then press Record to replace it by voice.</p>
   </div>
 
 </main>

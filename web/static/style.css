@@ -251,6 +251,7 @@ details > summary::-webkit-details-marker { display: none; }
 /* ── Recording indicator ── */
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 .rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 1s infinite; }
+.voice-edit-hint { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
 
 /* ── Spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
