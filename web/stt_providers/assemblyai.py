@@ -28,7 +28,7 @@ class AssemblyAIProvider(StreamingSTTProvider):
         # AssemblyAI Universal-2 streaming v3 endpoint
         url = (
             f"wss://streaming.assemblyai.com/v3/ws"
-            f"?sample_rate_hertz={sample_rate}&encoding=pcm_s16le"
+            f"?sample_rate_hertz={sample_rate}&encoding=pcm_s16le&speech_model=best"
         )
         if keywords:
             word_boost = ",".join(k for k in keywords[:_MAX_KEYWORDS])
