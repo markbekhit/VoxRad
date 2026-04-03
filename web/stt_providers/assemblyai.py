@@ -25,20 +25,25 @@ class AssemblyAIProvider(StreamingSTTProvider):
         self._closed = False
 
     async def connect(self, api_key: str, sample_rate: int, keywords: List[str]) -> None:
-        url = f"wss://api.assemblyai.com/v2/realtime/ws?sample_rate={sample_rate}"
+        # AssemblyAI Universal-2 streaming v3 endpoint
+        url = (
+            f"wss://streaming.assemblyai.com/v3/ws"
+            f"?sample_rate_hertz={sample_rate}&encoding=pcm_s16le"
+        )
         if keywords:
             word_boost = ",".join(k for k in keywords[:_MAX_KEYWORDS])
             url += f"&word_boost={quote(word_boost)}&boost_param=high"
 
-        logger.info("[assemblyai] connecting to %s", url[:80])
+        logger.info("[assemblyai] connecting to %s", url[:120])
         self._ws = await websockets.connect(
             url,
             additional_headers={"Authorization": api_key},
         )
-        # AssemblyAI sends a SessionBegins message before accepting audio
+        # v3 sends a session_begins message before accepting audio
         session_msg = await self._ws.recv()
         data = json.loads(session_msg)
-        if data.get("message_type") != "SessionBegins":
+        msg_type = data.get("type") or data.get("message_type", "")
+        if msg_type not in ("session_begins", "SessionBegins"):
             raise RuntimeError(f"Unexpected AssemblyAI session message: {data}")
         logger.info("[assemblyai] session began: %s", data.get("session_id"))
 
@@ -57,13 +62,18 @@ class AssemblyAIProvider(StreamingSTTProvider):
                 if isinstance(raw, bytes):
                     continue
                 data = json.loads(raw)
-                msg_type = data.get("message_type", "")
-                if msg_type not in ("PartialTranscript", "FinalTranscript"):
+                # v3 uses "type"; v2 used "message_type" — handle both
+                msg_type = data.get("type") or data.get("message_type", "")
+                if msg_type not in (
+                    "partial_transcript", "final_transcript",   # v3
+                    "PartialTranscript", "FinalTranscript",     # v2
+                ):
                     continue
-                text = data.get("text", "").strip()
+                # v3 uses "transcript"; v2 used "text"
+                text = (data.get("transcript") or data.get("text") or "").strip()
                 if not text:
                     continue
-                is_final = msg_type == "FinalTranscript"
+                is_final = msg_type in ("final_transcript", "FinalTranscript")
                 confidence = float(data.get("confidence", 1.0))
                 yield TranscriptEvent(text=text, is_final=is_final, confidence=confidence)
         except websockets.exceptions.ConnectionClosed:
@@ -75,7 +85,8 @@ class AssemblyAIProvider(StreamingSTTProvider):
         self._closed = True
         if self._ws:
             try:
-                await self._ws.send(json.dumps({"terminate_session": True}))
+                # v3 termination format
+                await self._ws.send(json.dumps({"type": "terminate_session"}))
             except Exception:
                 pass
             try:

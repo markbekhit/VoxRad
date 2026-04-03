@@ -792,15 +792,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   setUI("idle");
   setStatus("Press Record to start dictating.");
 
-  // Capture textarea selection BEFORE focus moves to the button (mousedown fires first).
+  // Track the most recent textarea selection as the user makes it.
+  // This is more reliable than reading it on mousedown of the Record button,
+  // because focus may have already shifted by then in some browsers.
+  let _lastTextareaSelection = null;
+  ["transcription", "report-raw"].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    const save = () => {
+      const s = el.selectionStart, e = el.selectionEnd;
+      _lastTextareaSelection = (s !== e) ? { el, start: s, end: e } : null;
+    };
+    el.addEventListener("mouseup", save);
+    el.addEventListener("keyup", save);
+    el.addEventListener("select", save);
+    // Clear when user clicks without dragging (cursor placement, no selection)
+    el.addEventListener("click", () => {
+      if (el.selectionStart === el.selectionEnd) _lastTextareaSelection = null;
+    });
+  });
+
+  // On Record press: try activeElement first (most reliable on desktop desktop),
+  // then fall back to the last tracked selection.
   const _captureVoiceEditTarget = () => {
-    const el = document.activeElement;
-    if (el && (el.id === "transcription" || el.id === "report-raw")) {
-      const start = el.selectionStart, end = el.selectionEnd;
-      state.voiceEditTarget = (start !== end) ? { el, start, end } : null;
-    } else {
-      state.voiceEditTarget = null;
+    const active = document.activeElement;
+    if (active && (active.id === "transcription" || active.id === "report-raw")) {
+      const s = active.selectionStart, e = active.selectionEnd;
+      if (s !== e) {
+        state.voiceEditTarget = { el: active, start: s, end: e };
+        _lastTextareaSelection = null;
+        return;
+      }
     }
+    state.voiceEditTarget = _lastTextareaSelection || null;
+    _lastTextareaSelection = null;
   };
   $("btn-record").addEventListener("mousedown", _captureVoiceEditTarget);
   $("btn-record").addEventListener("touchstart", _captureVoiceEditTarget, { passive: true });
