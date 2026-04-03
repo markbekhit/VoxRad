@@ -533,8 +533,17 @@ async function submitAudioSegment(chunks, isFinal) {
 
   const formData = new FormData();
   formData.append("audio", blob, "segment.webm");
-  const templateName = $("template-select").value;
-  if (templateName) formData.append("template_name", templateName);
+  if (editTarget) {
+    // Voice edit: pass the text before the selection as Whisper context rather
+    // than the vocabulary list — prevents Whisper hallucinating prompt completions.
+    const before = editTarget.el.value.slice(
+      Math.max(0, editTarget.start - 300), editTarget.start
+    ).trim();
+    formData.append("whisper_prompt", before);
+  } else {
+    const templateName = $("template-select").value;
+    if (templateName) formData.append("template_name", templateName);
+  }
 
   try {
     const resp = await fetch("/transcribe", { method: "POST", body: formData });

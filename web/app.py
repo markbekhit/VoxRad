@@ -548,6 +548,7 @@ _MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
 async def transcribe(
     audio: UploadFile = File(...),
     template_name: Optional[str] = Form(None),
+    whisper_prompt: Optional[str] = Form(None),
     username: str = Depends(_verify_auth),
 ):
     """Accept a WebM audio blob, transcribe via Whisper-compatible API."""
@@ -578,16 +579,22 @@ async def transcribe(
             tmp.write(audio_bytes)
             tmp_path = tmp.name
 
-        # Build ASR prompt: template-specific spellings take priority over the
-        # general radiology vocabulary prompt.
-        asr_prompt = _RADIOLOGY_PROMPT
-        if template_name:
-            content = _load_template_content(template_name)
-            match = re.search(
-                r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
-            )
-            if match:
-                asr_prompt = match.group(1).strip()[:896]  # Groq hard limit
+        # Build ASR prompt.
+        # whisper_prompt (from voice-edit mode) overrides everything — it is the
+        # surrounding transcript text, which is what Whisper's prompt parameter
+        # is actually designed for.  Using the vocabulary list as the prompt for
+        # short voice-edit clips causes Whisper to hallucinate completions of it.
+        if whisper_prompt is not None:
+            asr_prompt = whisper_prompt[:896]
+        else:
+            asr_prompt = _RADIOLOGY_PROMPT
+            if template_name:
+                content = _load_template_content(template_name)
+                match = re.search(
+                    r"\[correct spellings\](.*?)\[correct spellings\]", content, re.DOTALL
+                )
+                if match:
+                    asr_prompt = match.group(1).strip()[:896]  # Groq hard limit
 
         client = OpenAI(
             api_key=config.TRANSCRIPTION_API_KEY,
