@@ -792,43 +792,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   setUI("idle");
   setStatus("Press Record to start dictating.");
 
-  // Track the most recent textarea selection as the user makes it.
-  // This is more reliable than reading it on mousedown of the Record button,
-  // because focus may have already shifted by then in some browsers.
-  let _lastTextareaSelection = null;
+  // Capture textarea selection when the user blurs the textarea toward the Record button.
+  // The blur event fires before click/mousedown and still has the correct selectionStart/End.
+  // relatedTarget on blur is the element receiving focus (the button being clicked).
+  let _blurCaptured = false;
   ["transcription", "report-raw"].forEach(id => {
     const el = $(id);
     if (!el) return;
-    const save = () => {
-      const s = el.selectionStart, e = el.selectionEnd;
-      _lastTextareaSelection = (s !== e) ? { el, start: s, end: e } : null;
-    };
-    el.addEventListener("mouseup", save);
-    el.addEventListener("keyup", save);
-    el.addEventListener("select", save);
-    // Clear when user clicks without dragging (cursor placement, no selection)
-    el.addEventListener("click", () => {
-      if (el.selectionStart === el.selectionEnd) _lastTextareaSelection = null;
+    el.addEventListener("blur", (evt) => {
+      const dest = evt.relatedTarget;
+      if (dest && dest.id === "btn-record") {
+        const s = el.selectionStart, e = el.selectionEnd;
+        state.voiceEditTarget = (s !== e) ? { el, start: s, end: e } : null;
+        _blurCaptured = true;
+      }
     });
   });
 
-  // On Record press: try activeElement first (most reliable on desktop desktop),
-  // then fall back to the last tracked selection.
-  const _captureVoiceEditTarget = () => {
+  // Fallback for touch / browsers where relatedTarget is null on blur:
+  // snapshot selection on mousedown/touchstart before focus shifts.
+  const _snapVoiceEdit = () => {
+    if (_blurCaptured) { _blurCaptured = false; return; } // blur already got it
     const active = document.activeElement;
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
       const s = active.selectionStart, e = active.selectionEnd;
-      if (s !== e) {
-        state.voiceEditTarget = { el: active, start: s, end: e };
-        _lastTextareaSelection = null;
-        return;
-      }
+      state.voiceEditTarget = (s !== e) ? { el: active, start: s, end: e } : null;
+    } else {
+      state.voiceEditTarget = null;
     }
-    state.voiceEditTarget = _lastTextareaSelection || null;
-    _lastTextareaSelection = null;
   };
-  $("btn-record").addEventListener("mousedown", _captureVoiceEditTarget);
-  $("btn-record").addEventListener("touchstart", _captureVoiceEditTarget, { passive: true });
+  $("btn-record").addEventListener("mousedown", _snapVoiceEdit);
+  $("btn-record").addEventListener("touchstart", _snapVoiceEdit, { passive: true });
   $("btn-record").addEventListener("click", startRecording);
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);
