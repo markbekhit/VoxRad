@@ -268,6 +268,13 @@ async function startRecording() {
 
 // Voice edit: record one utterance, replace the saved textarea selection.
 async function startVoiceEditRecording() {
+  // If the previous streaming session's WebSocket is still open waiting for
+  // session_complete, close it now. Otherwise, when session_complete arrives
+  // mid-voice-edit, _cleanupStreaming() would kill the voice edit microphone.
+  if (state.streamingWs) {
+    state.streamingWs.close();
+    state.streamingWs = null;
+  }
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     startWaveform(state.stream);
@@ -394,6 +401,12 @@ function handleStreamingMessage(msg) {
       break;
     case "session_complete":
       if (msg.session_id) state.sessionId = msg.session_id;
+      // If a voice edit is already in progress, don't overwrite the transcript
+      // or reset recording state — the WS was already closed by startVoiceEditRecording.
+      if (state.voiceEditTarget) {
+        _cleanupStreaming();
+        break;
+      }
       $("transcription").value = msg.transcription || "";
       _cleanupStreaming();
       if (msg.transcription && msg.transcription.trim()) {
@@ -432,7 +445,9 @@ function _cleanupStreaming() {
     state.streamingAudioCtx.close().catch(() => {});
     state.streamingAudioCtx = null;
   }
-  if (state.stream) {
+  // Don't kill the microphone stream if a voice edit is currently recording —
+  // voice edit reuses state.stream for its own MediaRecorder.
+  if (state.stream && !state.voiceEditTarget) {
     state.stream.getTracks().forEach((t) => t.stop());
     state.stream = null;
   }
@@ -443,7 +458,10 @@ function _cleanupStreaming() {
     }
     state.streamingWs = null;
   }
-  state.isRecording  = false;
+  // Don't reset isRecording if a voice edit is in progress.
+  if (!state.voiceEditTarget) {
+    state.isRecording = false;
+  }
   state.confirmedText = "";
   state.interimText   = "";
 }
