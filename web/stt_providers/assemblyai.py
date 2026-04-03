@@ -25,10 +25,15 @@ class AssemblyAIProvider(StreamingSTTProvider):
         self._closed = False
 
     async def connect(self, api_key: str, sample_rate: int, keywords: List[str]) -> None:
-        # AssemblyAI Universal-2 streaming v3 endpoint
+        # AssemblyAI Universal-3 Real-Time Pro with medical domain optimisation.
+        # Valid speech_model values (streaming v3): universal-streaming-english,
+        # universal-streaming-multilingual, u3-rt-pro, whisper-rt, u3-pro (deprecated)
         url = (
             f"wss://streaming.assemblyai.com/v3/ws"
-            f"?sample_rate_hertz={sample_rate}&encoding=pcm_s16le&speech_model=best"
+            f"?sample_rate_hertz={sample_rate}"
+            f"&encoding=pcm_s16le"
+            f"&speech_model=u3-rt-pro"
+            f"&domain=medical-v1"
         )
         if keywords:
             word_boost = ",".join(k for k in keywords[:_MAX_KEYWORDS])
