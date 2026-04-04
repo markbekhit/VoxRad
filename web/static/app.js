@@ -409,19 +409,21 @@ async function startStreamingRecording() {
 function handleStreamingMessage(msg) {
   switch (msg.type) {
     case "interim":
-      state.interimText = msg.text || "";
+      state.interimText = (msg.text || "").replace(/\s*—\s*/g, " ").trim();
       _updateStreamingDisplay();
       break;
-    case "final":
+    case "final": {
+      const chunk = (msg.text || "").replace(/\s*—\s*/g, " ").trim();
       state.confirmedText = state.confirmedText
-        ? state.confirmedText + " " + (msg.text || "")
-        : (msg.text || "");
+        ? state.confirmedText + (chunk ? " " + chunk : "")
+        : chunk;
       state.interimText = "";
       _updateStreamingDisplay();
       break;
+    }
     case "session_complete": {
       if (msg.session_id) state.sessionId = msg.session_id;
-      const speech = (msg.transcription || "").trim();
+      const speech = (msg.transcription || "").replace(/\s*—\s*/g, " ").replace(/\s+/g, " ").trim();
       const before = state.streamingBefore;
       const after  = state.streamingAfter;
       const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
@@ -932,8 +934,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     state.interimText     = "";
 
     _suppressStreamingSelChange = true;
-    tx.value = state.streamingBefore + state.streamingAfter;
-    tx.selectionStart = tx.selectionEnd = newPos;
+    // Only strip trailing interim — don't erase the selected text.
+    // The highlight stays visible until speech arrives and _updateStreamingDisplay
+    // replaces it with streamingBefore + new speech + streamingAfter.
+    if (interimSuffix) {
+      tx.value = tx.value.slice(0, stableLen);
+    }
+    tx.selectionStart = newPos;
+    tx.selectionEnd   = newEnd;
     state.streamingAnchorPos = newPos;
     setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
   });
