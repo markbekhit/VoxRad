@@ -29,12 +29,16 @@ const state = {
   confirmedText: "",
   interimText: "",
   // Cursor-aware insertion: text before/after the insert point when recording started.
-  // Streaming text is spliced in between these, replacing any selection.
+  // Updated live as the user moves the cursor during streaming.
   streamingBefore: "",
   streamingAfter: "",
+  streamingAnchorPos: 0,   // cursor position we last set programmatically
   // Voice editing: {el, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
 };
+
+// Suppress our own programmatic cursor moves from triggering the selectionchange handler.
+let _suppressStreamingSelChange = false;
 
 const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
 const SPEECH_THRESHOLD    = 0.015;  // RMS above this = speech
@@ -258,10 +262,7 @@ function _startMediaRecorder() {
 // Recording — branches to voice-edit, streaming, or segment mode
 // ---------------------------------------------------------------------------
 async function startRecording() {
-  if (state.isRecording) {
-    // Record pressed during active recording — ignore (Stop button ends recording).
-    return;
-  }
+  if (state.isRecording) return; // Stop button ends recording
   if (state.streamingSupported) {
     await startStreamingRecording();
   } else if (state.voiceEditTarget) {
@@ -447,13 +448,29 @@ function handleStreamingMessage(msg) {
 }
 
 function _updateStreamingDisplay() {
-  const speech = state.confirmedText +
-    (state.interimText ? (state.confirmedText ? " " : "") + state.interimText : "");
-  const before = state.streamingBefore;
-  const after  = state.streamingAfter;
+  const tx      = $("transcription");
+  const before  = state.streamingBefore;
+  const after   = state.streamingAfter;
+  const confirmed = state.confirmedText;
+  // Only show interim when inserting at the end of the text (no after-text).
+  // This keeps the display equal to "stableText" during mid-text insertion,
+  // so cursor positions map 1-to-1 without any offset arithmetic.
+  const speech  = after
+    ? confirmed
+    : confirmed + (state.interimText ? (confirmed ? " " : "") + state.interimText : "");
   const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
   const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
-  $("transcription").value = before + sep1 + speech + sep2 + after;
+  const newValue  = before + sep1 + speech + sep2 + after;
+  // Anchor: right after confirmed text (interim trails the cursor; after-text follows).
+  const anchorPos = before.length + sep1.length + confirmed.length;
+
+  _suppressStreamingSelChange = true;
+  tx.value = newValue;
+  tx.selectionStart = tx.selectionEnd = anchorPos;
+  state.streamingAnchorPos = anchorPos;
+  // Release the suppress flag after the browser has dispatched any
+  // selectionchange events queued by the value/cursor assignment above.
+  setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
 }
 
 function _cleanupStreaming() {
@@ -480,10 +497,11 @@ function _cleanupStreaming() {
     state.streamingWs = null;
   }
   state.isRecording   = false;
-  state.confirmedText = "";
-  state.interimText   = "";
+  state.confirmedText   = "";
+  state.interimText     = "";
   state.streamingBefore = "";
   state.streamingAfter  = "";
+  state.streamingAnchorPos = 0;
 }
 
 function stopRecording() {
@@ -855,8 +873,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // so relatedTarget will be null — but pointerdown fires BEFORE blur,
     // so _pendingSelection has already been consumed by then.
     el.addEventListener("blur", (evt) => {
-      console.log("[VoxRad] blur on #" + id, "| relatedTarget:", evt.relatedTarget ? `#${evt.relatedTarget.id || evt.relatedTarget.tagName}` : "null",
-        "| selStart:", el.selectionStart, "| selEnd:", el.selectionEnd);
       if (!evt.relatedTarget || evt.relatedTarget.id !== "btn-record") {
         _pendingSelection = null;
       }
@@ -869,10 +885,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const active = document.activeElement;
     const s = active && active.selectionStart !== undefined ? active.selectionStart : null;
     const e = active && active.selectionEnd !== undefined ? active.selectionEnd : null;
-    console.log("[VoxRad] pointerdown — activeElement:", active ? `#${active.id || active.tagName}` : "none",
-      "| selStart:", s, "| selEnd:", e, "| _pendingSelection:", _pendingSelection
-        ? `{el:#${_pendingSelection.el.id}, start:${_pendingSelection.start}, end:${_pendingSelection.end}}`
-        : "null");
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
       if (s !== e) {
         const selectedText = active.value.slice(s, e);
@@ -883,11 +895,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       state.voiceEditTarget = _pendingSelection || null;
     }
-    console.log("[VoxRad] pointerdown — voiceEditTarget set to:", state.voiceEditTarget
-      ? `{el:#${state.voiceEditTarget.el.id}, start:${state.voiceEditTarget.start}, end:${state.voiceEditTarget.end}}`
-      : "null");
     _pendingSelection = null;
   };
+
+  // Live cursor tracking during streaming: when the user clicks or moves the
+  // cursor inside #transcription while streaming is active, immediately resplit
+  // the text so the next spoken words appear at the new cursor position.
+  // This gives PowerScribe-style behaviour — no button presses needed.
+  document.addEventListener("selectionchange", () => {
+    if (_suppressStreamingSelChange) return;
+    if (!state.streamingWs || !state.isRecording) return;
+    const tx = $("transcription");
+    if (document.activeElement !== tx) return;
+
+    const displayPos = tx.selectionStart;
+    const displayEnd = tx.selectionEnd;
+    if (displayPos === state.streamingAnchorPos &&
+        displayEnd === state.streamingAnchorPos) return; // nothing changed
+
+    // "Stable text" = what the textarea contains minus any trailing interim word.
+    // For mid-text insertion we suppress interim, so stableText === tx.value.
+    // For end-of-text, interim is at the tail — strip it.
+    const interimSuffix = (!state.streamingAfter && state.interimText)
+      ? (state.confirmedText ? " " : "") + state.interimText
+      : "";
+    const stableLen  = tx.value.length - interimSuffix.length;
+    const newPos     = Math.min(displayPos, stableLen);
+    const newEnd     = Math.min(displayEnd, stableLen);
+
+    // Resplit: everything up to cursor becomes "before", everything after becomes "after".
+    // Confirmed text is now baked into whichever side it falls on.
+    const stableText = tx.value.slice(0, stableLen);
+    state.streamingBefore = stableText.slice(0, newPos);
+    state.streamingAfter  = stableText.slice(newEnd);
+    state.confirmedText   = "";
+    state.interimText     = "";
+
+    _suppressStreamingSelChange = true;
+    tx.value = state.streamingBefore + state.streamingAfter;
+    tx.selectionStart = tx.selectionEnd = newPos;
+    state.streamingAnchorPos = newPos;
+    setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
+  });
   // Use pointerdown (handles both mouse and touch, fires earliest in event chain).
   $("btn-record").addEventListener("pointerdown", _grabVoiceEdit, { passive: true });
   $("btn-record").addEventListener("click", startRecording);
