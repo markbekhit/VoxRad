@@ -1006,11 +1006,15 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
                     if stop_event.is_set():
                         break
                     if not _is_hallucination(event.text):
+                        # Strip em dash artifacts (STT inserts — during pauses)
+                        clean = re.sub(r'\s*—\s*', ' ', event.text).strip()
+                        if not clean:
+                            continue
                         if event.is_final:
-                            finals.append(event.text)
-                            await websocket.send_json({"type": "final", "text": event.text})
+                            finals.append(clean)
+                            await websocket.send_json({"type": "final", "text": clean})
                         else:
-                            await websocket.send_json({"type": "interim", "text": event.text})
+                            await websocket.send_json({"type": "interim", "text": clean})
             except Exception as e:
                 logger.warning("Results loop error: %s", e)
             finally:

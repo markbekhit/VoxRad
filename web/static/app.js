@@ -33,6 +33,7 @@ const state = {
   streamingBefore: "",
   streamingAfter: "",
   streamingAnchorPos: 0,   // cursor position we last set programmatically
+  streamingSelectedText: "",  // text user selected for replacement (kept visible until speech arrives)
   // Voice editing: {el, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
 };
@@ -423,7 +424,11 @@ function handleStreamingMessage(msg) {
     }
     case "session_complete": {
       if (msg.session_id) state.sessionId = msg.session_id;
-      const speech = (msg.transcription || "").replace(/\s*—\s*/g, " ").replace(/\s+/g, " ").trim();
+      // Use client-tracked confirmed text — the server's full transcription is
+      // chronologically ordered and doesn't account for cursor repositioning.
+      // Previous confirmed text is already baked into streamingBefore/After.
+      state.streamingSelectedText = "";
+      const speech = state.confirmedText;
       const before = state.streamingBefore;
       const after  = state.streamingAfter;
       const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
@@ -460,6 +465,27 @@ function _updateStreamingDisplay() {
   const speech  = after
     ? confirmed
     : confirmed + (state.interimText ? (confirmed ? " " : "") + state.interimText : "");
+
+  // If user selected text for replacement and no speech has arrived yet,
+  // re-display the selected text with its highlight preserved.
+  if (!speech && state.streamingSelectedText) {
+    const sel = state.streamingSelectedText;
+    const newValue = before + sel + after;
+    const selStart = before.length;
+    const selEnd   = selStart + sel.length;
+    _suppressStreamingSelChange = true;
+    tx.value = newValue;
+    tx.selectionStart = selStart;
+    tx.selectionEnd   = selEnd;
+    state.streamingAnchorPos = selStart;
+    setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
+    return;
+  }
+  // Clear selected text once speech arrives to replace it
+  if (speech && state.streamingSelectedText) {
+    state.streamingSelectedText = "";
+  }
+
   const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
   const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
   const newValue  = before + sep1 + speech + sep2 + after;
@@ -504,6 +530,7 @@ function _cleanupStreaming() {
   state.streamingBefore = "";
   state.streamingAfter  = "";
   state.streamingAnchorPos = 0;
+  state.streamingSelectedText = "";
 }
 
 function stopRecording() {
@@ -930,13 +957,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const stableText = tx.value.slice(0, stableLen);
     state.streamingBefore = stableText.slice(0, newPos);
     state.streamingAfter  = stableText.slice(newEnd);
+    // Store selected text so _updateStreamingDisplay can keep it highlighted
+    state.streamingSelectedText = (newPos !== newEnd)
+      ? stableText.slice(newPos, newEnd)
+      : "";
     state.confirmedText   = "";
     state.interimText     = "";
 
     _suppressStreamingSelChange = true;
     // Only strip trailing interim — don't erase the selected text.
-    // The highlight stays visible until speech arrives and _updateStreamingDisplay
-    // replaces it with streamingBefore + new speech + streamingAfter.
     if (interimSuffix) {
       tx.value = tx.value.slice(0, stableLen);
     }
