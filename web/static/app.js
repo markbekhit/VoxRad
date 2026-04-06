@@ -790,6 +790,11 @@ async function formatReport() {
           $("report-raw").value = accumulated;
           $("report-rendered").innerHTML = marked.parse(accumulated);
         } else if (msg.done) {
+          // Replace streamed text with the post-processed version (e.g. capitalisation fixes)
+          if (msg.report) {
+            $("report-raw").value = msg.report;
+            $("report-rendered").innerHTML = marked.parse(msg.report);
+          }
           const fhirNote = msg.fhir_saved ? " · FHIR R4 JSON saved." : "";
           setUI("done");
           setStatus("Report ready." + fhirNote, "success");

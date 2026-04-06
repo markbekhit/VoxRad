@@ -37,7 +37,7 @@ from pydantic import BaseModel
 from config.config import config
 from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
-from llm.format import format_text, stream_format_text
+from llm.format import capitalize_after_colon, format_text, stream_format_text
 from web.stt_providers import get_streaming_provider
 
 logger = logging.getLogger(__name__)
@@ -759,11 +759,15 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
             with _format_lock:
                 config.global_md_text_content = old_template
 
+        # Apply post-processing (capitalise after colons) to the full report.
+        # Send corrected version so the client can replace the streamed text.
+        corrected_report = capitalize_after_colon(full_report)
+
         fhir_saved = False
-        if config.fhir_export_enabled and full_report:
+        if config.fhir_export_enabled and corrected_report:
             try:
                 path = save_fhir_report(
-                    report_text=full_report,
+                    report_text=corrected_report,
                     template_name=req.template_name,
                     patient_id=req.patient_id or None,
                     accession=req.accession or None,
@@ -773,7 +777,7 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
             except Exception as e:
                 logger.warning("FHIR save failed during streaming: %s", e)
 
-        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved})}\n\n'
+        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "report": corrected_report})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 

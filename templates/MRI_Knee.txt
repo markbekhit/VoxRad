@@ -64,11 +64,14 @@ Cover all groups in this order:
 - Joint Effusion, Hoffa's Fat Pad, Popliteal Fossa, Baker's Cyst
 
 **Bony Structures**
-- Baseline: "Bone marrow signal is normal. No suspicious osseous lesion identified."
-- If an abnormality is described (e.g. bone marrow oedema, contusion, fracture), state that specifically, then add "Remaining marrow signal is normal."
+- ALWAYS use the radiologist's exact dictated words for bony/marrow findings, whether normal or abnormal. Examples:
+  - If they said "no marrow oedema, contusion or fracture" → write exactly that.
+  - If they said "normal bony alignment, no marrow signal abnormality" → write exactly that.
+- Only use the default "Bone marrow signal is normal. No suspicious osseous lesion identified." if the radiologist said NOTHING about bony structures.
+- If a specific abnormality is described, state it, then add "Remaining marrow signal is normal."
 
-- **ASR Prompt (do not include in report):**
-[correct spellings] MRI of the right knee. Normal body alignment. No marrow oedema, contusion or fracture. No joint effusion. Medial meniscus: oblique undersurface tear at the junction of the body and posterior horn. Lateral meniscus intact. ACL: partial thickness tear, fibres intact. PCL intact. MCL and LCL intact. Posterolateral corner structures intact. Articular cartilage intact, no focal chondral defect. Patellofemoral joint unremarkable. Quadriceps and patellar tendons intact. Hoffa fat pad unremarkable. Popliteal fossa clear. Small Baker's cyst without features of rupture. No bone marrow oedema. Osteophyte formation. Subchondral sclerosis. Trochlear dysplasia. [correct spellings]
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI of the right knee. Normal bony alignment. No marrow oedema, contusion or fracture. No joint effusion. Medial meniscus: oblique undersurface tear of the posterior horn. Lateral meniscus intact. ACL: partial thickness tear, fibres intact. PCL intact. MCL and LCL intact. Posterolateral corner structures intact. Articular cartilage intact, no focal chondral defect. Patellofemoral joint unremarkable. Quadriceps and patellar tendons intact. Hoffa fat pad unremarkable. Popliteal fossa clear. Small Baker's cyst without features of rupture. Osteophyte formation. Subchondral sclerosis. Trochlear dysplasia. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
