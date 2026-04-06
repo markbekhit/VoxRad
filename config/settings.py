@@ -95,6 +95,9 @@ def load_settings(web_mode: bool = False):
         if os.environ.get("VOXRAD_TEXT_MODEL"):
             config.SELECTED_MODEL = os.environ["VOXRAD_TEXT_MODEL"]
             logger.info("[web] Using VOXRAD_TEXT_MODEL: %s", config.SELECTED_MODEL)
+        if os.environ.get("VOXRAD_STREAMING_STT_PROVIDER"):
+            config.STREAMING_STT_PROVIDER = os.environ["VOXRAD_STREAMING_STT_PROVIDER"] or None
+            logger.info("[web] Using VOXRAD_STREAMING_STT_PROVIDER: %s", config.STREAMING_STT_PROVIDER)
 
     config_dir = os.path.dirname(config.config_path)
 
