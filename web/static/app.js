@@ -32,7 +32,8 @@ const state = {
   // Updated live as the user moves the cursor during streaming.
   streamingBefore: "",
   streamingAfter: "",
-  streamingAnchorPos: 0,   // cursor position we last set programmatically
+  streamingAnchorPos: 0,   // cursor start we last set programmatically
+  streamingAnchorEnd: 0,   // cursor end we last set programmatically (for selection highlight)
   streamingSelectedText: "",  // text user selected for replacement (kept visible until speech arrives)
   // Voice editing: {el, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
@@ -478,6 +479,7 @@ function _updateStreamingDisplay() {
     tx.selectionStart = selStart;
     tx.selectionEnd   = selEnd;
     state.streamingAnchorPos = selStart;
+    state.streamingAnchorEnd = selEnd;
     setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
     return;
   }
@@ -496,6 +498,7 @@ function _updateStreamingDisplay() {
   tx.value = newValue;
   tx.selectionStart = tx.selectionEnd = anchorPos;
   state.streamingAnchorPos = anchorPos;
+  state.streamingAnchorEnd = anchorPos;
   // Release the suppress flag after the browser has dispatched any
   // selectionchange events queued by the value/cursor assignment above.
   setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
@@ -530,6 +533,7 @@ function _cleanupStreaming() {
   state.streamingBefore = "";
   state.streamingAfter  = "";
   state.streamingAnchorPos = 0;
+  state.streamingAnchorEnd = 0;
   state.streamingSelectedText = "";
 }
 
@@ -945,7 +949,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const displayPos = tx.selectionStart;
     const displayEnd = tx.selectionEnd;
     if (displayPos === state.streamingAnchorPos &&
-        displayEnd === state.streamingAnchorPos) return; // nothing changed
+        displayEnd === state.streamingAnchorEnd) return; // nothing changed
 
     // "Stable text" = what the textarea contains minus any trailing interim word.
     // For mid-text insertion we suppress interim, so stableText === tx.value.
@@ -977,6 +981,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     tx.selectionStart = newPos;
     tx.selectionEnd   = newEnd;
     state.streamingAnchorPos = newPos;
+    state.streamingAnchorEnd = newEnd;
     setTimeout(() => { _suppressStreamingSelChange = false; }, 0);
   });
   // Use pointerdown (handles both mouse and touch, fires earliest in event chain).

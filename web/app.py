@@ -154,58 +154,6 @@ _HALLUCINATIONS: set[str] = {
 }
 
 
-def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
-    """Return True if *text* looks like an ASR hallucination to be discarded."""
-    t = text.strip().lower()
-    if not t or len(t) < 3:
-        return True
-    for h in _HALLUCINATIONS:
-        if t == h or t.startswith(h):
-            return True
-    # If text is identical to the ASR prompt seed, discard
-    if asr_prompt and t == asr_prompt.strip().lower():
-        return True
-    return False
-
-
-# ---------------------------------------------------------------------------
-# ASR post-correction via text LLM
-# ---------------------------------------------------------------------------
-
-_CORRECTION_SYSTEM = (
-    "You are a radiology transcription editor. "
-    "Correct only obvious speech-to-text errors (wrong homophones, "
-    "mis-spelled medical terms, punctuation). "
-    "Do NOT add, remove, or reorder clinical content. "
-    "Return ONLY the corrected text with no preamble."
-)
-
-
-def _correct_asr_text(raw: str) -> str:
-    """Post-correct raw ASR output using the configured text LLM.
-
-    Returns the corrected text, or the original *raw* string on any error.
-    """
-    if not raw or not config.TEXT_API_KEY:
-        return raw
-    try:
-        client = OpenAI(api_key=config.TEXT_API_KEY, base_url=config.BASE_URL)
-        resp = client.chat.completions.create(
-            model=config.SELECTED_MODEL,
-            messages=[
-                {"role": "system", "content": _CORRECTION_SYSTEM},
-                {"role": "user", "content": raw},
-            ],
-            temperature=0.0,
-            max_tokens=2048,
-        )
-        corrected = (resp.choices[0].message.content or "").strip()
-        return corrected if corrected else raw
-    except Exception as e:
-        logger.warning("ASR correction failed, using raw text: %s", e)
-        return raw
-
-
 # ---------------------------------------------------------------------------
 # HTTP Basic Auth
 # ---------------------------------------------------------------------------
