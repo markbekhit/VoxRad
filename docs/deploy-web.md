@@ -1,10 +1,76 @@
-# VoxRad Web Server — On-Premises Deployment Guide
+# VoxRad Web Server — Deployment Guide
 
-Deploy VoxRad as a single-container web service on any Linux host using Docker Compose.
+Deploy VoxRad as a single-container web service — on Fly.io (recommended, always-on free tier) or on any Linux host using Docker Compose.
 
 ---
 
-## Prerequisites
+## Option A — Fly.io (recommended, always-on free tier)
+
+Fly.io keeps your container running permanently — no cold-start delays. The free allowance
+(one shared-cpu-1x VM + 3 GB storage) covers a single VoxRad instance indefinitely.
+
+### 1. Install flyctl
+
+```bash
+curl -L https://fly.io/install.sh | sh   # Linux / macOS
+# or: brew install flyctl               # macOS with Homebrew
+flyctl auth login
+```
+
+### 2. Create the app and volumes
+
+```bash
+# Pick a unique app name (e.g. voxrad-yourname) and your nearest region:
+# Regions: https://fly.io/docs/reference/regions/  (e.g. syd, lax, iad, lhr, sin)
+flyctl apps create voxrad-yourname
+
+# Persistent storage — created once, survives redeploys
+flyctl volumes create voxrad_config --size 1 --region syd
+flyctl volumes create voxrad_data   --size 1 --region syd
+```
+
+Update the `app` and `primary_region` fields in `fly.toml` to match.
+
+### 3. Set secrets
+
+```bash
+flyctl secrets set \
+  VOXRAD_WEB_PASSWORD=changeme \
+  VOXRAD_TRANSCRIPTION_API_KEY=gsk_... \
+  VOXRAD_TEXT_API_KEY=sk-...
+
+# Optional — streaming STT (Deepgram / AssemblyAI):
+flyctl secrets set DEEPGRAM_API_KEY=...
+flyctl secrets set VOXRAD_STREAMING_STT_PROVIDER=deepgram
+```
+
+### 4. Deploy
+
+```bash
+flyctl deploy
+# App URL is printed at the end, e.g. https://voxrad-yourname.fly.dev
+```
+
+### Updating
+
+```bash
+git pull
+flyctl deploy
+```
+
+### Logs & status
+
+```bash
+flyctl logs          # tail live logs
+flyctl status        # machine health
+flyctl ssh console   # SSH into the container
+```
+
+---
+
+## Option B — On-Premises (Docker Compose)
+
+### Prerequisites
 
 | Requirement | Notes |
 |---|---|
@@ -16,7 +82,7 @@ Deploy VoxRad as a single-container web service on any Linux host using Docker C
 
 ---
 
-## Quick start (localhost only)
+### Quick start (localhost only)
 
 ```bash
 # 1. Clone the repo
@@ -37,7 +103,7 @@ The first `docker compose up` builds the image (~5 min). Subsequent starts are i
 
 ---
 
-## Configuration
+### Configuration
 
 All configuration is done via environment variables in `.env`.
 
@@ -71,7 +137,7 @@ See [local-whisper-setup.md](local-whisper-setup.md) for running a local Whisper
 
 ---
 
-## Volumes
+### Volumes
 
 | Volume | Mount point in container | Contents |
 |---|---|---|
@@ -98,7 +164,7 @@ volumes:
 
 ---
 
-## HTTPS with nginx (recommended for production)
+### HTTPS with nginx (recommended for production)
 
 HTTP Basic Auth sends credentials in cleartext. Always run behind HTTPS for any deployment accessible outside localhost.
 
@@ -134,7 +200,7 @@ Nginx proxies HTTPS → VoxRad and redirects HTTP → HTTPS automatically.
 
 ---
 
-## Advanced: encrypted API keys
+### Advanced: encrypted API keys
 
 For higher security, use the encrypted-key workflow instead of plaintext env vars:
 
@@ -157,7 +223,7 @@ Encrypted keys always take precedence over plaintext env vars.
 
 ---
 
-## Updating
+### Updating
 
 ```bash
 git pull
@@ -167,7 +233,7 @@ docker compose up -d
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
 | Symptom | Fix |
 |---|---|

@@ -1,0 +1,54 @@
+# Fly.io configuration for VoxRad
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# First-time setup:
+#   flyctl apps create <your-app-name>   # pick a unique name, update `app` below
+#   flyctl volumes create voxrad_config --size 1 --region <region>
+#   flyctl volumes create voxrad_data   --size 1 --region <region>
+#   flyctl secrets set VOXRAD_WEB_PASSWORD=... VOXRAD_TRANSCRIPTION_API_KEY=... VOXRAD_TEXT_API_KEY=...
+#   flyctl deploy
+#
+# Subsequent deploys: flyctl deploy
+
+app = "voxrad"           # Change to your chosen app name
+primary_region = "syd"   # Nearest Fly.io region — see https://fly.io/docs/reference/regions/
+
+[build]
+  # Uses the existing Dockerfile — no changes needed
+
+[env]
+  VOXRAD_WORKING_DIR = "/data/working"
+  # API keys and password are secrets — set them with:
+  #   flyctl secrets set VOXRAD_WEB_PASSWORD=changeme
+  #   flyctl secrets set VOXRAD_TRANSCRIPTION_API_KEY=gsk_...
+  #   flyctl secrets set VOXRAD_TEXT_API_KEY=sk-...
+  #   flyctl secrets set DEEPGRAM_API_KEY=...           # if using Deepgram streaming STT
+  #   flyctl secrets set ASSEMBLYAI_API_KEY=...         # if using AssemblyAI streaming STT
+  #   flyctl secrets set VOXRAD_STREAMING_STT_PROVIDER=deepgram   # or assemblyai
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  auto_stop_machines = false   # Never sleep — no cold starts
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# Persistent storage — created once with `flyctl volumes create`
+[[mounts]]
+  source = "voxrad_config"
+  destination = "/root/.voxrad"
+
+[[mounts]]
+  source = "voxrad_data"
+  destination = "/data/working"
