@@ -10,8 +10,8 @@
 #
 # Subsequent deploys: flyctl deploy
 
-app = "voxrad"           # Change to your chosen app name
-primary_region = "syd"   # Nearest Fly.io region — see https://fly.io/docs/reference/regions/
+app = "voxrad-v-hkvq"
+primary_region = "syd"
 
 [build]
   # Uses the existing Dockerfile — no changes needed
