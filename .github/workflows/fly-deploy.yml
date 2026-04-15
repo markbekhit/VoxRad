@@ -9,14 +9,29 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    concurrency: deploy-group   # prevent overlapping deploys
+    concurrency: deploy-group
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: docker build -t registry.fly.io/voxrad-v-hkvq:${{ github.sha }} .
+
+      - name: Authenticate Docker with Fly.io registry
+        run: flyctl auth docker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Push image to Fly.io registry
+        run: docker push registry.fly.io/voxrad-v-hkvq:${{ github.sha }}
 
       - name: Deploy
-        run: flyctl deploy --local-only
+        run: flyctl deploy --image registry.fly.io/voxrad-v-hkvq:${{ github.sha }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
