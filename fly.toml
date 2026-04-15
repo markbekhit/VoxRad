@@ -1,5 +1,4 @@
 # Fly.io configuration for VoxRad
-# Docs: https://fly.io/docs/reference/configuration/
 
 app = "voxrad-v-hkvq"
 primary_region = "syd"
@@ -27,10 +26,8 @@ primary_region = "syd"
   size = "shared-cpu-1x"
   memory = "256mb"
 
-[[mounts]]
-  source = "voxrad_config"
-  destination = "/root/.voxrad"
-
+# Single volume in /data/working for templates and reports.
+# /root/.voxrad is ephemeral — API keys are loaded from Fly secrets (env vars).
 [[mounts]]
   source = "voxrad_data"
   destination = "/data/working"
