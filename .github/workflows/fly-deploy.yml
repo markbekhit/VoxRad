@@ -15,21 +15,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set up flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Docker image
-        run: docker build -t registry.fly.io/voxrad-v-hkvq:${{ github.sha }} .
 
       - name: Authenticate Docker with Fly.io registry
         run: flyctl auth docker
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      - name: Push image to Fly.io registry
-        run: docker push registry.fly.io/voxrad-v-hkvq:${{ github.sha }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: registry.fly.io/voxrad-v-hkvq:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy
         run: flyctl deploy --image registry.fly.io/voxrad-v-hkvq:${{ github.sha }}
