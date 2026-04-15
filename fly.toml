@@ -4,6 +4,7 @@ app = "voxrad-v-hkvq"
 primary_region = "syd"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [env]
   VOXRAD_WORKING_DIR = "/data/working"
