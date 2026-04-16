@@ -266,14 +266,9 @@ function _startMediaRecorder() {
 async function startRecording() {
   if (state.isRecording) return; // Stop button ends recording
 
-  // Re-read textarea selection at click time as the authoritative source.
-  // By the time click fires, pointerdown has run and blur has fired, but
-  // browsers retain selectionStart/selectionEnd on the element after blur.
-  // Reading here is the most reliable moment — any browser-specific ordering
-  // of pointerdown vs. blur no longer matters.
-  // Only override voiceEditTarget if the transcription textarea has a live
-  // non-zero selection; don't fall back to report-raw here (that's already
-  // handled by _grabVoiceEdit for the non-streaming path).
+  // Belt-and-suspenders: re-read transcription selection at click time.
+  // _grabVoiceEdit() on pointerdown is the primary path; this catches any
+  // case where pointerdown didn't fire (e.g. keyboard activation via Enter/Space).
   const _tx = $("transcription");
   if (_tx && _tx.selectionStart !== _tx.selectionEnd) {
     const _s = _tx.selectionStart, _e = _tx.selectionEnd;
@@ -952,21 +947,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Capture the textarea selection at pointerdown time (fires before blur in
-  // most browsers). startRecording() re-reads the live selection at click time
-  // as the definitive override, so this is primarily a safety net for the
-  // non-streaming path (where routing decisions happen before startRecording runs).
+  // Capture the textarea selection at pointerdown time.
+  // IMPORTANT: Do NOT use document.activeElement here. In Chrome and Firefox,
+  // clicking a button moves focus (document.activeElement) to the button during
+  // the browser's own pointerdown processing, BEFORE our JavaScript listener runs.
+  // So activeElement is already the button by the time we read it — the textarea
+  // looks unfocused and we miss the selection entirely.
+  // Browsers DO preserve selectionStart/selectionEnd on textarea elements even
+  // after they lose focus, so reading the element directly is reliable.
   const _grabVoiceEdit = () => {
-    const active = document.activeElement;
-    if (active && (active.id === "transcription" || active.id === "report-raw")) {
-      const s = active.selectionStart, e = active.selectionEnd;
-      if (s !== e) {
-        state.voiceEditTarget = { el: active, start: s, end: e, selectedText: active.value.slice(s, e) };
-        _pendingSelection = null;
-        return;
-      }
+    // Primary: read the transcription textarea directly.
+    const tx = $("transcription");
+    if (tx && tx.selectionStart !== tx.selectionEnd) {
+      const s = tx.selectionStart, e = tx.selectionEnd;
+      state.voiceEditTarget = { el: tx, start: s, end: e, selectedText: tx.value.slice(s, e) };
+      _pendingSelection = null;
+      return;
     }
-    // Fallback: _pendingSelection from most recent mouseup/select event
+    // Fallback: _pendingSelection covers report-raw editing (set by mouseup/select
+    // on that element) and any edge case where the direct read missed a selection.
     state.voiceEditTarget = _pendingSelection || null;
     _pendingSelection = null;
   };
