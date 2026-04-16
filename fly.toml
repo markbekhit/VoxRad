@@ -17,18 +17,12 @@ primary_region = "syd"
   min_machines_running = 1
 
   [[http_service.checks]]
-    grace_period = "30s"
+    grace_period = "60s"
     interval = "30s"
     method = "GET"
-    timeout = "5s"
+    timeout = "10s"
     path = "/health"
 
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"
-
-# Single volume in /data/working for templates and reports.
-# /root/.voxrad is ephemeral — API keys are loaded from Fly secrets (env vars).
-[[mounts]]
-  source = "voxrad_data"
-  destination = "/data/working"
