@@ -937,22 +937,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // pointerdown fires before blur in every browser, so document.activeElement
-  // is still the textarea and the selection is still intact when this runs.
+  // Capture the textarea selection at Record-press time.
+  // Three-tier fallback to handle all browsers (Safari fires blur before pointerdown):
+  //   1. document.activeElement IS a textarea with a live selection (Chrome/standard)
+  //   2. _pendingSelection (saved from mouseup/select events, still intact)
+  //   3. Direct selectionStart/End read from the textarea elements — browsers retain
+  //      these values even after the textarea loses focus, so this is the final safety net.
   const _grabVoiceEdit = () => {
+    // Tier 1: focused textarea with active selection
     const active = document.activeElement;
-    const s = active && active.selectionStart !== undefined ? active.selectionStart : null;
-    const e = active && active.selectionEnd !== undefined ? active.selectionEnd : null;
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
+      const s = active.selectionStart, e = active.selectionEnd;
       if (s !== e) {
-        const selectedText = active.value.slice(s, e);
-        state.voiceEditTarget = { el: active, start: s, end: e, selectedText };
-      } else {
-        state.voiceEditTarget = _pendingSelection || null;
+        state.voiceEditTarget = { el: active, start: s, end: e, selectedText: active.value.slice(s, e) };
+        _pendingSelection = null;
+        return;
       }
-    } else {
-      state.voiceEditTarget = _pendingSelection || null;
     }
+
+    // Tier 2: _pendingSelection saved from prior mouseup/select event
+    if (_pendingSelection) {
+      state.voiceEditTarget = _pendingSelection;
+      _pendingSelection = null;
+      return;
+    }
+
+    // Tier 3: read textarea selection directly (persists after blur).
+    // Only fires when tiers 1 and 2 both missed — e.g. Safari fires blur before
+    // pointerdown, or the user scrolled to the Record button via the scrollbar.
+    // Safe because a completed session always resets the textarea to a zero-length
+    // cursor position, so this can only match a genuinely current user selection.
+    for (const id of ["transcription", "report-raw"]) {
+      const el = $(id);
+      if (el && el.selectionStart !== el.selectionEnd) {
+        const s = el.selectionStart, e = el.selectionEnd;
+        state.voiceEditTarget = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
+        _pendingSelection = null;
+        return;
+      }
+    }
+
+    state.voiceEditTarget = null;
     _pendingSelection = null;
   };
 
