@@ -327,6 +327,18 @@ async function startSegmentRecording() {
 // Streaming STT recording
 // ---------------------------------------------------------------------------
 async function startStreamingRecording() {
+  // If a previous streaming session's WebSocket is still open (e.g. server was
+  // slow to send session_complete), detach its handlers and close it now so
+  // stale messages can't call _cleanupStreaming() and destroy this new session.
+  if (state.streamingWs) {
+    const oldWs = state.streamingWs;
+    state.streamingWs = null;
+    oldWs.onmessage = null;
+    oldWs.onerror   = null;
+    oldWs.onclose   = null;
+    try { oldWs.close(); } catch (_) {}
+  }
+
   // Capture cursor position / selection BEFORE the mic opens.
   // This makes streaming PowerScribe-style: text is inserted at the cursor,
   // replacing any selection, rather than always appending to the end.
