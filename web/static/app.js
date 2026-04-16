@@ -334,6 +334,7 @@ async function startStreamingRecording() {
   if (state.voiceEditTarget && state.voiceEditTarget.el === tx) {
     state.streamingBefore = tx.value.slice(0, state.voiceEditTarget.start);
     state.streamingAfter  = tx.value.slice(state.voiceEditTarget.end);
+    state.streamingSelectedText = state.voiceEditTarget.selectedText || "";
   } else {
     // No selection — default: append after existing transcript.
     state.streamingBefore = tx.value;
