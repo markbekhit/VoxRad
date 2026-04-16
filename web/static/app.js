@@ -904,18 +904,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   setStatus("Press Record to start dictating.");
 
   // Track the last known selection in the transcription/report textareas.
-  // _pendingSelection is updated continuously on selection events, and cleared:
+  // _pendingSelection is updated on non-zero selection events and cleared:
   //   - when the textarea loses focus to anywhere except the Record button
   //   - after it's consumed by the Record button handler
-  // This is more reliable than reading at click/mousedown time because pointerdown
-  // fires before blur in all browsers, and we save selection state as the user makes it.
+  // We do NOT clear it on a zero-length mouseup/keyup (cursor placement), because
+  // the most common failure mode is: user selects text → clicks within the
+  // selection to confirm → zero-length click wipes _pendingSelection → Record
+  // press has nothing to go on → falls back to append mode.
   let _pendingSelection = null;
   ["transcription", "report-raw"].forEach(id => {
     const el = $(id);
     if (!el) return;
     const save = () => {
       const s = el.selectionStart, e = el.selectionEnd;
-      _pendingSelection = (s !== e) ? { el, start: s, end: e } : null;
+      if (s !== e) {
+        // Only update when there is an actual selection; a zero-length click
+        // must not wipe out a previously captured selection.
+        _pendingSelection = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
+      }
     };
     el.addEventListener("mouseup", save);
     el.addEventListener("select", save);
