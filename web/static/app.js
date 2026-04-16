@@ -343,6 +343,7 @@ async function startStreamingRecording() {
   if (state.streamingWs) {
     const oldWs = state.streamingWs;
     state.streamingWs = null;
+    oldWs.onopen    = null;  // prevent stale onopen from firing if connection was still pending
     oldWs.onmessage = null;
     oldWs.onerror   = null;
     oldWs.onclose   = null;
@@ -389,6 +390,15 @@ async function startStreamingRecording() {
     try {
       state.streamingAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       await state.streamingAudioCtx.audioWorklet.addModule("/static/pcm-worklet.js");
+      // Guard: if _cleanupStreaming() was called by onerror during the await above
+      // (e.g. Deepgram rejected the connection), streamingAudioCtx is now null.
+      // The error status is already set; exit cleanly without crashing.
+      if (!state.streamingAudioCtx || !state.stream) {
+        stopTimer();
+        stopWaveform();
+        setUI("idle");
+        return;
+      }
       const source = state.streamingAudioCtx.createMediaStreamSource(state.stream);
       state.streamingWorkletNode = new AudioWorkletNode(state.streamingAudioCtx, "pcm-processor");
       state.streamingWorkletNode.port.onmessage = (e) => {
@@ -402,6 +412,9 @@ async function startStreamingRecording() {
     } catch (err) {
       setStatus(`AudioWorklet setup failed: ${err.message}`, "error");
       _cleanupStreaming();
+      stopTimer();
+      stopWaveform();
+      setUI("idle");
       return;
     }
 
