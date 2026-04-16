@@ -265,6 +265,21 @@ function _startMediaRecorder() {
 // ---------------------------------------------------------------------------
 async function startRecording() {
   if (state.isRecording) return; // Stop button ends recording
+
+  // Re-read textarea selection at click time as the authoritative source.
+  // By the time click fires, pointerdown has run and blur has fired, but
+  // browsers retain selectionStart/selectionEnd on the element after blur.
+  // Reading here is the most reliable moment — any browser-specific ordering
+  // of pointerdown vs. blur no longer matters.
+  // Only override voiceEditTarget if the transcription textarea has a live
+  // non-zero selection; don't fall back to report-raw here (that's already
+  // handled by _grabVoiceEdit for the non-streaming path).
+  const _tx = $("transcription");
+  if (_tx && _tx.selectionStart !== _tx.selectionEnd) {
+    const _s = _tx.selectionStart, _e = _tx.selectionEnd;
+    state.voiceEditTarget = { el: _tx, start: _s, end: _e, selectedText: _tx.value.slice(_s, _e) };
+  }
+
   if (state.streamingSupported) {
     await startStreamingRecording();
   } else if (state.voiceEditTarget) {
@@ -937,14 +952,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Capture the textarea selection at Record-press time.
-  // Three-tier fallback to handle all browsers (Safari fires blur before pointerdown):
-  //   1. document.activeElement IS a textarea with a live selection (Chrome/standard)
-  //   2. _pendingSelection (saved from mouseup/select events, still intact)
-  //   3. Direct selectionStart/End read from the textarea elements — browsers retain
-  //      these values even after the textarea loses focus, so this is the final safety net.
+  // Capture the textarea selection at pointerdown time (fires before blur in
+  // most browsers). startRecording() re-reads the live selection at click time
+  // as the definitive override, so this is primarily a safety net for the
+  // non-streaming path (where routing decisions happen before startRecording runs).
   const _grabVoiceEdit = () => {
-    // Tier 1: focused textarea with active selection
     const active = document.activeElement;
     if (active && (active.id === "transcription" || active.id === "report-raw")) {
       const s = active.selectionStart, e = active.selectionEnd;
@@ -954,30 +966,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
     }
-
-    // Tier 2: _pendingSelection saved from prior mouseup/select event
-    if (_pendingSelection) {
-      state.voiceEditTarget = _pendingSelection;
-      _pendingSelection = null;
-      return;
-    }
-
-    // Tier 3: read textarea selection directly (persists after blur).
-    // Only fires when tiers 1 and 2 both missed — e.g. Safari fires blur before
-    // pointerdown, or the user scrolled to the Record button via the scrollbar.
-    // Safe because a completed session always resets the textarea to a zero-length
-    // cursor position, so this can only match a genuinely current user selection.
-    for (const id of ["transcription", "report-raw"]) {
-      const el = $(id);
-      if (el && el.selectionStart !== el.selectionEnd) {
-        const s = el.selectionStart, e = el.selectionEnd;
-        state.voiceEditTarget = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
-        _pendingSelection = null;
-        return;
-      }
-    }
-
-    state.voiceEditTarget = null;
+    // Fallback: _pendingSelection from most recent mouseup/select event
+    state.voiceEditTarget = _pendingSelection || null;
     _pendingSelection = null;
   };
 
