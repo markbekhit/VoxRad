@@ -981,11 +981,16 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
         results_task.cancel()
         await asyncio.gather(receive_task, results_task, return_exceptions=True)
 
-        await provider.close()
+        try:
+            await asyncio.wait_for(provider.close(), timeout=10.0)
+        except asyncio.TimeoutError:
+            logger.warning("provider.close() timed out — forcing teardown")
         provider = None
 
         full_text = " ".join(finals).strip()
-        corrected = _correct_asr_text(full_text) if full_text else ""
+        # Run synchronous LLM call in a thread so it doesn't block the event loop
+        # (blocking here would prevent session_complete from ever being sent).
+        corrected = await asyncio.to_thread(_correct_asr_text, full_text) if full_text else ""
 
         _prune_sessions()
         session_id = _create_session(corrected) if corrected else ""

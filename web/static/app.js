@@ -339,6 +339,7 @@ async function startStreamingRecording() {
     // No selection — default: append after existing transcript.
     state.streamingBefore = tx.value;
     state.streamingAfter  = "";
+    state.streamingSelectedText = "";   // always clear stale selection from any prior session
   }
   state.voiceEditTarget = null;
 
