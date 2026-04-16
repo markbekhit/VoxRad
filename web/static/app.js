@@ -470,7 +470,9 @@ function handleStreamingMessage(msg) {
       const before = state.streamingBefore;
       const after  = state.streamingAfter;
       const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
-      const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
+      // Don't insert a space before punctuation (e.g. after voice-editing a word
+      // mid-sentence, `after` starts with "." or "," — no space needed).
+      const sep2 = (after && !/^\s/.test(after) && !/^[.,;:!?)]/.test(after) && speech) ? " " : "";
       $("transcription").value = before + sep1 + speech + sep2 + after;
       _cleanupStreaming();
       if (speech || before || after) {
@@ -526,7 +528,7 @@ function _updateStreamingDisplay() {
   }
 
   const sep1 = (before && !/\s$/.test(before) && speech) ? " " : "";
-  const sep2 = (after  && !/^\s/.test(after)  && speech) ? " " : "";
+  const sep2 = (after && !/^\s/.test(after) && !/^[.,;:!?)]/.test(after) && speech) ? " " : "";
   const newValue  = before + sep1 + speech + sep2 + after;
   // Anchor: right after confirmed text (interim trails the cursor; after-text follows).
   const anchorPos = before.length + sep1.length + confirmed.length;
@@ -927,49 +929,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   setStatus("Press Record to start dictating.");
 
   // Track the last known selection in the transcription/report textareas.
-  // _pendingSelection is updated on non-zero selection events and cleared:
-  //   - when the textarea loses focus to anywhere except the Record button
-  //   - after it's consumed by the Record button handler
-  // We do NOT clear it on a zero-length mouseup/keyup (cursor placement), because
-  // the most common failure mode is: user selects text → clicks within the
-  // selection to confirm → zero-length click wipes _pendingSelection → Record
-  // press has nothing to go on → falls back to append mode.
+  // _pendingSelection is set on every non-zero selection event and cleared only
+  // when consumed by _grabVoiceEdit or when focus leaves for a non-Record target.
   let _pendingSelection = null;
+  // Timestamp of the last pointerdown on the Record button. Used to suppress
+  // _pendingSelection clearing when blur is triggered by clicking Record — on
+  // Safari/iOS, buttons don't receive focus so relatedTarget is null, causing
+  // the blur handler to incorrectly wipe the selection before we can use it.
+  let _recordPointerdownAt = 0;
+
   ["transcription", "report-raw"].forEach(id => {
     const el = $(id);
     if (!el) return;
     const save = () => {
       const s = el.selectionStart, e = el.selectionEnd;
       if (s !== e) {
-        // Only update when there is an actual selection; a zero-length click
-        // must not wipe out a previously captured selection.
         _pendingSelection = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
       }
     };
     el.addEventListener("mouseup", save);
     el.addEventListener("select", save);
     el.addEventListener("keyup", save);
-    // Clear if focus leaves for anything other than the Record button.
-    // In Safari on macOS, <button> elements don't receive focus on click,
-    // so relatedTarget will be null — but pointerdown fires BEFORE blur,
-    // so _pendingSelection has already been consumed by then.
+    // Clear _pendingSelection when focus leaves, UNLESS the user just pressed
+    // the Record button (within 500 ms). On Safari/iOS, buttons don't get focus
+    // so relatedTarget is null even when Record was clicked — the timestamp check
+    // prevents us from wiping the selection we need for voice-edit.
     el.addEventListener("blur", (evt) => {
-      if (!evt.relatedTarget || evt.relatedTarget.id !== "btn-record") {
+      const toRecord = evt.relatedTarget && evt.relatedTarget.id === "btn-record";
+      const justPressedRecord = Date.now() - _recordPointerdownAt < 500;
+      if (!toRecord && !justPressedRecord) {
         _pendingSelection = null;
       }
     });
   });
 
   // Capture the textarea selection at pointerdown time.
-  // IMPORTANT: Do NOT use document.activeElement here. In Chrome and Firefox,
-  // clicking a button moves focus (document.activeElement) to the button during
-  // the browser's own pointerdown processing, BEFORE our JavaScript listener runs.
-  // So activeElement is already the button by the time we read it — the textarea
-  // looks unfocused and we miss the selection entirely.
-  // Browsers DO preserve selectionStart/selectionEnd on textarea elements even
-  // after they lose focus, so reading the element directly is reliable.
+  // Three-tier fallback to handle cross-browser selection clearing on blur:
+  //   1. Read selectionStart/End directly from #transcription (most browsers
+  //      preserve these even after blur).
+  //   2. _pendingSelection saved by mouseup/select/keyup on the textarea.
+  //      The blur handler won't clear this if the Record button was just pressed
+  //      (timestamp guard handles Safari/iOS where buttons don't receive focus).
+  //   3. _pendingSelection for report-raw editing.
   const _grabVoiceEdit = () => {
-    // Primary: read the transcription textarea directly.
+    _recordPointerdownAt = Date.now(); // timestamp for blur handler guard
+
+    // Tier 1: direct read from transcription textarea.
     const tx = $("transcription");
     if (tx && tx.selectionStart !== tx.selectionEnd) {
       const s = tx.selectionStart, e = tx.selectionEnd;
@@ -977,8 +982,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       _pendingSelection = null;
       return;
     }
-    // Fallback: _pendingSelection covers report-raw editing (set by mouseup/select
-    // on that element) and any edge case where the direct read missed a selection.
+    // Tier 2 & 3: _pendingSelection (covers report-raw and cases where the
+    // direct read returned zero, e.g. iOS Safari cleared selectionStart/End on blur).
     state.voiceEditTarget = _pendingSelection || null;
     _pendingSelection = null;
   };
