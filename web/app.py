@@ -562,10 +562,6 @@ async def transcribe(
             logger.debug("Discarded hallucination: %r", text)
             return {"transcription": "", "session_id": ""}
 
-        # LLM post-correction: fix medical ASR errors (e.g. "bake assist" →
-        # "Baker's cyst") using the text LLM before returning to the client.
-        text = _correct_asr_text(text)
-
         _prune_sessions()
         session_id = _create_session(text)
         logger.info("Transcription complete for session %s (%d chars)", session_id, len(text))
