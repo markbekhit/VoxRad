@@ -886,21 +886,49 @@ function toggleReportEdit() {
 // Copy report
 // ---------------------------------------------------------------------------
 async function copyReport() {
-  const text = $("report-raw").value;
-  if (!text.trim()) return;
+  const markdown = $("report-raw").value;
+  if (!markdown.trim()) return;
+  const html = $("report-rendered").innerHTML ||
+               (window.marked ? marked.parse(markdown) : markdown);
+  // Wrap in a minimal document so rich-text targets (PowerScribe, Word, Outlook)
+  // reliably pick up the text/html flavor.
+  const htmlDoc = `<!DOCTYPE html><html><body>${html}</body></html>`;
   try {
-    await navigator.clipboard.writeText(text);
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      const item = new ClipboardItem({
+        "text/html": new Blob([htmlDoc], { type: "text/html" }),
+        "text/plain": new Blob([markdown], { type: "text/plain" }),
+      });
+      await navigator.clipboard.write([item]);
+      setStatus("Report copied to clipboard.", "success");
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
     setStatus("Report copied to clipboard.", "success");
   } catch {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    ta.remove();
-    setStatus("Report copied to clipboard.", "success");
+    // Fallback: use a contenteditable div + execCommand("copy") so the HTML
+    // flavor is still placed on the clipboard.
+    const div = document.createElement("div");
+    div.contentEditable = "true";
+    div.innerHTML = html;
+    div.style.position = "fixed";
+    div.style.left = "-9999px";
+    div.style.top = "0";
+    div.style.opacity = "0";
+    document.body.appendChild(div);
+    const range = document.createRange();
+    range.selectNodeContents(div);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    try {
+      document.execCommand("copy");
+      setStatus("Report copied to clipboard.", "success");
+    } catch {
+      setStatus("Copy failed — select and copy manually.", "error");
+    }
+    sel.removeAllRanges();
+    div.remove();
   }
 }
 
