@@ -1092,8 +1092,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       _pendingSelection = null;
       return;
     }
-    // Tier 2 & 3: _pendingSelection (covers report-raw and cases where the
-    // direct read returned zero, e.g. iOS Safari cleared selectionStart/End on blur).
+    // Tier 2 & 3: _pendingSelection
     state.voiceEditTarget = _pendingSelection || null;
     _pendingSelection = null;
   };
