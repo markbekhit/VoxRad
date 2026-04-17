@@ -978,15 +978,26 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
         await asyncio.gather(receive_task, results_task, return_exceptions=True)
 
         try:
-            await asyncio.wait_for(provider.close(), timeout=10.0)
+            await asyncio.wait_for(provider.close(), timeout=4.0)
         except asyncio.TimeoutError:
             logger.warning("provider.close() timed out — forcing teardown")
         provider = None
 
         full_text = " ".join(finals).strip()
-        # Run synchronous LLM call in a thread so it doesn't block the event loop
-        # (blocking here would prevent session_complete from ever being sent).
-        corrected = await asyncio.to_thread(_correct_asr_text, full_text) if full_text else ""
+        # Run synchronous LLM call in a thread so it doesn't block the event loop.
+        # Cap at 8 s — if the LLM is slow/unavailable, send the raw Deepgram text
+        # (which is already high quality from Nova-2 medical) rather than hanging.
+        if full_text:
+            try:
+                corrected = await asyncio.wait_for(
+                    asyncio.to_thread(_correct_asr_text, full_text),
+                    timeout=8.0,
+                )
+            except asyncio.TimeoutError:
+                logger.warning("_correct_asr_text timed out — using raw text")
+                corrected = full_text
+        else:
+            corrected = ""
 
         _prune_sessions()
         session_id = _create_session(corrected) if corrected else ""
