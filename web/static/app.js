@@ -1042,6 +1042,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     el.addEventListener("mouseup", save);
     el.addEventListener("select", save);
     el.addEventListener("keyup", save);
+    el.addEventListener("touchend", save);  // iOS: fires after selection gesture
     // Clear _pendingSelection when focus leaves, UNLESS the user just pressed
     // the Record button (within 500 ms). On Safari/iOS, buttons don't get focus
     // so relatedTarget is null even when Record was clicked — the timestamp check
@@ -1053,6 +1054,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         _pendingSelection = null;
       }
     });
+  });
+
+  // Global selectionchange tracker — most reliable across browsers/platforms.
+  // Fires on every selection mutation; we snapshot non-zero selections on the
+  // two editable textareas. Never clears _pendingSelection on collapse, since
+  // a collapse during a Record tap (e.g. Safari/iOS button tap) must not wipe
+  // the last real selection before _grabVoiceEdit consumes it.
+  document.addEventListener("selectionchange", () => {
+    const active = document.activeElement;
+    if (!active || (active.id !== "transcription" && active.id !== "report-raw")) return;
+    const s = active.selectionStart, e = active.selectionEnd;
+    if (s != null && e != null && s !== e) {
+      _pendingSelection = {
+        el: active, start: s, end: e,
+        selectedText: active.value.slice(s, e),
+      };
+    }
   });
 
   // Capture the textarea selection at pointerdown time.
