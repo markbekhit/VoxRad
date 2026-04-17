@@ -9,6 +9,7 @@ const state = {
   audioChunks: [],
   sessionId: null,
   isRecording: false,
+  isPaused: false,
   timerInterval: null,
   timerSeconds: 0,
   audioCtx: null,
@@ -59,15 +60,24 @@ function setStatus(msg, type = "") {
 }
 
 function setUI(mode) {
-  // mode: idle | recording | processing | transcribed | formatting | done
-  $("btn-record").disabled      = !["idle", "transcribed", "done"].includes(mode);
-  $("btn-stop").disabled        = mode !== "recording";
+  // mode: idle | recording | paused | processing | transcribed | formatting | done
+  const rec = $("btn-record");
+  rec.disabled = !["idle", "transcribed", "done", "recording", "paused"].includes(mode);
+  if (mode === "recording") {
+    rec.innerHTML = '<span>&#10073;&#10073;</span> Pause';
+  } else if (mode === "paused") {
+    rec.innerHTML = '<span>&#9654;</span> Resume';
+  } else {
+    rec.innerHTML = '<span>&#9654;</span> Record';
+  }
+  $("btn-stop").disabled        = !["recording", "paused"].includes(mode);
   $("btn-format").disabled      = !["transcribed", "done"].includes(mode);
   $("btn-copy").disabled        = mode !== "done";
   $("btn-edit-toggle").disabled = mode !== "done";
 
   const dot = $("rec-dot");
-  if (dot) dot.style.display = mode === "recording" ? "inline-block" : "none";
+  if (dot) dot.style.display = (mode === "recording" || mode === "paused") ? "inline-block" : "none";
+  if (dot) dot.style.opacity = mode === "paused" ? "0.4" : "1";
 
   if (mode === "processing" || mode === "formatting") {
     const spinner = document.createElement("span");
@@ -132,7 +142,7 @@ function startWaveform(stream) {
     state.analyser.getByteTimeDomainData(dataArr);
 
     // ── VAD + Silence detection ────────────────────────────────────────────
-    if (state.isRecording && !state.isSegmentTranscribing) {
+    if (state.isRecording && !state.isPaused && !state.isSegmentTranscribing) {
       const rms = getRMS(dataArr);
       const now = Date.now();
 
@@ -263,8 +273,46 @@ function _startMediaRecorder() {
 // ---------------------------------------------------------------------------
 // Recording — branches to voice-edit, streaming, or segment mode
 // ---------------------------------------------------------------------------
+// Record button: starts recording when idle, toggles pause/resume while active.
+async function onRecordClick() {
+  if (state.isRecording) {
+    if (state.isPaused) resumeRecording();
+    else pauseRecording();
+    return;
+  }
+  return startRecording();
+}
+
+function pauseRecording() {
+  if (!state.isRecording || state.isPaused) return;
+  state.isPaused = true;
+  // Groq segment mode: pause the MediaRecorder so no more audio is collected
+  // and the VAD silence-cut doesn't fire. Streaming mode handles pause via
+  // the worklet sending zero-filled PCM in place of real audio.
+  if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
+    try { state.mediaRecorder.pause(); } catch (_) {}
+  }
+  state.silenceStart = null;
+  setUI("paused");
+  setStatus("Paused — press Resume to continue.", "");
+}
+
+function resumeRecording() {
+  if (!state.isRecording || !state.isPaused) return;
+  state.isPaused = false;
+  if (state.mediaRecorder && state.mediaRecorder.state === "paused") {
+    try { state.mediaRecorder.resume(); } catch (_) {}
+  }
+  state.silenceStart = null;
+  setUI("recording");
+  setStatus(state.streamingWs
+    ? "Streaming STT active — words appear in real time."
+    : "Recording… pause briefly to see live transcription.", "active");
+}
+
 async function startRecording() {
   if (state.isRecording) return; // Stop button ends recording
+  state.isPaused = false;
 
   // Belt-and-suspenders: re-read transcription selection at click time.
   // _grabVoiceEdit() on pointerdown is the primary path; this catches any
@@ -402,9 +450,14 @@ async function startStreamingRecording() {
       const source = state.streamingAudioCtx.createMediaStreamSource(state.stream);
       state.streamingWorkletNode = new AudioWorkletNode(state.streamingAudioCtx, "pcm-processor");
       state.streamingWorkletNode.port.onmessage = (e) => {
-        if (state.streamingWs && state.streamingWs.readyState === WebSocket.OPEN) {
-          state.streamingWs.send(e.data);
+        if (!state.streamingWs || state.streamingWs.readyState !== WebSocket.OPEN) return;
+        if (state.isPaused) {
+          // Send zero-filled PCM of the same length so the provider's session
+          // stays alive during a pause but sees only silence.
+          state.streamingWs.send(new ArrayBuffer(e.data.byteLength));
+          return;
         }
+        state.streamingWs.send(e.data);
       };
       source.connect(state.streamingWorkletNode);
       // Connect to destination to keep AudioContext alive in some browsers
@@ -567,6 +620,7 @@ function _cleanupStreaming() {
     state.streamingWs = null;
   }
   state.isRecording   = false;
+  state.isPaused      = false;
   state.confirmedText   = "";
   state.interimText     = "";
   state.streamingBefore = "";
@@ -578,6 +632,16 @@ function _cleanupStreaming() {
 
 function stopRecording() {
   if (!state.isRecording) return;
+
+  // If we stopped while paused, resume the MediaRecorder first so its onstop
+  // fires with any buffered audio. Clear the flag so worklet frames stop being
+  // zeroed out and the VAD can evaluate normally.
+  if (state.isPaused) {
+    state.isPaused = false;
+    if (state.mediaRecorder && state.mediaRecorder.state === "paused") {
+      try { state.mediaRecorder.resume(); } catch (_) {}
+    }
+  }
 
   if (state.streamingSupported && state.streamingWs) {
     stopStreamingRecording();
@@ -1066,7 +1130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   // Use pointerdown (handles both mouse and touch, fires earliest in event chain).
   $("btn-record").addEventListener("pointerdown", _grabVoiceEdit, { passive: true });
-  $("btn-record").addEventListener("click", startRecording);
+  $("btn-record").addEventListener("click", onRecordClick);
   $("btn-stop").addEventListener("click", stopRecording);
   $("btn-format").addEventListener("click", formatReport);
   $("btn-copy").addEventListener("click", copyReport);
