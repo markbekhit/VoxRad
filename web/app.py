@@ -137,24 +137,6 @@ _RADIOLOGY_PROMPT = (
 )
 
 # ---------------------------------------------------------------------------
-# Hallucination filter — common Whisper ghost outputs
-# ---------------------------------------------------------------------------
-
-_HALLUCINATIONS: set[str] = {
-    "thank you",
-    "thank you for watching",
-    "thanks for watching",
-    "you",
-    ".",
-    "please subscribe",
-    "transcribed by",
-    "subtitles by",
-    "www.",
-    "http",
-}
-
-
-# ---------------------------------------------------------------------------
 # HTTP Basic Auth
 # ---------------------------------------------------------------------------
 
@@ -558,7 +540,12 @@ async def transcribe(
             )
 
         text = result.text.strip()
-        if _is_hallucination(text, asr_prompt):
+        # Skip hallucination filtering in voice-edit mode: the user's intentional
+        # replacement is frequently a single short word (e.g. "normal", "intact",
+        # "no") that would be falsely rejected, and the prompt-echo check would
+        # discard any replacement that happens to appear in the surrounding text.
+        is_voice_edit = whisper_prompt is not None
+        if not is_voice_edit and _is_hallucination(text, asr_prompt):
             logger.debug("Discarded hallucination: %r", text)
             return {"transcription": "", "session_id": ""}
 
