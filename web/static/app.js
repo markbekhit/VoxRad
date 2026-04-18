@@ -36,8 +36,11 @@ const state = {
   streamingAnchorPos: 0,   // cursor start we last set programmatically
   streamingAnchorEnd: 0,   // cursor end we last set programmatically (for selection highlight)
   streamingSelectedText: "",  // text user selected for replacement (kept visible until speech arrives)
-  // Voice editing: {el, start, end, selectedText} — used for segment (non-streaming) mode
+  // Voice editing: {elId, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
+  // Selection made DURING an active recording session. Set by the selectionchange
+  // listener so the VAD/onstop handler can promote it to a voice-edit on the next cut.
+  pendingVoiceEditSelection: null,
 };
 
 // Suppress our own programmatic cursor moves from triggering the selectionchange handler.
@@ -236,6 +239,17 @@ function _startMediaRecorder() {
 
   state.mediaRecorder.onstop = () => {
     const chunks = state.audioChunks.splice(0); // take and clear
+
+    // Promote a mid-recording selection to a voice-edit target: if the user
+    // selected text while already recording (without pressing Record again),
+    // capture that selection now so the next VAD cut splices instead of appends.
+    if (!state.voiceEditTarget && state.pendingVoiceEditSelection) {
+      state.voiceEditTarget = state.pendingVoiceEditSelection;
+      console.log("[voice-edit] promoted mid-recording selection to voice-edit:",
+        JSON.stringify(state.voiceEditTarget));
+    }
+    state.pendingVoiceEditSelection = null;
+
     const isVoiceEdit = !!state.voiceEditTarget;
     // Voice edit always treats the segment as final (one utterance, then done).
     const isFinal = !state.isRecording || isVoiceEdit;
@@ -386,6 +400,7 @@ async function startVoiceEditRecording() {
 }
 
 async function startSegmentRecording() {
+  state.pendingVoiceEditSelection = null; // fresh session — don't inherit old selection
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     startWaveform(state.stream);
@@ -397,7 +412,7 @@ async function startSegmentRecording() {
     state.isRecording = true;
     startTimer();
     setUI("recording");
-    setStatus("Recording… pause briefly to see live transcription.", "active");
+    setStatus("Recording… pause briefly to see live transcription. Select any word to voice-edit it.", "active");
   } catch (err) {
     setStatus(
       `Microphone access denied: ${err.message}. Check browser permissions.`,
@@ -1097,10 +1112,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!active || (active.id !== "transcription" && active.id !== "report-raw")) return;
     const s = active.selectionStart, e = active.selectionEnd;
     if (s != null && e != null && s !== e) {
-      _pendingSelection = {
-        elId: active.id, start: s, end: e,
-        selectedText: active.value.slice(s, e),
-      };
+      const sel = { elId: active.id, start: s, end: e, selectedText: active.value.slice(s, e) };
+      _pendingSelection = sel;
+      // If already recording (user editing transcript mid-session), track as
+      // a pending voice-edit so the next VAD cut does a splice not an append.
+      if (state.isRecording && !state.streamingWs) {
+        state.pendingVoiceEditSelection = sel;
+      }
+    } else if (s === e) {
+      // Collapsed — clear the mid-recording selection so clicking elsewhere
+      // during a session doesn't accidentally voice-edit the wrong span.
+      state.pendingVoiceEditSelection = null;
     }
   });
 
