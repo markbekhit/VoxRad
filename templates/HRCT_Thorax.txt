@@ -3,17 +3,16 @@
 
 ---
 
-### Exam: 
+### Exam:
 HRCT Thorax
 
 ### Technique:
-Axial cuts were obtained from the thoracic inlet to the upper abdomen. Sagittal and coronal reformatting were then obtained.
+High-resolution CT of the thorax was performed using thin-section axial acquisition from the thoracic inlet to the diaphragm. Coronal and sagittal reformatting were then obtained. Prone images were obtained where applicable.
 
 ### Clinical Details
 **Instructions:**
 - **If provided:**
   - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
-  - Offer a concise overview of the patient's relevant medical history and the reason for the examination. Include details such as symptoms, pertinent clinical history, and any known medical conditions.
   - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
 
 - **If not provided:**
@@ -26,22 +25,45 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Sagittal 
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, and if the lesion is a mass, mention its extension and relations.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a HRCT Thorax. For your guidance, usually a HRCT Thorax report involves regions like Lungs, Pleura, Mediastinum, Heart and Pericardium, Trachea and Main Bronchi, Esophagus, Chest Wall, Diaphragm, Bony ribcage and Cervicodorsal Spine, and Visualized Upper Abdomen. If the transcript doesn't mention anything about a certain structure, mention for each other structure that are seen on HRCT Thorax from your intelligence and mention that "{the organ} appears normal.".
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Describe interstitial pattern using standard HRCT terminology: ground-glass opacity (GGO), reticulation, honeycombing, traction bronchiectasis, consolidation, nodules (centrilobular/perilymphatic/random), tree-in-bud, air trapping.
+- State distribution: upper/mid/lower zone predominance; central/peripheral; unilateral/bilateral.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
-- Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
-- **Consolidation of Similar Findings:** Assess the transcript for mentions of similar radiological findings located in different locations. These similar findings should be consolidated into a single, comprehensive statement that succinctly describes the observations across the various locations.
-- **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as :
-[correct spellings] centrilobular, mediastinum, diaphragm, bronchiolitis, tree-in-bud appearance, subcentimetric, interlobular [correct spellings]
-- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report. An intelligent guess may be made on what that word would be based on the surrounding context, imaging modality, and from the field of radiology (like HRCT Thorax here).
+**Lung Parenchyma**
+- Default: "Lung parenchyma clear bilaterally. No ground-glass opacity, consolidation, reticulation, or nodules."
+- If pathology: describe pattern, distribution, and zone predominance precisely.
+
+**Airways**
+- Default: "No bronchiectasis or bronchial wall thickening. No endobronchial lesion."
+
+**Pleura**
+- Default: "No pleural effusion, pneumothorax, or pleural thickening."
+
+**Mediastinum and Hila**
+- Default: "Mediastinum and hila unremarkable. No lymphadenopathy."
+
+**Heart and Pericardium**
+- Default: "Heart normal in size. No pericardial effusion."
+
+**Chest Wall**
+- Default: "Chest wall unremarkable."
+
+**Bony Thorax**
+- ALWAYS use the radiologist's exact dictated words for bony findings. Only use the default "Bony thorax intact. No lytic or sclerotic lesion." if the radiologist said NOTHING about bones.
+
+**Visualised Upper Abdomen**
+- Default: "Visualised upper abdominal structures unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] HRCT thorax. Bilateral lower lobe peripheral reticulation with traction bronchiectasis and honeycombing. Ground-glass opacity. Centrilobular nodules. Tree-in-bud pattern. No pleural effusion. Mediastinum unremarkable. No significant lymphadenopathy. Bony thorax intact. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points. Provide an overall findings are suggestive of differential diagnosis or final diagnosis.
+- Concise bullet-point summary. State the HRCT pattern and likely diagnosis / differential where appropriate.
 - **Sample:**
-  - No significant abnormality in the thoracic structures.
-  - *Overall, the imaging findings are within normal limits.*
+  - Bilateral lower lobe peripheral reticulation with honeycombing and traction bronchiectasis — HRCT pattern consistent with usual interstitial pneumonia (UIP).
+  - No superimposed consolidation or pleural effusion.
 
 ---

@@ -13,7 +13,6 @@ Axial cuts were obtained from the skull base to the vertex. Bone window and soft
 **Instructions:**
 - **If provided:**
   - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
-  - Offer a concise overview of the patient's relevant medical history and the reason for the examination. Include details such as symptoms, pertinent clinical history, and any known medical conditions.
   - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
 
 - **If not provided:**
@@ -26,22 +25,53 @@ Axial cuts were obtained from the skull base to the vertex. Bone window and soft
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, and if the lesion is a mass, mention its extension and relations.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Head. For your guidance, a CT Head report involves regions like Brain Parenchyma (cerebral hemispheres, cerebellum, brainstem), White Matter, Basal Ganglia, Thalami, Internal Capsules, Ventricles (lateral, third, fourth), Sulci and Gyri, Basal Cisterns, Corpus Callosum, Cerebellopontine Angles, Sella and Parasellar Region, Skull Vault and Calvarium, Paranasal Sinuses, Mastoid Air Cells, Orbits (if included), and Extracranial Soft Tissues. If the transcript doesn't mention anything about a certain structure, mention that "{the structure} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Normal groups may be combined into a single statement. Only itemise individually when pathology is present.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
-- Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
-- **Consolidation of Similar Findings:** Consolidate similar findings across different locations into a single comprehensive statement.
-- **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:
-[correct spellings] cerebral, cerebellar, subarachnoid, subdural, extradural, haemorrhage, infarction, periventricular, leukoaraiosis, hydrocephalus, gyri, sulci, cisterns, tentorial, uncal herniation, cerebellopontine [correct spellings]
+**Brain Parenchyma**
+- Default: "Brain parenchyma unremarkable. No intracranial haemorrhage, infarct, mass lesion, or abnormal density."
+- If pathology: describe density (hyper/hypo), location, size, mass effect, and midline shift.
+
+**White Matter**
+- Default: "White matter unremarkable. No focal low-density lesion."
+
+**Basal Ganglia and Thalami**
+- Default: "Basal ganglia and thalami unremarkable."
+
+**Posterior Fossa**
+- Default: "Cerebellum and brainstem unremarkable."
+
+**Ventricular System**
+- Default: "Ventricles normal in size and configuration. No hydrocephalus."
+
+**Sulci and Basal Cisterns**
+- Default: "Sulci and basal cisterns patent. No sulcal effacement or transtentorial herniation."
+
+**Extra-Axial Spaces**
+- Default: "No subdural, extradural, or subarachnoid haemorrhage. No extra-axial collection."
+
+**Skull and Calvarium**
+- Default: "Skull vault intact. No fracture."
+
+**Paranasal Sinuses and Mastoids**
+- Default: "Paranasal sinuses clear. Mastoid air cells well aerated."
+
+**Orbits**
+- Default: "Orbits unremarkable (to the extent visualised)."
+
+**Soft Tissues**
+- Default: "Extracranial soft tissues unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT head. No intracranial haemorrhage, infarct, or mass lesion. Brain parenchyma unremarkable. No midline shift or transtentorial herniation. Ventricles normal in size and configuration. Basal cisterns patent. Sulci and gyri unremarkable. No extra-axial collection. Skull vault intact, no fracture. Paranasal sinuses clear. Mastoid air cells well aerated. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points. Provide an overall findings are suggestive of differential diagnosis or final diagnosis.
+- Concise bullet-point summary.
 - **Sample:**
-  - No intracranial haemorrhage, mass lesion, or midline shift identified.
-  - *Overall, the CT head is within normal limits.*
+  - No intracranial haemorrhage, mass lesion, or midline shift.
+  - CT head within normal limits.
 
 ---

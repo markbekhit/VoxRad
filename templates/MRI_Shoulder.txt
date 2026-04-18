@@ -25,23 +25,56 @@ MRI of the [right/left] shoulder was performed using PD-weighted fat-suppressed,
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing morphology, signal, and extent of tear (partial/full-thickness, retraction).
-- First mention the structures having the pathology specifically. Then cover remaining structures, grouping normals within the same anatomical category rather than forcing a separate bullet for every structure.
-- For your guidance, an MRI Shoulder report covers: Rotator Cuff, Long Head of Biceps Tendon, Glenohumeral Labrum, Glenohumeral Articular Cartilage, Subacromial–Subdeltoid Bursa, Acromioclavicular Joint, Acromion, Coracoclavicular Ligaments, Bony Structures, Deltoid Muscle, and Axillary Recess.
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or merge sections.
+- For each section: if the radiologist mentioned the structure (normal or abnormal), reproduce their exact words. If the radiologist did NOT mention it, use the default normal descriptor shown below.
+- Within the Rotator Cuff section: when only one tendon is abnormal, describe it first, then state the remaining tendons (listed by name) as intact in a single line — do NOT create a sub-heading per tendon.
+- Describe tear morphology precisely: partial vs full-thickness, location (critical zone / musculotendinous junction / footprint), and retraction distance if present.
+- Normal structures within the same section may be combined into one statement. Only itemise individually when pathology is present.
 
-  Grouping guidance:
-  - **Rotator Cuff:** If only one tendon is abnormal, describe it specifically, then state the remaining tendons (by name) as intact in a single line. e.g. "Infraspinatus, teres minor, and subscapularis: intact."  If all four are normal: "Rotator cuff tendons (supraspinatus, infraspinatus, teres minor, subscapularis): intact, no tear."
-  - **Labrum:** Report by compartment (anterior, posterior, superior/SLAP) only if pathology is present; otherwise "Labrum intact."
-  - Other structures may be grouped if all normal within the same category.
-- **Commonly Misspelled Words:**
-[correct spellings] MRI of the right shoulder. Full thickness tear of the supraspinatus tendon at the critical zone with medial retraction. Infraspinatus intact. Teres minor intact. Subscapularis intact. Long head of biceps tendon intact within the bicipital groove. No SLAP lesion. The anterior and posterior labrum are intact. Glenohumeral articular cartilage intact. Subacromial subdeltoid bursa: mild bursitis. Acromioclavicular joint: mild degenerative change. Acromion: type two morphology, no os acromiale. Coracoclavicular ligaments intact. No significant glenohumeral joint effusion. Humeral head, glenoid, and clavicle: no fracture. [correct spellings]
+**Rotator Cuff**
+- Default if all intact: "Rotator cuff tendons (supraspinatus, infraspinatus, teres minor, subscapularis): intact, no tear."
+- Default if one tendon abnormal: "[Describe abnormal tendon specifically.] Remaining rotator cuff tendons ([name the others]): intact."
+
+**Long Head of Biceps Tendon**
+- Default: "Long head of biceps tendon intact within the bicipital groove. No subluxation or dislocation."
+
+**Labrum**
+- Default: "Labrum intact. No labral tear."
+- If pathology: report by compartment — anterior, posterior, superior (SLAP), inferior. Example: "Anterior labral tear at the 3 o'clock position without detachment. Posterior and superior labrum intact."
+
+**Articular Cartilage**
+- Default: "Glenohumeral articular cartilage intact. No focal chondral defect."
+
+**Glenohumeral Joint**
+- Default: "No significant glenohumeral joint effusion. Axillary recess unremarkable."
+
+**Subacromial–Subdeltoid Bursa**
+- Default: "No subacromial-subdeltoid bursitis or effusion."
+
+**Acromioclavicular Joint**
+- Default: "Acromioclavicular joint unremarkable. Coracoclavicular ligaments intact."
+- If pathology: describe joint space narrowing, osteophytes, marrow oedema, or ligament disruption.
+
+**Acromion**
+- Default: "Type [I/II/III] acromion morphology. No os acromiale."
+
+**Bony Structures**
+- ALWAYS use the radiologist's exact dictated words for bony/marrow findings, whether normal or abnormal. Examples:
+  - If they said "no fracture, no marrow oedema" → write exactly that.
+  - If they said "Hill-Sachs lesion of the posterior humeral head" → write exactly that.
+- Only use the default "Humeral head, glenoid, and clavicle: no fracture, subchondral cystic change, or marrow signal abnormality." if the radiologist said NOTHING about bony structures.
+- If a specific abnormality is described, state it, then add "Remaining marrow signal is normal."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI of the right shoulder. Full-thickness tear of the supraspinatus tendon at the critical zone with 1 cm medial retraction. Infraspinatus, teres minor, and subscapularis intact. Long head of biceps tendon intact within the bicipital groove. No subluxation. Labrum intact. No labral tear or SLAP lesion. Glenohumeral articular cartilage intact. No focal chondral defect. No significant joint effusion. No subacromial-subdeltoid bursitis. Acromioclavicular joint: mild degenerative change with inferior osteophyte formation. Coracoclavicular ligaments intact. Type II acromion morphology. No os acromiale. No fracture or marrow signal abnormality. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points.
+- Concise bullet-point summary of key findings.
 - **Sample:**
-  - Full-thickness supraspinatus tear with [X] cm retraction.
-  - No significant labral tear or glenohumeral instability.
+  - Full-thickness supraspinatus tear at the critical zone with 1 cm retraction.
+  - Labrum intact. No instability pattern.
+  - Mild AC joint degeneration.
 
 ---

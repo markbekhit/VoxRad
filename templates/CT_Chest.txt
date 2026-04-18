@@ -13,7 +13,6 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Coronal a
 **Instructions:**
 - **If provided:**
   - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
-  - Offer a concise overview of the patient's relevant medical history and the reason for the examination. Include details such as symptoms, pertinent clinical history, and any known medical conditions.
   - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
 
 - **If not provided:**
@@ -26,27 +25,56 @@ Axial cuts were obtained from the thoracic inlet to the upper abdomen. Coronal a
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, and if the lesion is a mass, mention its extension and relations.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Chest. For your guidance, a CT Chest report involves regions like Lungs (including each lobe), Pleura, Airways (Trachea, Main Bronchi, Lobar and Segmental Bronchi), Mediastinum, Heart and Pericardium, Great Vessels (Aorta, Pulmonary Arteries and Veins, SVC/IVC), Lymph Nodes (mediastinal, hilar, axillary), Chest Wall and Soft Tissues, Bony Thorax (ribs, sternum, clavicles, thoracic spine), Esophagus, Thyroid (if visualized), and Visualized Upper Abdomen. If the transcript doesn't mention anything about a certain structure, mention that "{the organ} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor — do NOT write "appears normal" generically; use precise radiology language.
+- Normal groups may be combined into a single statement. Only itemise individually when pathology is present.
+- Do not create sub-bullets for single words or phrases — use complete sentences.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
-    For instance:
-    - **Lungs:** No evidence of pulmonary nodules or consolidation.
-    - **Pleura:** No pleural effusion or thickening.
-    - **Mediastinum:** Normal mediastinal contour, no lymphadenopathy.
-    - and so on...
-- Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
-- **Consolidation of Similar Findings:** Consolidate similar findings across different locations into a single comprehensive statement.
-- **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:
-[correct spellings] CT chest with contrast. The lungs are clear with no consolidation, atelectasis, or pneumothorax. No pleural effusion or haemothorax. No pulmonary embolism. The airways are patent to the segmental level with no bronchiectasis. The mediastinum is unremarkable. No mediastinal or hilar lymphadenopathy. No subcarinal lymphadenopathy. The heart is normal in size with no pericardial effusion. The thoracic aorta is normal in calibre. No axillary lymphadenopathy. No pleural thickening. Bony thorax intact with no lytic or sclerotic lesions. [correct spellings]
+**Lungs**
+- Default: "Lungs clear. No consolidation, collapse, nodule, or mass. No bronchiectasis."
+- If pathology: describe by lobe and segment with morphology (size, density in HU if relevant, distribution).
+
+**Airways**
+- Default: "Airways patent to the segmental level. No endobronchial lesion or tracheal deviation."
+
+**Pleura**
+- Default: "No pleural effusion, pneumothorax, or pleural thickening."
+
+**Mediastinum**
+- Default: "Mediastinum unremarkable. No mediastinal mass or lymphadenopathy."
+- Describe lymph nodes by station (subcarinal, paratracheal, aortopulmonary window) when enlarged (short axis > 10 mm).
+
+**Hila**
+- Default: "Hila unremarkable. No hilar lymphadenopathy or mass."
+
+**Heart and Pericardium**
+- Default: "Heart normal in size. No pericardial effusion."
+
+**Thoracic Aorta and Great Vessels**
+- Default: "Thoracic aorta normal in calibre and contour. Great vessels unremarkable."
+
+**Axillary Regions**
+- Default: "No axillary lymphadenopathy."
+
+**Chest Wall and Soft Tissues**
+- Default: "Chest wall and soft tissues unremarkable."
+
+**Bony Thorax**
+- ALWAYS use the radiologist's exact dictated words for bony findings. Only use the default "Bony thorax intact. No lytic or sclerotic lesion." if the radiologist said NOTHING about bones.
+
+**Visualised Upper Abdomen**
+- Default: "Visualised upper abdominal structures unremarkable."
+
+Lines, tubes, and devices — comment if present.
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT chest with contrast. The lungs are clear with no consolidation, atelectasis, or pneumothorax. No pleural effusion. No pulmonary embolism. Airways patent to the segmental level. No bronchiectasis. Mediastinum unremarkable. No mediastinal or hilar lymphadenopathy. No subcarinal lymphadenopathy. Heart normal in size. No pericardial effusion. Thoracic aorta normal calibre. No axillary lymphadenopathy. Bony thorax intact, no lytic or sclerotic lesion. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points. Provide an overall findings are suggestive of differential diagnosis or final diagnosis.
+- Concise bullet-point summary of key findings.
 - **Sample:**
   - No significant abnormality identified in the chest.
-  - *Overall, the imaging findings are within normal limits.*
 
 ---

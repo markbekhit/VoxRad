@@ -13,7 +13,6 @@ Axial cuts were obtained from the dome of the diaphragm to the pubic symphysis. 
 **Instructions:**
 - **If provided:**
   - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
-  - Offer a concise overview of the patient's relevant medical history and the reason for the examination. Include details such as symptoms, pertinent clinical history, and any known medical conditions.
   - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
 
 - **If not provided:**
@@ -26,22 +25,62 @@ Axial cuts were obtained from the dome of the diaphragm to the pubic symphysis. 
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, and if the lesion is a mass, mention its extension and relations.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. Use your intelligence to carefully think about what all structures are visualized in a CT Abdomen and Pelvis. For your guidance, a CT Abdomen and Pelvis report involves regions like Liver, Gallbladder and Biliary System, Spleen, Pancreas, Kidneys and Ureters, Adrenal Glands, Bowel (Small Bowel and Large Bowel), Mesentery and Omentum, Peritoneum and Ascites, Abdominal Aorta and IVC, Lymph Nodes, Urinary Bladder, Prostate/Uterus and Ovaries (if visualized), Rectum, Pelvic Sidewalls, and Visualized Bony Pelvis and Lumbar Spine. If the transcript doesn't mention anything about a certain structure, mention that "{the organ} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Normal groups may be combined into a single statement. Only itemise individually when pathology is present.
+- For masses: describe size, attenuation, enhancement pattern, and relationship to adjacent structures.
+- Consolidate similar findings across locations into a single statement.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
-- Do not create unnecessary sub-bullets for single words or phrases. Instead, use complete sentences to describe each finding.
-- **Consolidation of Similar Findings:** Assess the transcript for mentions of similar radiological findings located in different locations. These similar findings should be consolidated into a single, comprehensive statement.
-- **Commonly Misspelled Words:** Pay special attention to commonly misspelled words in transcription such as:
-[correct spellings] hepatomegaly, splenomegaly, cholelithiasis, hydronephrosis, nephrolithiasis, pneumoperitoneum, retroperitoneal, mesenteric, peritoneal, intussusception, diverticulum, appendicitis, iliopsoas [correct spellings]
+**Liver**
+- Default: "Liver normal in size and attenuation. No focal hepatic lesion."
+
+**Gallbladder and Biliary System**
+- Default: "Gallbladder unremarkable. No cholelithiasis or wall thickening. Biliary system not dilated."
+
+**Spleen**
+- Default: "Spleen normal in size and attenuation. No focal splenic lesion."
+
+**Pancreas**
+- Default: "Pancreas unremarkable. No focal lesion or ductal dilatation."
+
+**Adrenal Glands**
+- Default: "Adrenal glands unremarkable bilaterally."
+
+**Kidneys and Ureters**
+- Default: "Kidneys normal in size and enhancement. No hydronephrosis, calculus, or focal renal lesion. Ureters not dilated."
+
+**Bowel**
+- Default: "Small and large bowel loops unremarkable. No obstruction, wall thickening, or perforation. No free air."
+
+**Mesentery and Peritoneum**
+- Default: "Mesentery and peritoneum unremarkable. No ascites."
+
+**Abdominal Aorta and IVC**
+- Default: "Abdominal aorta normal in calibre. IVC unremarkable."
+
+**Lymph Nodes**
+- Default: "No significant abdominal or pelvic lymphadenopathy."
+
+**Urinary Bladder**
+- Default: "Urinary bladder unremarkable."
+
+**Pelvic Organs**
+- Default: "Uterus and ovaries unremarkable." [or "Prostate unremarkable." in male patients]
+
+**Pelvic Sidewalls and Soft Tissues**
+- Default: "Pelvic sidewalls and soft tissues unremarkable."
+
+**Bony Pelvis and Lumbar Spine**
+- ALWAYS use the radiologist's exact dictated words for bony findings. Only use the default "Bony pelvis and visualised lumbar spine intact. No lytic or sclerotic lesion." if the radiologist said NOTHING about bones.
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT abdomen and pelvis with contrast. Liver, spleen, and pancreas unremarkable. No focal hepatic lesion. Gallbladder unremarkable, no cholelithiasis. No biliary dilatation. Adrenal glands normal. Kidneys normal, no hydronephrosis or calculus. Bowel unremarkable, no obstruction or free air. No significant lymphadenopathy. No ascites. Abdominal aorta normal calibre. Urinary bladder unremarkable. Pelvic organs unremarkable. Bony pelvis intact, no lytic or sclerotic lesion. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points. Provide an overall findings are suggestive of differential diagnosis or final diagnosis.
+- Concise bullet-point summary of key findings.
 - **Sample:**
   - No significant abnormality identified in the abdomen and pelvis.
-  - *Overall, the imaging findings are within normal limits.*
 
 ---

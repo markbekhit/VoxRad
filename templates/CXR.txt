@@ -25,20 +25,52 @@ Chest X-Ray (CXR)
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. For your guidance, a CXR report involves Technical Adequacy (rotation, inspiratory effort, exposure), Lungs (each zone: upper, mid, lower zones — right and left), Hila (size and density), Pleura (costophrenic angles, pleural effusion, pneumothorax), Trachea and Mediastinum (width, contour, position), Cardiac Silhouette (size — cardiothoracic ratio, contour), Aortic Knuckle, Hemidiaphragms (right and left), Costophrenic Angles, Bones (ribs, clavicles, scapulae, visible spine, shoulder joints), Soft Tissues, and Visible Abdominal Structures (subdiaphragmatic gas). Lines, tubes, and implanted devices should be commented on if present. If not mentioned, state "{structure} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Normal groups may be combined. Only itemise individually when pathology is present.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present.
-- **Commonly Misspelled Words:**
-[correct spellings] consolidation, atelectasis, pneumothorax, pleural effusion, cardiomegaly, mediastinal widening, costophrenic angle, hilar, opacification, interstitial, reticulonodular [correct spellings]
+**Technical Adequacy**
+- Comment on rotation, inspiratory effort, and exposure if suboptimal. Omit this section entirely if technically adequate.
+
+**Lungs**
+- Default: "Lungs clear bilaterally. No focal consolidation, collapse, or nodule."
+- If pathology: describe by zone (upper/mid/lower), laterality, morphology, and distribution.
+
+**Hila**
+- Default: "Hila normal in size and density."
+
+**Pleura**
+- Default: "No pleural effusion, pneumothorax, or pleural thickening."
+
+**Cardiac Silhouette**
+- Default: "Heart normal in size. Cardiothoracic ratio within normal limits."
+
+**Mediastinum**
+- Default: "Mediastinal contour normal. Trachea central. Aortic knuckle unremarkable."
+
+**Hemidiaphragms**
+- Default: "Hemidiaphragms well-defined bilaterally. Costophrenic angles sharp."
+
+**Bones**
+- Default: "Bony thorax intact. No rib fracture or lytic lesion."
+- ALWAYS use the radiologist's exact words if bones are mentioned.
+
+**Soft Tissues**
+- Default: "Soft tissues unremarkable."
+
+**Visible Abdomen**
+- Default: "No free subdiaphragmatic gas."
+
+Lines, tubes, and devices — comment if present.
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] chest x-ray PA. Lungs clear bilaterally, no consolidation, effusion, or pneumothorax. Hila normal. Heart normal size, cardiothoracic ratio within normal limits. Mediastinum normal. Trachea central. Costophrenic angles sharp. No rib fracture. Soft tissues unremarkable. No free air under the diaphragm. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points.
+- Concise bullet-point summary.
 - **Sample:**
-  - Right lower zone consolidation — likely infective in aetiology.
-  - No pleural effusion, pneumothorax, or significant cardiomegaly.
+  - No significant cardiopulmonary abnormality.
 
 ---

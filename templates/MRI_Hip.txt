@@ -25,20 +25,57 @@ MRI of the [right/left / bilateral] hip was performed using T1-weighted, T2-weig
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing morphology, signal characteristics, and degree of involvement.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. For your guidance, an MRI Hip report involves Femoral Head (signal, sphericity, subchondral zone), Acetabulum and Acetabular Labrum (anterior, posterior, superior), Articular Cartilage (femoral head and acetabulum), Femoral Neck (angulation, osteonecrosis), Greater and Lesser Trochanters, Hip Joint Capsule and Ligamentum Teres, Iliopsoas Tendon and Bursa, Trochanteric Bursa, Gluteal Tendons (gluteus medius, minimus), Obturator Internus, Piriformis, Hamstring Origin, Sciatic Nerve, Pubic Symphysis, Sacroiliac Joints (if included), and Marrow Signal of Visualized Pelvis. If not mentioned, state "{structure} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or merge sections.
+- For each section: if the radiologist mentioned the structure (normal or abnormal), reproduce their exact words. If the radiologist did NOT mention it, use the default normal descriptor shown below.
+- Normal structures within the same section may be combined into one statement. Only itemise individually when pathology is present.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present. Do not force a separate bullet for every structure when all are normal.
-- **Commonly Misspelled Words:**
-[correct spellings] acetabular, labrum, femoroacetabular impingement, osteonecrosis, avascular necrosis, trochanteric, iliopsoas, gluteus medius, subchondral, cam lesion, pincer lesion [correct spellings]
+**Femoral Head and Neck**
+- Default: "Femoral head: normal morphology and signal. No avascular necrosis, subchondral fracture, or cam deformity. Femoral neck: normal alignment and signal."
+- Describe alpha angle if cam morphology is mentioned.
+
+**Acetabulum and Labrum**
+- Default: "Acetabulum: normal morphology. No pincer deformity. Labrum intact, no tear or paralabral cyst."
+- If pathology: report labral tear by compartment (anterior, posterior, superior, inferior); describe chondrolabral junction involvement if present.
+
+**Articular Cartilage**
+- Default: "Hip joint articular cartilage intact. No focal chondral defect."
+- If pathology: describe by surface (femoral head / acetabular) and extent.
+
+**Hip Joint**
+- Default: "No significant hip joint effusion. Joint capsule unremarkable. Ligamentum teres intact."
+
+**Gluteal Tendons**
+- Default: "Gluteus medius and gluteus minimus tendons intact at their greater trochanteric insertion. No tendinopathy or tear."
+
+**Iliopsoas Tendon and Bursa**
+- Default: "Iliopsoas tendon intact. No iliopsoas bursitis."
+
+**Hamstring Origin**
+- Default: "Hamstring tendons intact at the ischial tuberosity. No avulsion or tendinopathy."
+
+**Trochanteric Bursa**
+- Default: "No trochanteric bursitis."
+
+**Pelvic Structures**
+- Default: "Pubic symphysis unremarkable. Sacroiliac joints unremarkable (to the extent visualised). Sciatic nerve: normal calibre, no compression."
+
+**Bony Structures**
+- ALWAYS use the radiologist's exact dictated words for bony/marrow findings, whether normal or abnormal. Examples:
+  - If they said "no fracture, no marrow oedema" → write exactly that.
+  - If they said "insufficiency fracture of the femoral neck" → write exactly that.
+- Only use the default "Marrow signal normal throughout the visualised pelvis and proximal femora. No fracture or aggressive bony lesion." if the radiologist said NOTHING about bony structures.
+- If a specific abnormality is described, state it, then add "Remaining marrow signal is normal."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI of the right hip. Femoral head normal morphology and signal. No avascular necrosis. No cam or pincer deformity. Alpha angle normal. Acetabular labrum: superior labral tear with paralabral cyst. Anterior and posterior labrum intact. Articular cartilage intact, no focal chondral defect. Small joint effusion. Ligamentum teres intact. Gluteus medius and minimus intact. Iliopsoas tendon intact. Hamstring origin intact. No trochanteric bursitis. Pubic symphysis unremarkable. Sciatic nerve normal calibre. No fracture. Marrow signal normal. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points.
+- Concise bullet-point summary of key findings.
 - **Sample:**
-  - Early avascular necrosis of the [right/left] femoral head, Ficat stage [I/II].
-  - No significant labral tear or femoroacetabular impingement.
+  - Superior acetabular labral tear with paralabral cyst — femoroacetabular impingement pattern.
+  - No avascular necrosis or chondral defect.
+  - No cam or pincer deformity.
 
 ---

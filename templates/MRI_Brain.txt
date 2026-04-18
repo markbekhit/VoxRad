@@ -25,25 +25,59 @@ MRI of the brain was performed using a standard brain protocol including T1-weig
 
 ### Findings:
 **Instructions:**
-- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing its morphology, signal characteristics (T1/T2/FLAIR/DWI), enhancement pattern, and mass effect.
-- First mention the structures having the pathology.
-- Then mention ALL the structures that are normal. For your guidance, an MRI Brain report involves Brain Parenchyma (cerebral hemispheres – frontal, parietal, temporal, occipital lobes), Cerebellum and Vermis, Brainstem (midbrain, pons, medulla), Corpus Callosum, Basal Ganglia and Thalami, Internal Capsules, Periventricular and Subcortical White Matter, Cortical Grey Matter, Ventricular System (lateral ventricles, third ventricle, fourth ventricle), Sulci and Cisterns, Hippocampi, Pituitary Gland and Sella, Cerebellopontine Angle Cisterns, Cranial Nerves (if evaluable), Intracranial Vessels (if MRA included), Skull Base, Calvarium, and Extracranial Soft Tissues. If not mentioned, state "{structure} appears normal."
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Describe signal characteristics (T1/T2/FLAIR/DWI), enhancement pattern, size, and mass effect where applicable.
+- Normal groups may be combined into a single statement.
 
-  - Normal structures within the same anatomical group may be combined into a single statement. Only itemise individually when pathology is present. For example:
-    - **Cerebral Hemispheres:** No abnormal T2/FLAIR signal.
-    - **Diffusion-Weighted Imaging:** No restricted diffusion to suggest acute infarction.
-    - **Ventricular System:** Normal in size and configuration.
-    - **Posterior Fossa (cerebellum, brainstem):** Unremarkable.
-    - and so on — grouping is acceptable when findings are normal.
-- **Commonly Misspelled Words:**
-[correct spellings] hippocampal, periventricular, leukoaraiosis, gliosis, demyelination, enhancement, susceptibility, diffusion restriction, FLAIR, cerebellopontine, tentorial, uncal, fornix, thalamus, putamen, caudate [correct spellings]
+**Cerebral Hemispheres**
+- Default: "No abnormal T2/FLAIR signal in the cerebral hemispheres. No focal parenchymal lesion."
+- Describe lobar location, signal characteristics, and mass effect if pathology is present.
+
+**Posterior Fossa**
+- Default: "Cerebellum and brainstem unremarkable. No posterior fossa mass or signal abnormality."
+
+**Basal Ganglia and Thalami**
+- Default: "Basal ganglia and thalami unremarkable."
+
+**Diffusion-Weighted Imaging**
+- Default: "No restricted diffusion to suggest acute infarction."
+
+**Susceptibility-Weighted Imaging**
+- Default: "No haemorrhagic focus or abnormal susceptibility."
+
+**Ventricular System**
+- Default: "Ventricles normal in size and configuration. No hydrocephalus."
+
+**Sulci and Cisterns**
+- Default: "Sulci and basal cisterns patent. No sulcal effacement."
+
+**Extra-Axial Spaces**
+- Default: "No subdural or extradural collection. No subarachnoid haemorrhage."
+
+**Midline Structures**
+- Default: "Corpus callosum intact. No midline shift."
+
+**Pituitary Gland and Sella**
+- Default: "Pituitary gland unremarkable."
+
+**Internal Auditory Canals and Cerebellopontine Angles**
+- Default: "Internal auditory canals and cerebellopontine angles unremarkable."
+
+**Skull Base and Calvarium**
+- Default: "Skull base and calvarium unremarkable."
+
+**Extracranial Soft Tissues**
+- Default: "Extracranial soft tissues unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI brain. No abnormal T2 or FLAIR signal. No acute infarct on DWI. No intracranial haemorrhage. Ventricles normal in size and configuration. No midline shift. Corpus callosum intact. Posterior fossa unremarkable. Pituitary gland normal. No extra-axial collection. Skull base intact. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
 **Instructions:**
-- Create an impression from findings, into a brief description in bullet points.
+- Concise bullet-point summary.
 - **Sample:**
-  - No acute intracranial abnormality identified on MRI.
-  - *Overall, the MRI brain is within normal limits.*
+  - No acute intracranial abnormality on MRI brain.
 
 ---
