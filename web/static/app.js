@@ -314,19 +314,35 @@ async function startRecording() {
   if (state.isRecording) return; // Stop button ends recording
   state.isPaused = false;
 
-  // Belt-and-suspenders: re-read transcription selection at click time.
-  // _grabVoiceEdit() on pointerdown is the primary path; this catches any
-  // case where pointerdown didn't fire (e.g. keyboard activation via Enter/Space).
-  const _tx = $("transcription");
-  if (_tx && _tx.selectionStart !== _tx.selectionEnd) {
-    const _s = _tx.selectionStart, _e = _tx.selectionEnd;
-    state.voiceEditTarget = { el: _tx, start: _s, end: _e, selectedText: _tx.value.slice(_s, _e) };
+  // Belt-and-suspenders: re-read both textarea selections at click time.
+  // _grabVoiceEdit() on pointerdown is the primary path; this catches cases
+  // where pointerdown didn't fire (keyboard activation) or selection state
+  // differs from what pointerdown saw.
+  if (!state.voiceEditTarget) {
+    for (const id of ["transcription", "report-raw"]) {
+      const _el = $(id);
+      if (_el && _el.selectionStart !== _el.selectionEnd) {
+        state.voiceEditTarget = {
+          el: _el,
+          start: _el.selectionStart,
+          end: _el.selectionEnd,
+          selectedText: _el.value.slice(_el.selectionStart, _el.selectionEnd),
+        };
+        break;
+      }
+    }
   }
 
-  if (state.streamingSupported) {
+  if (state.voiceEditTarget) {
+    // Voice edit takes precedence over streaming mode: the user explicitly
+    // selected text and wants to replace it in-place, regardless of STT mode.
+    if (state.streamingSupported) {
+      await startStreamingRecording();
+    } else {
+      await startVoiceEditRecording();
+    }
+  } else if (state.streamingSupported) {
     await startStreamingRecording();
-  } else if (state.voiceEditTarget) {
-    await startVoiceEditRecording();
   } else {
     await startSegmentRecording();
   }
@@ -1084,17 +1100,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   const _grabVoiceEdit = () => {
     _recordPointerdownAt = Date.now(); // timestamp for blur handler guard
 
-    // Tier 1: direct read from transcription textarea.
-    const tx = $("transcription");
-    if (tx && tx.selectionStart !== tx.selectionEnd) {
-      const s = tx.selectionStart, e = tx.selectionEnd;
-      state.voiceEditTarget = { el: tx, start: s, end: e, selectedText: tx.value.slice(s, e) };
-      _pendingSelection = null;
-      return;
+    // Tier 1: direct read from either editable textarea.
+    for (const id of ["transcription", "report-raw"]) {
+      const el = $(id);
+      if (el && el.selectionStart !== el.selectionEnd) {
+        const s = el.selectionStart, e = el.selectionEnd;
+        state.voiceEditTarget = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
+        _pendingSelection = null;
+        return;
+      }
     }
-    // Tier 2 & 3: _pendingSelection
-    state.voiceEditTarget = _pendingSelection || null;
-    _pendingSelection = null;
+    // Tier 2 & 3: _pendingSelection (saved by mouseup/select/keyup/touchend/selectionchange)
+    if (_pendingSelection) {
+      state.voiceEditTarget = _pendingSelection;
+      _pendingSelection = null;
+    }
+    // If no selection is detected on this pointerdown, DO NOT clear an existing
+    // voiceEditTarget: a rapid double-tap or repeat pointerdown during a voice-
+    // edit session must not cancel the pending edit. The target is cleared only
+    // by submitAudioSegment (after splice) or startStreamingRecording (consume).
   };
 
   // Live cursor tracking during streaming: when the user clicks or moves the
