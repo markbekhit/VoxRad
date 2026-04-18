@@ -239,21 +239,24 @@ function _startMediaRecorder() {
 
   state.mediaRecorder.onstop = () => {
     const chunks = state.audioChunks.splice(0); // take and clear
+    const hadSpeech = state.speechDetected;
 
-    // Promote a mid-recording selection to a voice-edit target: if the user
-    // selected text while already recording (without pressing Record again),
-    // capture that selection now so the next VAD cut splices instead of appends.
-    if (!state.voiceEditTarget && state.pendingVoiceEditSelection) {
+    // Promote a mid-recording selection ONLY when this segment had real speech
+    // — i.e. the user actually said the replacement. A silent VAD cut (user
+    // paused to think after selecting) must NOT consume the selection or end
+    // recording; we keep both alive so the NEXT cut (with their replacement
+    // utterance) does the splice.
+    const promoteNow = !state.voiceEditTarget && state.pendingVoiceEditSelection && hadSpeech;
+    if (promoteNow) {
       state.voiceEditTarget = state.pendingVoiceEditSelection;
+      state.pendingVoiceEditSelection = null;
       console.log("[voice-edit] promoted mid-recording selection to voice-edit:",
         JSON.stringify(state.voiceEditTarget));
     }
-    state.pendingVoiceEditSelection = null;
 
     const isVoiceEdit = !!state.voiceEditTarget;
     // Voice edit always treats the segment as final (one utterance, then done).
     const isFinal = !state.isRecording || isVoiceEdit;
-    const hadSpeech = state.speechDetected;
 
     if (state.isRecording && !isVoiceEdit) {
       // Silence-triggered segment — restart recorder immediately so the mic
