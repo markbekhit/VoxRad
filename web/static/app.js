@@ -323,15 +323,24 @@ async function startRecording() {
       const _el = $(id);
       if (_el && _el.selectionStart !== _el.selectionEnd) {
         state.voiceEditTarget = {
-          el: _el,
+          elId: id,
           start: _el.selectionStart,
           end: _el.selectionEnd,
           selectedText: _el.value.slice(_el.selectionStart, _el.selectionEnd),
         };
+        console.log("[voice-edit] captured (belt):", id, _el.selectionStart, _el.selectionEnd);
         break;
       }
     }
   }
+  console.log("[voice-edit] startRecording — voiceEditTarget:",
+    state.voiceEditTarget ? JSON.stringify({
+      elId: state.voiceEditTarget.elId,
+      start: state.voiceEditTarget.start,
+      end: state.voiceEditTarget.end,
+      text: state.voiceEditTarget.selectedText,
+    }) : "null",
+    "streamingSupported:", state.streamingSupported);
 
   if (state.voiceEditTarget) {
     // Voice edit takes precedence over streaming mode: the user explicitly
@@ -368,8 +377,8 @@ async function startVoiceEditRecording() {
     state.isRecording = true;
     startTimer();
     setUI("recording");
-    const label = state.voiceEditTarget.el.id === "transcription" ? "transcript" : "report";
-    setStatus(`Voice editing ${label} — dictate replacement, then pause.`, "active");
+    const label = state.voiceEditTarget.elId === "transcription" ? "transcript" : "report";
+    setStatus(`Voice editing ${label} (replacing "${state.voiceEditTarget.selectedText}") — dictate replacement, then pause.`, "active");
   } catch (err) {
     state.voiceEditTarget = null;
     setStatus(`Microphone access denied: ${err.message}`, "error");
@@ -418,7 +427,7 @@ async function startStreamingRecording() {
   // This makes streaming PowerScribe-style: text is inserted at the cursor,
   // replacing any selection, rather than always appending to the end.
   const tx = $("transcription");
-  if (state.voiceEditTarget && state.voiceEditTarget.el === tx) {
+  if (state.voiceEditTarget && state.voiceEditTarget.elId === "transcription") {
     state.streamingBefore = tx.value.slice(0, state.voiceEditTarget.start);
     state.streamingAfter  = tx.value.slice(state.voiceEditTarget.end);
     state.streamingSelectedText = state.voiceEditTarget.selectedText || "";
@@ -730,6 +739,8 @@ function _maybeAutoFormat() {
 async function submitAudioSegment(chunks, isFinal) {
   // Capture voice edit target at call time — async gaps could clear state later.
   const editTarget = isFinal ? state.voiceEditTarget : null;
+  console.log("[voice-edit] submitAudioSegment — isFinal:", isFinal,
+    "editTarget:", editTarget ? JSON.stringify({ elId: editTarget.elId, start: editTarget.start, end: editTarget.end, text: editTarget.selectedText }) : "null");
 
   state.pendingSegments++;
   const blob = new Blob(chunks, { type: "audio/webm" });
@@ -747,7 +758,8 @@ async function submitAudioSegment(chunks, isFinal) {
   if (editTarget) {
     // Voice edit: pass the text before the selection as Whisper context rather
     // than the vocabulary list — prevents Whisper hallucinating prompt completions.
-    const before = editTarget.el.value.slice(
+    const el = $(editTarget.elId);
+    const before = el.value.slice(
       Math.max(0, editTarget.start - 300), editTarget.start
     ).trim();
     formData.append("whisper_prompt", before);
@@ -767,17 +779,20 @@ async function submitAudioSegment(chunks, isFinal) {
     if (data.session_id) state.sessionId = data.session_id;
 
     const newText = data.transcription ? data.transcription.trim() : "";
+    console.log("[voice-edit] /transcribe returned:", JSON.stringify(newText), "editTarget still:", editTarget ? editTarget.elId : "null");
 
     if (editTarget) {
-      // Voice edit: splice transcription into the selection.
-      const { el, start, end } = editTarget;
+      // Voice edit: splice transcription into the selection. Re-fetch element
+      // by ID in case the DOM was re-rendered mid-flight.
+      const el = $(editTarget.elId);
+      const { start, end } = editTarget;
       el.value = el.value.slice(0, start) + (newText || "") + el.value.slice(end);
       if (newText) {
         el.selectionStart = el.selectionEnd = start + newText.length;
         el.focus();
       }
       // Re-render markdown if editing the report.
-      if (el.id === "report-raw") {
+      if (editTarget.elId === "report-raw") {
         $("report-rendered").innerHTML = marked.parse(el.value);
       }
       state.voiceEditTarget = null;
@@ -1052,7 +1067,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const save = () => {
       const s = el.selectionStart, e = el.selectionEnd;
       if (s !== e) {
-        _pendingSelection = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
+        _pendingSelection = { elId: id, start: s, end: e, selectedText: el.value.slice(s, e) };
       }
     };
     el.addEventListener("mouseup", save);
@@ -1083,7 +1098,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const s = active.selectionStart, e = active.selectionEnd;
     if (s != null && e != null && s !== e) {
       _pendingSelection = {
-        el: active, start: s, end: e,
+        elId: active.id, start: s, end: e,
         selectedText: active.value.slice(s, e),
       };
     }
@@ -1105,15 +1120,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       const el = $(id);
       if (el && el.selectionStart !== el.selectionEnd) {
         const s = el.selectionStart, e = el.selectionEnd;
-        state.voiceEditTarget = { el, start: s, end: e, selectedText: el.value.slice(s, e) };
+        state.voiceEditTarget = { elId: id, start: s, end: e, selectedText: el.value.slice(s, e) };
         _pendingSelection = null;
+        console.log("[voice-edit] captured (tier1):", id, s, e, JSON.stringify(el.value.slice(s, e)));
         return;
       }
     }
     // Tier 2 & 3: _pendingSelection (saved by mouseup/select/keyup/touchend/selectionchange)
     if (_pendingSelection) {
       state.voiceEditTarget = _pendingSelection;
+      console.log("[voice-edit] captured (tier2):",
+        _pendingSelection.elId, _pendingSelection.start, _pendingSelection.end,
+        JSON.stringify(_pendingSelection.selectedText));
       _pendingSelection = null;
+    } else {
+      console.log("[voice-edit] no selection captured on pointerdown");
     }
     // If no selection is detected on this pointerdown, DO NOT clear an existing
     // voiceEditTarget: a rapid double-tap or repeat pointerdown during a voice-
