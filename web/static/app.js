@@ -248,7 +248,9 @@ function _startMediaRecorder() {
     // utterance) does the splice.
     const promoteNow = !state.voiceEditTarget && state.pendingVoiceEditSelection && hadSpeech;
     if (promoteNow) {
-      state.voiceEditTarget = state.pendingVoiceEditSelection;
+      // Mark this voice-edit as mid-recording so submitAudioSegment knows to
+      // keep the UI in "recording" mode after splicing.
+      state.voiceEditTarget = { ...state.pendingVoiceEditSelection, keepRecording: true };
       state.pendingVoiceEditSelection = null;
       console.log("[voice-edit] promoted mid-recording selection to voice-edit:",
         JSON.stringify(state.voiceEditTarget));
@@ -257,13 +259,18 @@ function _startMediaRecorder() {
     const isVoiceEdit = !!state.voiceEditTarget;
     // Voice edit always treats the segment as final (one utterance, then done).
     const isFinal = !state.isRecording || isVoiceEdit;
+    // Mid-recording promotion: the user wants to keep dictating after the
+    // splice (PowerScribe style). Restart the mediaRecorder so the mic stays
+    // hot while we send the voice-edit segment to the server.
+    const keepRecording = isVoiceEdit && state.voiceEditTarget.keepRecording && state.isRecording;
 
-    if (state.isRecording && !isVoiceEdit) {
-      // Silence-triggered segment — restart recorder immediately so the mic
-      // stays active while we send this segment in the background.
+    if ((state.isRecording && !isVoiceEdit) || keepRecording) {
+      // Silence-triggered segment OR mid-recording voice-edit — restart
+      // recorder immediately so the mic stays active.
       _startMediaRecorder();
     } else {
-      // Final segment or voice edit: release the microphone.
+      // Final segment or explicit voice-edit (started with selection + Record):
+      // release the microphone.
       if (isVoiceEdit && state.isRecording) {
         state.isRecording = false;
         stopTimer();
@@ -766,8 +773,18 @@ async function submitAudioSegment(chunks, isFinal) {
   if (blob.size < MIN_SEGMENT_BYTES) {
     state.isSegmentTranscribing = false;
     state.pendingSegments--;
-    if (!editTarget) _maybeAutoFormat();
-    else { state.voiceEditTarget = null; setUI(_inferUIMode()); setStatus("No speech detected — edit unchanged.", "error"); }
+    if (!editTarget) {
+      _maybeAutoFormat();
+    } else {
+      const wasMidRecording = !!editTarget.keepRecording;
+      state.voiceEditTarget = null;
+      if (wasMidRecording && state.isRecording) {
+        setStatus("No speech detected — edit unchanged. Keep dictating.", "active");
+      } else {
+        setUI(_inferUIMode());
+        setStatus("No speech detected — edit unchanged.", "error");
+      }
+    }
     return;
   }
 
@@ -813,10 +830,19 @@ async function submitAudioSegment(chunks, isFinal) {
       if (editTarget.elId === "report-raw") {
         $("report-rendered").innerHTML = marked.parse(el.value);
       }
+      const wasMidRecording = !!editTarget.keepRecording;
       state.voiceEditTarget = null;
-      setUI(_inferUIMode());
-      setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
-                newText ? "success" : "error");
+      if (wasMidRecording && state.isRecording) {
+        // Mid-recording voice-edit: keep the UI in "recording" mode so the
+        // user can continue dictating without pressing Record again.
+        setStatus(newText ? "Voice edit applied — keep dictating."
+                          : "No speech detected — edit unchanged. Keep dictating.",
+                  "active");
+      } else {
+        setUI(_inferUIMode());
+        setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
+                  newText ? "success" : "error");
+      }
     } else {
       if (newText) {
         const existing = $("transcription").value.trim();
