@@ -341,10 +341,23 @@ async function startRecording() {
   if (state.isRecording) return; // Stop button ends recording
   state.isPaused = false;
 
-  // Belt-and-suspenders: re-read both textarea selections at click time.
-  // _grabVoiceEdit() on pointerdown is the primary path; this catches cases
-  // where pointerdown didn't fire (keyboard activation) or selection state
-  // differs from what pointerdown saw.
+  // Belt-and-suspenders: re-read selections at click time.
+  // _grabVoiceEdit() on pointerdown is the primary path; this catches keyboard
+  // activation and cross-browser edge cases.
+  if (!state.voiceEditTarget) {
+    // Check report-rendered div first (non-textarea, survives button click)
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) {
+      const reportDiv = $("report-rendered");
+      if (reportDiv && reportDiv.contains(sel.anchorNode)) {
+        const selectedText = sel.toString().trim();
+        if (selectedText) {
+          state.voiceEditTarget = { elId: "report-rendered", selectedText };
+          console.log("[voice-edit] captured rendered (belt):", JSON.stringify(selectedText));
+        }
+      }
+    }
+  }
   if (!state.voiceEditTarget) {
     for (const id of ["transcription", "report-raw"]) {
       const _el = $(id);
@@ -370,9 +383,11 @@ async function startRecording() {
     "streamingSupported:", state.streamingSupported);
 
   if (state.voiceEditTarget) {
-    // Voice edit takes precedence over streaming mode: the user explicitly
-    // selected text and wants to replace it in-place, regardless of STT mode.
-    if (state.streamingSupported) {
+    // Rendered-report edits must use segment mode — no textarea cursor position
+    // exists, so streaming insertion doesn't apply.
+    if (state.voiceEditTarget.elId === "report-rendered") {
+      await startVoiceEditRecording();
+    } else if (state.streamingSupported) {
       await startStreamingRecording();
     } else {
       await startVoiceEditRecording();
@@ -820,31 +835,44 @@ async function submitAudioSegment(chunks, isFinal) {
     console.log("[voice-edit] /transcribe returned:", JSON.stringify(newText), "editTarget still:", editTarget ? editTarget.elId : "null");
 
     if (editTarget) {
-      // Voice edit: splice transcription into the selection. Re-fetch element
-      // by ID in case the DOM was re-rendered mid-flight.
-      const el = $(editTarget.elId);
-      const { start, end } = editTarget;
-      el.value = el.value.slice(0, start) + (newText || "") + el.value.slice(end);
-      if (newText) {
-        el.selectionStart = el.selectionEnd = start + newText.length;
-        el.focus();
-      }
-      // Re-render markdown if editing the report.
-      if (editTarget.elId === "report-raw") {
-        $("report-rendered").innerHTML = marked.parse(el.value);
-      }
-      const wasMidRecording = !!editTarget.keepRecording;
-      state.voiceEditTarget = null;
-      if (wasMidRecording && state.isRecording) {
-        // Mid-recording voice-edit: keep the UI in "recording" mode so the
-        // user can continue dictating without pressing Record again.
-        setStatus(newText ? "Voice edit applied — keep dictating."
-                          : "No speech detected — edit unchanged. Keep dictating.",
-                  "active");
+      if (editTarget.elId === "report-rendered") {
+        // Voice edit on the rendered report: find-and-replace in raw markdown.
+        const raw = $("report-raw").value;
+        const updated = _spliceRenderedEdit(raw, editTarget.selectedText, newText || "");
+        state.voiceEditTarget = null;
+        if (updated !== null) {
+          $("report-raw").value = updated;
+          $("report-rendered").innerHTML = marked.parse(updated);
+          setUI(_inferUIMode());
+          setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
+                    newText ? "success" : "error");
+        } else {
+          setUI(_inferUIMode());
+          setStatus("Could not locate selected text in report — edit manually.", "error");
+        }
       } else {
-        setUI(_inferUIMode());
-        setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
-                  newText ? "success" : "error");
+        // Voice edit on a textarea: splice at selection position.
+        const el = $(editTarget.elId);
+        const { start, end } = editTarget;
+        el.value = el.value.slice(0, start) + (newText || "") + el.value.slice(end);
+        if (newText) {
+          el.selectionStart = el.selectionEnd = start + newText.length;
+          el.focus();
+        }
+        if (editTarget.elId === "report-raw") {
+          $("report-rendered").innerHTML = marked.parse(el.value);
+        }
+        const wasMidRecording = !!editTarget.keepRecording;
+        state.voiceEditTarget = null;
+        if (wasMidRecording && state.isRecording) {
+          setStatus(newText ? "Voice edit applied — keep dictating."
+                            : "No speech detected — edit unchanged. Keep dictating.",
+                    "active");
+        } else {
+          setUI(_inferUIMode());
+          setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
+                    newText ? "success" : "error");
+        }
       }
     } else {
       if (newText) {
@@ -862,6 +890,20 @@ async function submitAudioSegment(chunks, isFinal) {
     state.pendingSegments--;
     if (!editTarget) _maybeAutoFormat();
   }
+}
+
+// Find selectedText in raw markdown and replace with replacement.
+// Returns the updated string, or null if the text was not found.
+function _spliceRenderedEdit(raw, selectedText, replacement) {
+  // Verbatim match
+  const idx = raw.indexOf(selectedText);
+  if (idx !== -1) return raw.slice(0, idx) + replacement + raw.slice(idx + selectedText.length);
+  // Case-insensitive fallback (capitalisation post-processing may have changed case)
+  const lower = raw.toLowerCase();
+  const lowerSel = selectedText.toLowerCase();
+  const idxLow = lower.indexOf(lowerSel);
+  if (idxLow !== -1) return raw.slice(0, idxLow) + replacement + raw.slice(idxLow + selectedText.length);
+  return null;
 }
 
 // Infer the correct UI mode from current content after a voice edit.
@@ -1585,6 +1627,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   //   3. _pendingSelection for report-raw editing.
   const _grabVoiceEdit = () => {
     _recordPointerdownAt = Date.now(); // timestamp for blur handler guard
+
+    // Tier 0: selection in the rendered report div — survives button click.
+    const domSel = window.getSelection();
+    if (domSel && !domSel.isCollapsed) {
+      const reportDiv = $("report-rendered");
+      if (reportDiv && reportDiv.contains(domSel.anchorNode)) {
+        const selectedText = domSel.toString().trim();
+        if (selectedText) {
+          state.voiceEditTarget = { elId: "report-rendered", selectedText };
+          console.log("[voice-edit] captured rendered (tier0):", JSON.stringify(selectedText));
+          return;
+        }
+      }
+    }
 
     // Tier 1: direct read from either editable textarea.
     for (const id of ["transcription", "report-raw"]) {
