@@ -16,6 +16,7 @@
   <div class="ml-auto" style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:12px;color:var(--muted);">{{ username }}</span>
     <a href="/settings" class="btn btn-ghost btn-sm" title="Settings">&#9881; Settings</a>
+    {% if oauth_mode %}<a href="/logout" class="btn btn-ghost btn-sm" title="Sign out">&#10005; Sign out</a>{% endif %}
   </div>
 </header>
 

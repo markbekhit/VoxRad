@@ -27,17 +27,35 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 from pydantic import BaseModel
+from starlette.middleware.sessions import SessionMiddleware
 
 from config.config import config
 from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
 from llm.format import apply_report_feedback, capitalize_after_colon, format_text, stream_format_text
+from web.auth_oauth import (
+    exchange_google_code,
+    exchange_microsoft_code,
+    get_or_create_user,
+    get_user_style,
+    google_auth_url,
+    google_enabled,
+    init_db,
+    microsoft_auth_url,
+    microsoft_enabled,
+    oauth_enabled,
+    require_oauth_user,
+    save_user_style,
+    SESSION_SECRET_KEY,
+    set_session_user,
+    clear_session,
+)
 from web.stt_providers import get_streaming_provider
 
 logger = logging.getLogger(__name__)
@@ -47,7 +65,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="VoxRad Web", docs_url=None, redoc_url=None)
-security = HTTPBasic()
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY, max_age=86400)
+# auto_error=False so we can return a redirect (not a 401) when OAuth is active
+security = HTTPBasic(auto_error=False)
+
+# Initialise user database on startup (noop if already created)
+init_db()
 
 _BASE_DIR = os.path.dirname(__file__)
 app.mount(
@@ -137,14 +160,31 @@ _RADIOLOGY_PROMPT = (
 )
 
 # ---------------------------------------------------------------------------
-# HTTP Basic Auth
+# Authentication — OAuth (primary) or HTTP Basic Auth (fallback)
 # ---------------------------------------------------------------------------
 
 _DEFAULT_WEB_PASSWORD = "voxrad"
 
 
-def _verify_auth(credentials: HTTPBasicCredentials = Depends(security)) -> str:
-    """Verify HTTP Basic Auth password against VOXRAD_WEB_PASSWORD env var."""
+def _verify_auth(
+    request: Request,
+    credentials: Optional[HTTPBasicCredentials] = Depends(security),
+) -> dict:
+    """Unified auth dependency.
+
+    OAuth mode  — reads the session; returns 307 → /login if not signed in.
+    Basic Auth mode — validates the shared password; returns 401 if wrong.
+    """
+    if oauth_enabled:
+        return require_oauth_user(request)
+
+    # Basic Auth mode
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Basic"},
+        )
     expected = os.environ.get("VOXRAD_WEB_PASSWORD", _DEFAULT_WEB_PASSWORD)
     ok = secrets.compare_digest(
         credentials.password.encode("utf-8"),
@@ -156,7 +196,25 @@ def _verify_auth(credentials: HTTPBasicCredentials = Depends(security)) -> str:
             detail="Incorrect password",
             headers={"WWW-Authenticate": "Basic"},
         )
-    return credentials.username
+    return {"id": None, "email": credentials.username, "name": credentials.username}
+
+
+def _get_username(user: dict) -> str:
+    return user.get("name") or user.get("email") or "user"
+
+
+def _user_style(user: dict) -> Optional[dict]:
+    """Return per-user style dict in OAuth mode; None (→ global config) in Basic Auth mode."""
+    if oauth_enabled and user.get("id") is not None:
+        return get_user_style(user["id"])
+    return None
+
+
+def _user_fhir_enabled(user: dict) -> bool:
+    """Per-user FHIR export toggle in OAuth mode; global config in Basic Auth mode."""
+    if oauth_enabled and user.get("id") is not None:
+        return get_user_style(user["id"]).get("fhir_export_enabled", False)
+    return config.fhir_export_enabled
 
 
 # ---------------------------------------------------------------------------
@@ -298,37 +356,116 @@ if os.environ.get("VOXRAD_MOCK_MODE"):
     logger.info("[mock] Mock API routes mounted at /mock/v1/...")
 
 
+@app.get("/login")
+def login_page(request: Request):
+    return _jinja.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "request": request,
+            "google_enabled": google_enabled,
+            "microsoft_enabled": microsoft_enabled,
+            "error": request.query_params.get("error"),
+            "static_version": _STATIC_VERSION,
+        },
+    )
+
+
+@app.get("/auth/google")
+def auth_google(request: Request):
+    if not google_enabled:
+        raise HTTPException(status_code=404)
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_state"] = state
+    return RedirectResponse(google_auth_url(state))
+
+
+@app.get("/auth/google/callback")
+def auth_google_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    if error:
+        return RedirectResponse(f"/login?error={error}")
+    expected = request.session.pop("oauth_state", None)
+    if not expected or state != expected:
+        return RedirectResponse("/login?error=invalid_state")
+    try:
+        info = exchange_google_code(code)
+    except Exception as exc:
+        logger.error("Google OAuth error: %s", exc)
+        return RedirectResponse("/login?error=google_auth_failed")
+    if not info.get("email"):
+        return RedirectResponse("/login?error=no_email")
+    db_user = get_or_create_user(info["email"], info["name"], "google")
+    set_session_user(request, db_user)
+    return RedirectResponse("/")
+
+
+@app.get("/auth/microsoft")
+def auth_microsoft(request: Request):
+    if not microsoft_enabled:
+        raise HTTPException(status_code=404)
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_state"] = state
+    return RedirectResponse(microsoft_auth_url(state))
+
+
+@app.get("/auth/microsoft/callback")
+def auth_microsoft_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    if error:
+        return RedirectResponse(f"/login?error={error}")
+    expected = request.session.pop("oauth_state", None)
+    if not expected or state != expected:
+        return RedirectResponse("/login?error=invalid_state")
+    try:
+        info = exchange_microsoft_code(code)
+    except Exception as exc:
+        logger.error("Microsoft OAuth error: %s", exc)
+        return RedirectResponse("/login?error=microsoft_auth_failed")
+    if not info.get("email"):
+        return RedirectResponse("/login?error=no_email")
+    db_user = get_or_create_user(info["email"], info["name"], "microsoft")
+    set_session_user(request, db_user)
+    return RedirectResponse("/")
+
+
+@app.get("/logout")
+def logout(request: Request):
+    clear_session(request)
+    return RedirectResponse("/login")
+
+
 @app.get("/")
-def index(request: Request, username: str = Depends(_verify_auth)):
+def index(request: Request, user: dict = Depends(_verify_auth)):
+    _username = _get_username(user)
     return _jinja.TemplateResponse(
         request,
         "index.html",
         {
             "request": request,
             "templates": _list_templates(),
-            "username": username,
-            "fhir_enabled": config.fhir_export_enabled,
-            "ws_token": _make_ws_token(username),
+            "username": _username,
+            "fhir_enabled": _user_fhir_enabled(user),
+            "ws_token": _make_ws_token(_username),
             "static_version": _STATIC_VERSION,
+            "oauth_mode": oauth_enabled,
         },
     )
 
 
 @app.get("/settings")
-def settings_page(request: Request, username: str = Depends(_verify_auth)):
+def settings_page(request: Request, user: dict = Depends(_verify_auth)):
     return _jinja.TemplateResponse(
         request,
         "settings.html",
         {
             "request": request,
-            "username": username,
+            "username": _get_username(user),
             "static_version": _STATIC_VERSION,
         },
     )
 
 
 @app.get("/templates")
-def list_templates(username: str = Depends(_verify_auth)):
+def list_templates(user: dict = Depends(_verify_auth)):
     user_dir = os.path.join(config.save_directory or "", "templates")
     user_names: set[str] = set()
     if os.path.isdir(user_dir):
@@ -345,7 +482,7 @@ _TEMPLATE_NAME_RE = re.compile(r'^[\w\-. ]+\.(txt|md)$')
 
 
 @app.get("/api/templates/{name}")
-def get_template_content(name: str, username: str = Depends(_verify_auth)):
+def get_template_content(name: str, user: dict = Depends(_verify_auth)):
     if not _TEMPLATE_NAME_RE.match(name):
         raise HTTPException(status_code=400, detail="Invalid template name")
     user_dir = os.path.join(config.save_directory or "", "templates")
@@ -365,7 +502,7 @@ class _TemplateSaveBody(BaseModel):
 
 
 @app.put("/api/templates/{name}")
-def save_template_content(name: str, body: _TemplateSaveBody, username: str = Depends(_verify_auth)):
+def save_template_content(name: str, body: _TemplateSaveBody, user: dict = Depends(_verify_auth)):
     if not _TEMPLATE_NAME_RE.match(name):
         raise HTTPException(status_code=400, detail="Invalid template name")
     user_dir = os.path.join(config.save_directory or "", "templates")
@@ -376,7 +513,7 @@ def save_template_content(name: str, body: _TemplateSaveBody, username: str = De
 
 
 @app.delete("/api/templates/{name}")
-def delete_template_content(name: str, username: str = Depends(_verify_auth)):
+def delete_template_content(name: str, user: dict = Depends(_verify_auth)):
     if not _TEMPLATE_NAME_RE.match(name):
         raise HTTPException(status_code=400, detail="Invalid template name")
     user_dir = os.path.join(config.save_directory or "", "templates")
@@ -541,7 +678,7 @@ async def transcribe(
     audio: UploadFile = File(...),
     template_name: Optional[str] = Form(None),
     whisper_prompt: Optional[str] = Form(None),
-    username: str = Depends(_verify_auth),
+    user: dict = Depends(_verify_auth),
 ):
     """Accept a WebM audio blob, transcribe via Whisper-compatible API."""
     if _MOCK_MODE:
@@ -657,7 +794,7 @@ def _patient_context(req: "FormatRequest") -> Optional[dict]:
 
 
 @app.post("/format")
-def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
+def format_report(req: FormatRequest, user: dict = Depends(_verify_auth)):
     """Format a transcription into a structured radiology report."""
     if _MOCK_MODE:
         logger.info("[mock] Returning canned report")
@@ -668,14 +805,18 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
             status_code=503, detail="Text model API key not loaded on server."
         )
 
-    # Acquire lock to safely mutate config.global_md_text_content
+    _style = _user_style(user)
     with _format_lock:
         old_template = config.global_md_text_content
         config.global_md_text_content = (
             _load_template_content(req.template_name) if req.template_name else ""
         )
         try:
-            report = format_text(req.transcription, patient_context=_patient_context(req))
+            report = format_text(
+                req.transcription,
+                patient_context=_patient_context(req),
+                style=_style,
+            )
         finally:
             config.global_md_text_content = old_template
 
@@ -683,7 +824,7 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
         raise HTTPException(status_code=503, detail="Report generation failed.")
 
     fhir_saved = False
-    if config.fhir_export_enabled:
+    if _user_fhir_enabled(user):
         path = save_fhir_report(
             report_text=report,
             template_name=req.template_name,
@@ -698,7 +839,7 @@ def format_report(req: FormatRequest, username: str = Depends(_verify_auth)):
 
 
 @app.post("/format/stream")
-def format_report_stream(req: FormatRequest, username: str = Depends(_verify_auth)):
+def format_report_stream(req: FormatRequest, user: dict = Depends(_verify_auth)):
     """Stream a structured radiology report as Server-Sent Events.
 
     Each SSE event is one of:
@@ -721,26 +862,22 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
         return StreamingResponse(_err(), media_type="text/event-stream")
 
     _ctx = _patient_context(req)
+    _style = _user_style(user)
 
     def _generate():
-        # We hold the config lock only while pulling template content, then release
-        # it so the generator can stream without blocking other requests.
         with _format_lock:
             old_template = config.global_md_text_content
             config.global_md_text_content = (
                 _load_template_content(req.template_name) if req.template_name else ""
             )
-            # Snapshot the template content so we can release the lock
             _template_snapshot = config.global_md_text_content
             config.global_md_text_content = old_template
 
-        # Temporarily set the template for this call using a thread-local approach:
-        # inject directly then restore after iteration completes.
         with _format_lock:
             config.global_md_text_content = _template_snapshot
         try:
             full_report = ""
-            for chunk in stream_format_text(req.transcription, patient_context=_ctx):
+            for chunk in stream_format_text(req.transcription, patient_context=_ctx, style=_style):
                 if chunk:
                     full_report += chunk
                     yield f'data: {json.dumps({"token": chunk})}\n\n'
@@ -757,7 +894,7 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
         corrected_report = capitalize_after_colon(full_report)
 
         fhir_saved = False
-        if config.fhir_export_enabled and corrected_report:
+        if _user_fhir_enabled(user) and corrected_report:
             try:
                 path = save_fhir_report(
                     report_text=corrected_report,
@@ -786,7 +923,7 @@ class FeedbackRequest(BaseModel):
 
 
 @app.post("/format/feedback")
-def format_feedback(req: FeedbackRequest, username: str = Depends(_verify_auth)):
+def format_feedback(req: FeedbackRequest, user: dict = Depends(_verify_auth)):
     """Apply radiologist verbal feedback to refine an already-generated report.
 
     Accepts a full report, a feedback transcription, and an optional selected
@@ -815,7 +952,7 @@ def format_feedback(req: FeedbackRequest, username: str = Depends(_verify_auth))
 # ---------------------------------------------------------------------------
 
 @app.get("/patient/{accession}")
-async def lookup_patient(accession: str, username: str = Depends(_verify_auth)):
+async def lookup_patient(accession: str, user: dict = Depends(_verify_auth)):
     """Look up patient data from a configured FHIR R4 server by accession number.
 
     Requires FHIR_BASE_URL env var (e.g. https://fhir.hospital.org/r4).
@@ -947,38 +1084,65 @@ def api_capabilities():
 
 
 @app.get("/api/settings")
-def api_get_settings(username: str = Depends(_verify_auth)):
-    """Return current (non-sensitive) configuration state."""
+def api_get_settings(user: dict = Depends(_verify_auth)):
+    """Return current (non-sensitive) configuration state.
+
+    In OAuth mode, style settings are per-user; in Basic Auth mode they come
+    from the global config / settings.ini.
+    """
+    style = _user_style(user)
+    if style is None:
+        # Basic Auth mode — read from global config
+        style = {
+            "spelling":              config.style_spelling,
+            "numerals":              config.style_numerals,
+            "measurement_unit":      config.style_measurement_unit,
+            "measurement_separator": config.style_measurement_separator,
+            "decimal_precision":     config.style_decimal_precision,
+            "laterality":            config.style_laterality,
+            "impression_style":      config.style_impression_style,
+            "negation_phrasing":     config.style_negation_phrasing,
+            "date_format":           config.style_date_format,
+            "fhir_export_enabled":   config.fhir_export_enabled,
+        }
     return {
         "streaming_stt_provider": config.STREAMING_STT_PROVIDER or "",
         "transcription_base_url": config.TRANSCRIPTION_BASE_URL or "",
-        "transcription_model": config.SELECTED_TRANSCRIPTION_MODEL or "",
-        "text_base_url": config.BASE_URL or "",
-        "text_model": config.SELECTED_MODEL or "",
-        "fhir_export_enabled": config.fhir_export_enabled,
-        "style": {
-            "spelling":             config.style_spelling,
-            "numerals":             config.style_numerals,
-            "measurement_unit":     config.style_measurement_unit,
-            "measurement_separator": config.style_measurement_separator,
-            "decimal_precision":    config.style_decimal_precision,
-            "laterality":           config.style_laterality,
-            "impression_style":     config.style_impression_style,
-            "negation_phrasing":    config.style_negation_phrasing,
-            "date_format":          config.style_date_format,
-        },
+        "transcription_model":    config.SELECTED_TRANSCRIPTION_MODEL or "",
+        "text_base_url":          config.BASE_URL or "",
+        "text_model":             config.SELECTED_MODEL or "",
+        "fhir_export_enabled":    style.get("fhir_export_enabled", config.fhir_export_enabled),
+        "style":                  {k: v for k, v in style.items() if k != "fhir_export_enabled"},
+        "oauth_mode":             oauth_enabled,
         "keys": {
             "transcription": bool(config.TRANSCRIPTION_API_KEY),
-            "text": bool(config.TEXT_API_KEY),
-            "deepgram": bool(config.DEEPGRAM_API_KEY),
-            "assemblyai": bool(config.ASSEMBLYAI_API_KEY),
+            "text":          bool(config.TEXT_API_KEY),
+            "deepgram":      bool(config.DEEPGRAM_API_KEY),
+            "assemblyai":    bool(config.ASSEMBLYAI_API_KEY),
         },
     }
 
 
+_STYLE_FIELD_MAP = {
+    "style_spelling":             "spelling",
+    "style_numerals":             "numerals",
+    "style_measurement_unit":     "measurement_unit",
+    "style_measurement_separator":"measurement_separator",
+    "style_decimal_precision":    "decimal_precision",
+    "style_laterality":           "laterality",
+    "style_impression_style":     "impression_style",
+    "style_negation_phrasing":    "negation_phrasing",
+    "style_date_format":          "date_format",
+}
+
+
 @app.post("/api/settings")
-def api_save_settings(req: SettingsRequest, username: str = Depends(_verify_auth)):
-    """Persist non-sensitive settings to settings.ini."""
+def api_save_settings(req: SettingsRequest, user: dict = Depends(_verify_auth)):
+    """Persist non-sensitive settings.
+
+    Global settings (model URLs, streaming provider) → settings.ini.
+    Style preferences → per-user SQLite row (OAuth mode) or settings.ini (Basic Auth mode).
+    """
     config.STREAMING_STT_PROVIDER = req.streaming_stt_provider or None
     if req.transcription_base_url:
         config.TRANSCRIPTION_BASE_URL = req.transcription_base_url
@@ -988,34 +1152,35 @@ def api_save_settings(req: SettingsRequest, username: str = Depends(_verify_auth
         config.BASE_URL = req.text_base_url
     if req.text_model:
         config.SELECTED_MODEL = req.text_model
-    config.fhir_export_enabled = req.fhir_export_enabled
 
-    # Reporting style preferences — validate against allowed values.
-    style_fields = (
-        "style_spelling",
-        "style_numerals",
-        "style_measurement_unit",
-        "style_measurement_separator",
-        "style_decimal_precision",
-        "style_laterality",
-        "style_impression_style",
-        "style_negation_phrasing",
-        "style_date_format",
-    )
-    for field in style_fields:
-        val = getattr(req, field)
+    # Validate style fields
+    style_update: dict = {}
+    for req_field, style_key in _STYLE_FIELD_MAP.items():
+        val = getattr(req, req_field)
         if val is None:
             continue
-        allowed = _STYLE_ALLOWED[field]
+        allowed = _STYLE_ALLOWED[req_field]
         if val not in allowed:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid {field}: {val!r} (allowed: {sorted(allowed)})",
+                detail=f"Invalid {req_field}: {val!r} (allowed: {sorted(allowed)})",
             )
-        setattr(config, field, val)
+        style_update[style_key] = val
 
-    save_web_settings()
-    logger.info("Settings saved by %s", username)
+    if oauth_enabled and user.get("id") is not None:
+        # Per-user: merge with existing preferences and save to SQLite
+        existing = get_user_style(user["id"])
+        existing.update(style_update)
+        existing["fhir_export_enabled"] = req.fhir_export_enabled
+        save_user_style(user["id"], existing)
+    else:
+        # Basic Auth / global mode: write to config + settings.ini
+        config.fhir_export_enabled = req.fhir_export_enabled
+        for style_key, val in style_update.items():
+            setattr(config, f"style_{style_key}", val)
+        save_web_settings()
+
+    logger.info("Settings saved by %s", _get_username(user))
     return {"ok": True}
 
 

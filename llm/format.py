@@ -277,21 +277,27 @@ You are an advanced LLM, extensively trained in understanding dictated radiology
 """
 
 
-def _build_style_preamble() -> str:
-    """Return a reporting-style instruction block derived from user preferences.
+def _build_style_preamble(style: Optional[dict] = None) -> str:
+    """Return a reporting-style instruction block.
 
-    Every subsection is conditional on the preference differing from a sensible
-    default so the preamble stays short when users don't customise it.
+    Reads from the explicit *style* dict when provided (per-user OAuth mode);
+    falls back to the global config attributes (single-user / Basic Auth mode).
+    This avoids mutating config from multiple concurrent requests.
     """
+    def _get(key: str, default: str):
+        if style is not None:
+            return style.get(key, default)
+        return getattr(config, f"style_{key}", default)
+
     lines: list[str] = []
 
-    spelling = getattr(config, "style_spelling", "british")
+    spelling = _get("spelling", "british")
     if spelling == "american":
         lines.append("- Use American English spelling (e.g. 'edema', 'fiber', 'gray matter').")
     else:
         lines.append("- Use British English spelling (e.g. 'oedema', 'fibre', 'grey matter').")
 
-    numerals = getattr(config, "style_numerals", "roman")
+    numerals = _get("numerals", "roman")
     if numerals == "roman":
         lines.append(
             "- Use Roman numerals for tumour/injury grades and liver segments "
@@ -304,7 +310,7 @@ def _build_style_preamble() -> str:
             "and vertebral levels (e.g. 'Grade 2', 'segment 7', 'L4')."
         )
 
-    unit = getattr(config, "style_measurement_unit", "auto")
+    unit = _get("measurement_unit", "auto")
     if unit == "mm":
         lines.append("- Report all linear measurements in millimetres (mm).")
     elif unit == "cm":
@@ -315,14 +321,14 @@ def _build_style_preamble() -> str:
             "centimetres (to one decimal place)."
         )
 
-    sep = getattr(config, "style_measurement_separator", "x")
+    sep = _get("measurement_separator", "x")
     sep_char = {"x": "x", "times": "×", "by": "by"}.get(sep, "x")
     lines.append(
         f"- Separate multi-dimensional measurements with '{sep_char}' "
         f"(e.g. '12 {sep_char} 8 {sep_char} 6 mm')."
     )
 
-    prec = int(getattr(config, "style_decimal_precision", 1) or 0)
+    prec = int(_get("decimal_precision", 1) or 0)
     if prec == 0:
         lines.append("- Round measurements to the nearest whole unit (no decimals).")
     elif prec == 2:
@@ -330,13 +336,13 @@ def _build_style_preamble() -> str:
     else:
         lines.append("- Report measurements to one decimal place where dictated precision allows.")
 
-    laterality = getattr(config, "style_laterality", "full")
+    laterality = _get("laterality", "full")
     if laterality == "abbrev":
         lines.append("- Abbreviate laterality as 'Rt' and 'Lt' (e.g. 'Rt knee', 'Lt lung apex').")
     else:
         lines.append("- Spell laterality in full ('right' / 'left') — do not abbreviate to Rt/Lt.")
 
-    impression = getattr(config, "style_impression_style", "bulleted")
+    impression = _get("impression_style", "bulleted")
     if impression == "numbered":
         lines.append("- Format the Impression section as a numbered list (1., 2., 3.).")
     elif impression == "prose":
@@ -344,7 +350,7 @@ def _build_style_preamble() -> str:
     else:
         lines.append("- Format the Impression section as a bulleted list (one bullet per point).")
 
-    negation = getattr(config, "style_negation_phrasing", "no_evidence_of")
+    negation = _get("negation_phrasing", "no_evidence_of")
     if negation == "no_x_identified":
         lines.append(
             "- Phrase negative findings as 'No <finding> identified' "
@@ -361,7 +367,7 @@ def _build_style_preamble() -> str:
             "(e.g. 'No evidence of pulmonary embolism')."
         )
 
-    date_fmt = getattr(config, "style_date_format", "dd_mm_yyyy")
+    date_fmt = _get("date_format", "dd_mm_yyyy")
     fmt_map = {
         "dd_mm_yyyy": "DD/MM/YYYY (e.g. 15/03/2026)",
         "mm_dd_yyyy": "MM/DD/YYYY (e.g. 03/15/2026)",
@@ -377,7 +383,9 @@ def _build_style_preamble() -> str:
     )
 
 
-def _create_structured_report(transcript: str, template_content: str) -> Optional[str]:
+def _create_structured_report(
+    transcript: str, template_content: str, style: Optional[dict] = None
+) -> Optional[str]:
     """Generate structured report using template content.
 
     Patient context must already be prepended to transcript by the caller.
@@ -391,7 +399,7 @@ def _create_structured_report(transcript: str, template_content: str) -> Optiona
         response = client.chat.completions.create(
             model=config.SELECTED_MODEL,
             messages=[
-                {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble() + f"\nThis is the report template:\n{template_content}\n"},
+                {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble(style) + f"\nThis is the report template:\n{template_content}\n"},
                 {"role": "user", "content": "This is the transcribed text generated by Voice-to-Text Model after transcribing from audio which needs to be restructured, formatted, and corrected according to the provided system instructions.\n\n" + transcript}
             ],
             temperature=0.1
@@ -602,8 +610,12 @@ def _build_patient_context_block(patient_context: Optional[dict]) -> str:
     return "\n".join(lines) + "\n\n" if len(lines) > 1 else ""
 
 
-def format_text(text, patient_context=None):
-    """Formats the given text, incorporates template selection, and generates recommendations if needed."""
+def format_text(text, patient_context=None, style: Optional[dict] = None):
+    """Format a transcription into a structured report.
+
+    *style* is a per-user preferences dict (OAuth mode); when None the global
+    config attributes are used (single-user / Basic Auth mode).
+    """
     logger.info("Triggered format_text function.")
     ctx_block = _build_patient_context_block(patient_context)
     if ctx_block:
@@ -624,7 +636,7 @@ def format_text(text, patient_context=None):
                 logger.info(f"Template selected: {template_name}")
                 template_content = _get_template_content(template_name)
                 if template_content:
-                    report_content = _create_structured_report(text, template_content)
+                    report_content = _create_structured_report(text, template_content, style)
                 else:
                     update_status("Error loading template content. Using default formatting.")
                     logger.error("Error loading template content. Using default formatting.")
@@ -634,14 +646,12 @@ def format_text(text, patient_context=None):
                 logger.warning("Failed to automatically select a template. Using default formatting.")
                 return _basic_format(text)
         else:
-            # Use user-selected template content directly from config
             template_content = config.global_md_text_content
             update_status("Using user-selected template.")
             logger.info("Using user-selected template.")
-            report_content = _create_structured_report(text, template_content)
+            report_content = _create_structured_report(text, template_content, style)
 
         if report_content:
-            # Remove <think> tags and their content (reasoning models).
             report_content = re.sub(r'<think>.*?</think>', '', report_content, flags=re.DOTALL)
 
             if config.fhir_export_enabled:
@@ -680,7 +690,9 @@ def _basic_format(text):
     return f"Formatted Report:\n\n{text}"
 
 
-def _stream_create_structured_report(transcript: str, template_content: str):
+def _stream_create_structured_report(
+    transcript: str, template_content: str, style: Optional[dict] = None
+):
     """Streaming version of _create_structured_report. Yields text chunks.
 
     Patient context must already be prepended to transcript by the caller.
@@ -690,7 +702,7 @@ def _stream_create_structured_report(transcript: str, template_content: str):
         model=config.SELECTED_MODEL,
         stream=True,
         messages=[
-            {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble() + f"\nThis is the report template:\n{template_content}\n"},
+            {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble(style) + f"\nThis is the report template:\n{template_content}\n"},
             {"role": "user", "content": "This is the transcribed text generated by Voice-to-Text Model after transcribing from audio which needs to be restructured, formatted, and corrected according to the provided system instructions.\n\n" + transcript}
         ],
         temperature=0.1,
@@ -725,7 +737,11 @@ def _stream_create_structured_report(transcript: str, template_content: str):
                     yield remainder
 
 
-def stream_format_text(text: str, patient_context: Optional[dict] = None):
+def stream_format_text(
+    text: str,
+    patient_context: Optional[dict] = None,
+    style: Optional[dict] = None,
+):
     """Public streaming entry point — mirrors format_text() but yields text chunks.
 
     Called by the web server's /format/stream endpoint.
@@ -739,13 +755,13 @@ def stream_format_text(text: str, patient_context: Optional[dict] = None):
             if template_name:
                 template_content = _get_template_content(template_name)
                 if template_content:
-                    yield from _stream_create_structured_report(text, template_content)
+                    yield from _stream_create_structured_report(text, template_content, style)
                     return
             # Fallback
             yield _basic_format(text)
         else:
             template_content = config.global_md_text_content
-            yield from _stream_create_structured_report(text, template_content)
+            yield from _stream_create_structured_report(text, template_content, style)
     except Exception as e:
         logger.error("stream_format_text error: %s", e, exc_info=True)
         yield f"\n\n[Report generation error: {e}]"
