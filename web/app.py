@@ -37,7 +37,7 @@ from pydantic import BaseModel
 from config.config import config
 from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
-from llm.format import capitalize_after_colon, format_text, stream_format_text
+from llm.format import apply_report_feedback, capitalize_after_colon, format_text, stream_format_text
 from web.stt_providers import get_streaming_provider
 
 logger = logging.getLogger(__name__)
@@ -773,6 +773,41 @@ def format_report_stream(req: FormatRequest, username: str = Depends(_verify_aut
         yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "report": corrected_report})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Voice-feedback report refinement
+# ---------------------------------------------------------------------------
+
+class FeedbackRequest(BaseModel):
+    report: str
+    feedback: str
+    selected_text: str = ""
+
+
+@app.post("/format/feedback")
+def format_feedback(req: FeedbackRequest, username: str = Depends(_verify_auth)):
+    """Apply radiologist verbal feedback to refine an already-generated report.
+
+    Accepts a full report, a feedback transcription, and an optional selected
+    passage.  If selected_text is provided, only that passage is revised.
+    Returns {"report": "<corrected markdown>"}.
+    """
+    if _MOCK_MODE:
+        tag = f" [targeted: {req.selected_text[:40]}…]" if req.selected_text else ""
+        return {"report": req.report + f"\n\n*[Feedback applied{tag}: {req.feedback}]*"}
+
+    if not config.TEXT_API_KEY:
+        raise HTTPException(
+            status_code=503, detail="Text model API key not loaded on server."
+        )
+
+    try:
+        corrected = apply_report_feedback(req.report, req.feedback, req.selected_text)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Report refinement failed: {e}")
+
+    return {"report": corrected}
 
 
 # ---------------------------------------------------------------------------

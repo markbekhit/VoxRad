@@ -123,15 +123,23 @@
     <div class="report-card-header">
       <div class="card-title" style="margin-bottom:0;">Structured Report</div>
       <div class="row" style="gap:6px;">
+        <button id="btn-refine" class="btn btn-ghost btn-sm" disabled title="Select a passage then dictate a correction, or just dictate overall feedback">&#127908; Refine</button>
         <button id="btn-edit-toggle" class="btn btn-ghost btn-sm" disabled>&#9998; Edit</button>
         <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>&#128203; Copy</button>
       </div>
+    </div>
+    <!-- Feedback recording bar — shown while recording feedback dictation -->
+    <div id="feedback-bar" class="feedback-bar" style="display:none;">
+      <span class="rec-dot" style="display:inline-block;flex-shrink:0;"></span>
+      <span id="feedback-status" style="flex:1;">Listening for feedback…</span>
+      <button id="btn-refine-stop" class="btn btn-danger btn-sm" style="flex-shrink:0;">&#9632; Stop</button>
     </div>
     <!-- Rendered markdown view (default) -->
     <div id="report-rendered" class="report-rendered"></div>
     <!-- Raw edit textarea (shown when editing) -->
     <textarea id="report-raw" rows="16" style="display:none;" placeholder="Formatted report will appear here…"></textarea>
     <p class="voice-edit-hint" id="report-edit-hint" style="display:none;">&#128161; Select any text above, then press Record to replace it by voice.</p>
+    <p class="voice-edit-hint" id="report-refine-hint" style="display:none;">&#128161; Tip: select a passage in the report before clicking Refine to target just that section.</p>
   </div>
 
 </main>

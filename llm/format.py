@@ -649,3 +649,52 @@ def stream_format_text(text: str, patient_context: Optional[dict] = None):
     except Exception as e:
         logger.error("stream_format_text error: %s", e, exc_info=True)
         yield f"\n\n[Report generation error: {e}]"
+
+
+def apply_report_feedback(report: str, feedback: str, selected_text: str = "") -> str:
+    """Apply radiologist verbal feedback to a generated report.
+
+    If selected_text is non-empty, only that passage is revised; the rest of the
+    report is returned unchanged.  Otherwise the feedback is applied globally.
+    Returns the complete corrected report.
+    """
+    client = OpenAI(api_key=config.TEXT_API_KEY, base_url=config.BASE_URL)
+
+    if selected_text.strip():
+        system = (
+            "You are editing a radiology report. The radiologist has selected a specific passage "
+            "for revision and provided verbal feedback about it. Revise only that passage — keep "
+            "all other sections unchanged. Return the complete corrected report with no preamble "
+            "or explanation."
+        )
+        user = (
+            f"Original report:\n{report}\n\n"
+            f"Selected passage to revise:\n{selected_text}\n\n"
+            f"Radiologist feedback:\n{feedback}\n\n"
+            "Return the complete corrected report with only the selected passage revised."
+        )
+    else:
+        system = (
+            "You are editing a radiology report based on radiologist verbal feedback. "
+            "Apply the feedback to the relevant section(s). Preserve all other content and "
+            "formatting exactly. Return the complete corrected report only — no preamble."
+        )
+        user = (
+            f"Original report:\n{report}\n\n"
+            f"Radiologist feedback:\n{feedback}\n\n"
+            "Return the complete corrected report."
+        )
+
+    try:
+        resp = client.chat.completions.create(
+            model=config.SELECTED_MODEL,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.1,
+        )
+        return capitalize_after_colon(resp.choices[0].message.content.strip())
+    except Exception as e:
+        logger.error("apply_report_feedback error: %s", e, exc_info=True)
+        raise

@@ -77,6 +77,9 @@ function setUI(mode) {
   $("btn-format").disabled      = !["transcribed", "done"].includes(mode);
   $("btn-copy").disabled        = mode !== "done";
   $("btn-edit-toggle").disabled = mode !== "done";
+  $("btn-refine").disabled      = mode !== "done" || fbState.isRecording;
+  const refineHint = $("report-refine-hint");
+  if (refineHint) refineHint.style.display = mode === "done" ? "" : "none";
 
   const dot = $("rec-dot");
   if (dot) dot.style.display = (mode === "recording" || mode === "paused") ? "inline-block" : "none";
@@ -1088,6 +1091,133 @@ function initCanvasResize() {
 }
 
 // ---------------------------------------------------------------------------
+// Voice-feedback report refinement
+// ---------------------------------------------------------------------------
+const fbState = {
+  isRecording: false,
+  mediaRecorder: null,
+  stream: null,
+  chunks: [],
+  selectedText: "",   // passage selected in report-rendered when Refine was clicked
+};
+
+function _captureReportSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return "";
+  const reportDiv = $("report-rendered");
+  if (!reportDiv || !reportDiv.contains(sel.anchorNode)) return "";
+  return sel.toString().trim();
+}
+
+function _resetFeedbackUI() {
+  $("feedback-bar").style.display = "none";
+  $("btn-refine-stop").disabled = false;
+  fbState.selectedText = "";
+  fbState.isRecording = false;
+  // Re-evaluate Refine button based on current report state
+  const hasReport = !!$("report-raw").value.trim();
+  $("btn-refine").disabled = !hasReport;
+}
+
+async function startFeedback() {
+  if (state.isRecording || fbState.isRecording) return;
+
+  fbState.selectedText = _captureReportSelection();
+
+  try {
+    fbState.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    setStatus(`Microphone error: ${err.message}`, "error");
+    return;
+  }
+
+  fbState.chunks = [];
+  fbState.mediaRecorder = new MediaRecorder(fbState.stream);
+  fbState.mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) fbState.chunks.push(e.data);
+  };
+  fbState.mediaRecorder.onstop = _onFeedbackStop;
+  fbState.mediaRecorder.start();
+  fbState.isRecording = true;
+
+  // Show feedback bar, hide Refine button
+  $("btn-refine").disabled = true;
+  $("feedback-bar").style.display = "flex";
+  $("feedback-status").textContent = fbState.selectedText
+    ? `Listening… targeting "${fbState.selectedText.slice(0, 50).trimEnd()}${fbState.selectedText.length > 50 ? "…" : ""}"`
+    : "Listening for feedback…";
+}
+
+function stopFeedback() {
+  if (!fbState.isRecording || !fbState.mediaRecorder) return;
+  $("feedback-status").textContent = "Processing…";
+  $("btn-refine-stop").disabled = true;
+  fbState.mediaRecorder.stop();
+}
+
+async function _onFeedbackStop() {
+  if (fbState.stream) {
+    fbState.stream.getTracks().forEach((t) => t.stop());
+    fbState.stream = null;
+  }
+  fbState.isRecording = false;
+
+  const blob = new Blob(fbState.chunks, { type: "audio/webm" });
+  if (blob.size < MIN_SEGMENT_BYTES) {
+    _resetFeedbackUI();
+    setStatus("No speech detected — feedback unchanged.", "error");
+    return;
+  }
+
+  // Transcribe the feedback dictation
+  const fd = new FormData();
+  fd.append("audio", blob, "feedback.webm");
+
+  let feedbackText;
+  try {
+    const resp = await fetch("/transcribe", { method: "POST", body: fd });
+    if (!resp.ok) throw new Error("Transcription failed");
+    const data = await resp.json();
+    feedbackText = data.transcription?.trim();
+  } catch (err) {
+    _resetFeedbackUI();
+    setStatus(`Feedback transcription error: ${err.message}`, "error");
+    return;
+  }
+
+  if (!feedbackText) {
+    _resetFeedbackUI();
+    setStatus("No speech detected — feedback unchanged.", "error");
+    return;
+  }
+
+  // Apply the feedback to the report
+  $("feedback-status").textContent = "Applying feedback…";
+  try {
+    const resp = await fetch("/format/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        report: $("report-raw").value,
+        feedback: feedbackText,
+        selected_text: fbState.selectedText || "",
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    const data = await resp.json();
+    setReport(data.report);
+    _resetFeedbackUI();
+    setStatus("Report updated.", "success");
+  } catch (err) {
+    _resetFeedbackUI();
+    setStatus(`Feedback error: ${err.message}`, "error");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -1539,6 +1669,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btn-copy").addEventListener("click", copyReport);
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
   $("btn-lookup").addEventListener("click", lookupPatient);
+
+  // Voice feedback
+  $("btn-refine").addEventListener("click", startFeedback);
+  $("btn-refine-stop").addEventListener("click", stopFeedback);
 
   // Template editor
   $("btn-template-edit").addEventListener("click", tmplOpen);
