@@ -25,6 +25,17 @@ class Config:
     STREAMING_STT_PROVIDER = None   # "deepgram" | "assemblyai" | None
     DEEPGRAM_API_KEY = None
     ASSEMBLYAI_API_KEY = None
+    # Reporting style preferences (radiologist-facing)
+    # Vertebrae are always Arabic — see _build_style_preamble().
+    style_spelling = "british"                  # "american" | "british"
+    style_numerals = "roman"                    # "roman" | "arabic" (grades & liver segments only)
+    style_measurement_unit = "auto"             # "mm" | "cm" | "auto"
+    style_measurement_separator = "x"           # "x" | "times" | "by"  (rendered as ×, x, or "by")
+    style_decimal_precision = 1                 # 0 | 1 | 2
+    style_laterality = "full"                   # "full" (right/left) | "abbrev" (Rt/Lt)
+    style_impression_style = "bulleted"         # "bulleted" | "numbered" | "prose"
+    style_negation_phrasing = "no_evidence_of"  # "no_evidence_of" | "no_x_identified" | "x_absent"
+    style_date_format = "dd_mm_yyyy"            # "dd_mm_yyyy" | "mm_dd_yyyy" | "yyyy_mm_dd"
 
 config = Config()
 

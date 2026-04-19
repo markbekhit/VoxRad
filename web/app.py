@@ -911,6 +911,29 @@ class SettingsRequest(BaseModel):
     text_base_url: Optional[str] = None
     text_model: Optional[str] = None
     fhir_export_enabled: bool = False
+    # Reporting style preferences
+    style_spelling: Optional[str] = None
+    style_numerals: Optional[str] = None
+    style_measurement_unit: Optional[str] = None
+    style_measurement_separator: Optional[str] = None
+    style_decimal_precision: Optional[int] = None
+    style_laterality: Optional[str] = None
+    style_impression_style: Optional[str] = None
+    style_negation_phrasing: Optional[str] = None
+    style_date_format: Optional[str] = None
+
+
+_STYLE_ALLOWED = {
+    "style_spelling": {"american", "british"},
+    "style_numerals": {"roman", "arabic"},
+    "style_measurement_unit": {"mm", "cm", "auto"},
+    "style_measurement_separator": {"x", "times", "by"},
+    "style_decimal_precision": {0, 1, 2},
+    "style_laterality": {"full", "abbrev"},
+    "style_impression_style": {"bulleted", "numbered", "prose"},
+    "style_negation_phrasing": {"no_evidence_of", "no_x_identified", "x_absent"},
+    "style_date_format": {"dd_mm_yyyy", "mm_dd_yyyy", "yyyy_mm_dd"},
+}
 
 
 @app.get("/api/capabilities")
@@ -933,6 +956,17 @@ def api_get_settings(username: str = Depends(_verify_auth)):
         "text_base_url": config.BASE_URL or "",
         "text_model": config.SELECTED_MODEL or "",
         "fhir_export_enabled": config.fhir_export_enabled,
+        "style": {
+            "spelling":             config.style_spelling,
+            "numerals":             config.style_numerals,
+            "measurement_unit":     config.style_measurement_unit,
+            "measurement_separator": config.style_measurement_separator,
+            "decimal_precision":    config.style_decimal_precision,
+            "laterality":           config.style_laterality,
+            "impression_style":     config.style_impression_style,
+            "negation_phrasing":    config.style_negation_phrasing,
+            "date_format":          config.style_date_format,
+        },
         "keys": {
             "transcription": bool(config.TRANSCRIPTION_API_KEY),
             "text": bool(config.TEXT_API_KEY),
@@ -955,6 +989,31 @@ def api_save_settings(req: SettingsRequest, username: str = Depends(_verify_auth
     if req.text_model:
         config.SELECTED_MODEL = req.text_model
     config.fhir_export_enabled = req.fhir_export_enabled
+
+    # Reporting style preferences — validate against allowed values.
+    style_fields = (
+        "style_spelling",
+        "style_numerals",
+        "style_measurement_unit",
+        "style_measurement_separator",
+        "style_decimal_precision",
+        "style_laterality",
+        "style_impression_style",
+        "style_negation_phrasing",
+        "style_date_format",
+    )
+    for field in style_fields:
+        val = getattr(req, field)
+        if val is None:
+            continue
+        allowed = _STYLE_ALLOWED[field]
+        if val not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid {field}: {val!r} (allowed: {sorted(allowed)})",
+            )
+        setattr(config, field, val)
+
     save_web_settings()
     logger.info("Settings saved by %s", username)
     return {"ok": True}

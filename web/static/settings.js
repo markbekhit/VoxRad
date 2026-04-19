@@ -78,6 +78,24 @@ async function loadSettings() {
     if ($("text_model"))             $("text_model").value             = data.text_model             || "";
     if ($("fhir_export_enabled"))    $("fhir_export_enabled").checked  = !!data.fhir_export_enabled;
 
+    // Reporting style
+    const style = data.style || {};
+    const styleFields = [
+      ["style_spelling",             style.spelling],
+      ["style_numerals",             style.numerals],
+      ["style_measurement_unit",     style.measurement_unit],
+      ["style_measurement_separator", style.measurement_separator],
+      ["style_decimal_precision",    style.decimal_precision],
+      ["style_laterality",           style.laterality],
+      ["style_impression_style",     style.impression_style],
+      ["style_negation_phrasing",    style.negation_phrasing],
+      ["style_date_format",          style.date_format],
+    ];
+    for (const [id, val] of styleFields) {
+      const el = $(id);
+      if (el && val != null) el.value = String(val);
+    }
+
     // Render badges
     setBadge("badge-groq",       data.keys.transcription);
     setBadge("badge-deepgram",   data.keys.deepgram);
@@ -107,6 +125,18 @@ async function saveSettings() {
     text_base_url:          ($("text_base_url")          || {}).value || null,
     text_model:             ($("text_model")             || {}).value || null,
     fhir_export_enabled:    !!($("fhir_export_enabled")  || {}).checked,
+    style_spelling:              ($("style_spelling")              || {}).value || null,
+    style_numerals:              ($("style_numerals")              || {}).value || null,
+    style_measurement_unit:      ($("style_measurement_unit")      || {}).value || null,
+    style_measurement_separator: ($("style_measurement_separator") || {}).value || null,
+    style_decimal_precision:     (() => {
+      const v = ($("style_decimal_precision") || {}).value;
+      return v === "" || v == null ? null : parseInt(v, 10);
+    })(),
+    style_laterality:            ($("style_laterality")            || {}).value || null,
+    style_impression_style:      ($("style_impression_style")      || {}).value || null,
+    style_negation_phrasing:     ($("style_negation_phrasing")     || {}).value || null,
+    style_date_format:           ($("style_date_format")           || {}).value || null,
   };
 
   const btn = $("btn-save");

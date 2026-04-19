@@ -96,6 +96,100 @@
     </div>
   </div>
 
+  <!-- ── Reporting Style ── -->
+  <div class="card">
+    <div class="settings-section">
+      <div class="settings-section-title">Reporting Style</div>
+      <p class="settings-info" style="margin-bottom:10px;">
+        These preferences are injected into the LLM prompt used to format every report.
+        They override any contrary wording in the selected template.
+      </p>
+
+      <div class="style-grid">
+        <div class="settings-field">
+          <label for="style_spelling">Spelling</label>
+          <select id="style_spelling">
+            <option value="british">British (oedema, fibre)</option>
+            <option value="american">American (edema, fiber)</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_numerals">Numerals for grades &amp; liver segments</label>
+          <select id="style_numerals">
+            <option value="roman">Roman (Grade II, segment VII)</option>
+            <option value="arabic">Arabic (Grade 2, segment 7)</option>
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+            Vertebral levels are always Arabic (L4, T11) regardless of this setting.
+          </div>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_measurement_unit">Measurement unit</label>
+          <select id="style_measurement_unit">
+            <option value="auto">Auto (mm &lt; 10, cm ≥ 10)</option>
+            <option value="mm">Always millimetres (mm)</option>
+            <option value="cm">Always centimetres (cm)</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_measurement_separator">Measurement separator</label>
+          <select id="style_measurement_separator">
+            <option value="x">x (12 x 8 x 6 mm)</option>
+            <option value="times">× (12 × 8 × 6 mm)</option>
+            <option value="by">by (12 by 8 by 6 mm)</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_decimal_precision">Decimal precision</label>
+          <select id="style_decimal_precision">
+            <option value="0">0 (whole numbers)</option>
+            <option value="1">1 decimal place</option>
+            <option value="2">2 decimal places</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_laterality">Laterality</label>
+          <select id="style_laterality">
+            <option value="full">Full (right / left)</option>
+            <option value="abbrev">Abbreviated (Rt / Lt)</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_impression_style">Impression format</label>
+          <select id="style_impression_style">
+            <option value="bulleted">Bulleted list</option>
+            <option value="numbered">Numbered list</option>
+            <option value="prose">Prose paragraph</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_negation_phrasing">Negation phrasing</label>
+          <select id="style_negation_phrasing">
+            <option value="no_evidence_of">No evidence of X</option>
+            <option value="no_x_identified">No X identified</option>
+            <option value="x_absent">X is absent</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label for="style_date_format">Date format</label>
+          <select id="style_date_format">
+            <option value="dd_mm_yyyy">DD/MM/YYYY</option>
+            <option value="mm_dd_yyyy">MM/DD/YYYY</option>
+            <option value="yyyy_mm_dd">YYYY-MM-DD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── FHIR Export ── -->
   <div class="card">
     <div class="settings-section">

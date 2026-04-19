@@ -302,6 +302,11 @@ details > summary::-webkit-details-marker { display: none; }
 /* ── Keys status grid ── */
 .keys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 500px) { .keys-grid { grid-template-columns: 1fr; } }
+
+/* ── Reporting style grid ── */
+.style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+@media (max-width: 600px) { .style-grid { grid-template-columns: 1fr; } }
+.style-grid .settings-field { margin-bottom: 0; }
 .key-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 12px; }
 
 /* ── Template editor modal ── */

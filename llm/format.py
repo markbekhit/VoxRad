@@ -277,6 +277,106 @@ You are an advanced LLM, extensively trained in understanding dictated radiology
 """
 
 
+def _build_style_preamble() -> str:
+    """Return a reporting-style instruction block derived from user preferences.
+
+    Every subsection is conditional on the preference differing from a sensible
+    default so the preamble stays short when users don't customise it.
+    """
+    lines: list[str] = []
+
+    spelling = getattr(config, "style_spelling", "british")
+    if spelling == "american":
+        lines.append("- Use American English spelling (e.g. 'edema', 'fiber', 'gray matter').")
+    else:
+        lines.append("- Use British English spelling (e.g. 'oedema', 'fibre', 'grey matter').")
+
+    numerals = getattr(config, "style_numerals", "roman")
+    if numerals == "roman":
+        lines.append(
+            "- Use Roman numerals for tumour/injury grades and liver segments "
+            "(e.g. 'Grade II', 'segment VII'). **Always use Arabic numerals for "
+            "vertebral levels** (e.g. 'L4', 'T11', 'C5/6') — never Roman."
+        )
+    else:
+        lines.append(
+            "- Use Arabic numerals throughout, including grades, liver segments "
+            "and vertebral levels (e.g. 'Grade 2', 'segment 7', 'L4')."
+        )
+
+    unit = getattr(config, "style_measurement_unit", "auto")
+    if unit == "mm":
+        lines.append("- Report all linear measurements in millimetres (mm).")
+    elif unit == "cm":
+        lines.append("- Report all linear measurements in centimetres (cm).")
+    else:
+        lines.append(
+            "- Report measurements under 10 mm in millimetres; 10 mm or larger in "
+            "centimetres (to one decimal place)."
+        )
+
+    sep = getattr(config, "style_measurement_separator", "x")
+    sep_char = {"x": "x", "times": "×", "by": "by"}.get(sep, "x")
+    lines.append(
+        f"- Separate multi-dimensional measurements with '{sep_char}' "
+        f"(e.g. '12 {sep_char} 8 {sep_char} 6 mm')."
+    )
+
+    prec = int(getattr(config, "style_decimal_precision", 1) or 0)
+    if prec == 0:
+        lines.append("- Round measurements to the nearest whole unit (no decimals).")
+    elif prec == 2:
+        lines.append("- Report measurements to two decimal places where dictated precision allows.")
+    else:
+        lines.append("- Report measurements to one decimal place where dictated precision allows.")
+
+    laterality = getattr(config, "style_laterality", "full")
+    if laterality == "abbrev":
+        lines.append("- Abbreviate laterality as 'Rt' and 'Lt' (e.g. 'Rt knee', 'Lt lung apex').")
+    else:
+        lines.append("- Spell laterality in full ('right' / 'left') — do not abbreviate to Rt/Lt.")
+
+    impression = getattr(config, "style_impression_style", "bulleted")
+    if impression == "numbered":
+        lines.append("- Format the Impression section as a numbered list (1., 2., 3.).")
+    elif impression == "prose":
+        lines.append("- Format the Impression section as flowing prose, not a list.")
+    else:
+        lines.append("- Format the Impression section as a bulleted list (one bullet per point).")
+
+    negation = getattr(config, "style_negation_phrasing", "no_evidence_of")
+    if negation == "no_x_identified":
+        lines.append(
+            "- Phrase negative findings as 'No <finding> identified' "
+            "(e.g. 'No pulmonary embolism identified')."
+        )
+    elif negation == "x_absent":
+        lines.append(
+            "- Phrase negative findings as '<Finding> is absent' "
+            "(e.g. 'Pulmonary embolism is absent')."
+        )
+    else:
+        lines.append(
+            "- Phrase negative findings as 'No evidence of <finding>' "
+            "(e.g. 'No evidence of pulmonary embolism')."
+        )
+
+    date_fmt = getattr(config, "style_date_format", "dd_mm_yyyy")
+    fmt_map = {
+        "dd_mm_yyyy": "DD/MM/YYYY (e.g. 15/03/2026)",
+        "mm_dd_yyyy": "MM/DD/YYYY (e.g. 03/15/2026)",
+        "yyyy_mm_dd": "YYYY-MM-DD (e.g. 2026-03-15)",
+    }
+    lines.append(f"- Format all dates as {fmt_map.get(date_fmt, fmt_map['dd_mm_yyyy'])}.")
+
+    return (
+        "\n**Reporting style preferences** (apply consistently throughout the "
+        "report, overriding any contrary wording in the template):\n"
+        + "\n".join(lines)
+        + "\n"
+    )
+
+
 def _create_structured_report(transcript: str, template_content: str) -> Optional[str]:
     """Generate structured report using template content.
 
@@ -291,7 +391,7 @@ def _create_structured_report(transcript: str, template_content: str) -> Optiona
         response = client.chat.completions.create(
             model=config.SELECTED_MODEL,
             messages=[
-                {"role": "system", "content": _REPORT_SYSTEM_PROMPT + f"\nThis is the report template:\n{template_content}\n"},
+                {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble() + f"\nThis is the report template:\n{template_content}\n"},
                 {"role": "user", "content": "This is the transcribed text generated by Voice-to-Text Model after transcribing from audio which needs to be restructured, formatted, and corrected according to the provided system instructions.\n\n" + transcript}
             ],
             temperature=0.1
@@ -590,7 +690,7 @@ def _stream_create_structured_report(transcript: str, template_content: str):
         model=config.SELECTED_MODEL,
         stream=True,
         messages=[
-            {"role": "system", "content": _REPORT_SYSTEM_PROMPT + f"\nThis is the report template:\n{template_content}\n"},
+            {"role": "system", "content": _REPORT_SYSTEM_PROMPT + _build_style_preamble() + f"\nThis is the report template:\n{template_content}\n"},
             {"role": "user", "content": "This is the transcribed text generated by Voice-to-Text Model after transcribing from audio which needs to be restructured, formatted, and corrected according to the provided system instructions.\n\n" + transcript}
         ],
         temperature=0.1,

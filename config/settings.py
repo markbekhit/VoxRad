@@ -61,6 +61,21 @@ def load_settings(web_mode: bool = False):
         config.BASE_URL = "https://api.openai.com/v1"
         config.SELECTED_MODEL = "gpt-4o-mini"
 
+    if "STYLE" in config_parser:
+        s = config_parser["STYLE"]
+        config.style_spelling              = s.get("Spelling", config.style_spelling)
+        config.style_numerals              = s.get("Numerals", config.style_numerals)
+        config.style_measurement_unit      = s.get("MeasurementUnit", config.style_measurement_unit)
+        config.style_measurement_separator = s.get("MeasurementSeparator", config.style_measurement_separator)
+        try:
+            config.style_decimal_precision = int(s.get("DecimalPrecision", config.style_decimal_precision))
+        except (TypeError, ValueError):
+            pass
+        config.style_laterality            = s.get("Laterality", config.style_laterality)
+        config.style_impression_style      = s.get("ImpressionStyle", config.style_impression_style)
+        config.style_negation_phrasing     = s.get("NegationPhrasing", config.style_negation_phrasing)
+        config.style_date_format           = s.get("DateFormat", config.style_date_format)
+
     logger.debug("Using save_directory: %s", config.save_directory)
     logger.debug("Using Transcription Base URL: %s", config.TRANSCRIPTION_BASE_URL)
     logger.debug("Using Text Base URL: %s", config.BASE_URL)
@@ -219,6 +234,17 @@ def save_web_settings():
     config_parser["DEFAULT"]["SelectedModel"] = config.SELECTED_MODEL or ""
     config_parser["DEFAULT"]["FhirExportEnabled"] = str(config.fhir_export_enabled)
     config_parser["DEFAULT"]["StreamingSTTProvider"] = config.STREAMING_STT_PROVIDER or ""
+    if "STYLE" not in config_parser:
+        config_parser["STYLE"] = {}
+    config_parser["STYLE"]["Spelling"]             = config.style_spelling
+    config_parser["STYLE"]["Numerals"]             = config.style_numerals
+    config_parser["STYLE"]["MeasurementUnit"]      = config.style_measurement_unit
+    config_parser["STYLE"]["MeasurementSeparator"] = config.style_measurement_separator
+    config_parser["STYLE"]["DecimalPrecision"]     = str(config.style_decimal_precision)
+    config_parser["STYLE"]["Laterality"]           = config.style_laterality
+    config_parser["STYLE"]["ImpressionStyle"]      = config.style_impression_style
+    config_parser["STYLE"]["NegationPhrasing"]     = config.style_negation_phrasing
+    config_parser["STYLE"]["DateFormat"]           = config.style_date_format
     with open(get_default_config_path(), "w") as f:
         config_parser.write(f)
 
