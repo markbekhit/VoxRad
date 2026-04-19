@@ -30,15 +30,12 @@ Chest X-Ray (CXR)
 **Technical Adequacy**
 - Comment on rotation, inspiratory effort, and exposure if suboptimal. Omit this section entirely if technically adequate.
 
-**Lungs**
-- Default: "The lungs are clear bilaterally. No focal consolidation, collapse, or nodule."
+**Lungs and Pleural Spaces**
+- Default: "The lungs and pleural spaces are clear, with no confluent consolidation, pleural effusion or pneumothorax."
 - If pathology: describe by zone (upper/mid/lower), laterality, morphology, and distribution.
 
 **Hila**
 - Default: "Hila normal in size and density."
-
-**Pleura**
-- Default: "No pleural effusion, pneumothorax, or pleural thickening."
 
 **Cardiomediastinum**
 - Default: "Cardiomediastinal contour is normal. Trachea central. Aortic knuckle unremarkable."
@@ -60,7 +57,7 @@ Chest X-Ray (CXR)
 Lines, tubes, and devices — comment if present.
 
 - **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
-[correct spellings] chest x-ray PA. The lungs are clear bilaterally, no consolidation, effusion, or pneumothorax. Hila normal. Cardiomediastinal contour is normal. Trachea central. Costophrenic angles sharp. No suspicious osseous lesion, no rib fracture. Soft tissues unremarkable. No free air under the diaphragm. [correct spellings]
+[correct spellings] chest x-ray PA. The lungs and pleural spaces are clear, with no confluent consolidation, pleural effusion or pneumothorax. Hila normal. Cardiomediastinal contour is normal. Trachea central. Costophrenic angles sharp. No suspicious osseous lesion, no rib fracture. Soft tissues unremarkable. No free air under the diaphragm. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
