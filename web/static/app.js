@@ -1231,6 +1231,138 @@ async function tmplNew() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Template upload
+// ---------------------------------------------------------------------------
+const _TMPL_WRAP_HEADER = `### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Clinical Details
+**Instructions:**
+- **If provided:** 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions].'
+  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
+- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+
+### Findings:
+**Instructions:**
+- Describe pathological structures specifically. Normal structures within the same anatomical group may be combined into a single statement — do not force a separate bullet for every structure when all are normal.
+- For any structure the radiologist did not comment on, use standard normal radiological terminology.
+- Follow the structure below.
+
+`;
+
+const _TMPL_WRAP_FOOTER = `
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key positive findings.
+- Omit normal findings from the impression unless clinically significant.
+
+---
+`;
+
+let _tmplUploadFile = null;   // File object
+
+function _tmplSanitizeFilename(raw) {
+  if (!raw) return "";
+  let name = raw.trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9_\-. ]/g, "");
+  if (!/\.(txt|md)$/i.test(name)) name += ".txt";
+  return name;
+}
+
+function _tmplUploadValidate() {
+  const nameInput = $("tmpl-upload-name");
+  const confirmBtn = $("tmpl-upload-confirm");
+  const warn = $("tmpl-upload-warn");
+  const raw = nameInput.value.trim();
+  if (!_tmplUploadFile || !raw) {
+    confirmBtn.disabled = true;
+    warn.style.display = "none";
+    return;
+  }
+  if (!/^[A-Za-z0-9_\-. ]+\.(txt|md)$/i.test(raw)) {
+    confirmBtn.disabled = true;
+    warn.textContent = "⚠ Filename must contain only letters, numbers, spaces, dots, dashes, underscores, and end in .txt or .md";
+    warn.style.display = "block";
+    return;
+  }
+  const clash = _tmplData.find(t => t.name.toLowerCase() === raw.toLowerCase());
+  if (clash) {
+    warn.textContent = clash.is_custom
+      ? `⚠ "${raw}" already exists as a custom template — uploading will overwrite it.`
+      : `⚠ "${raw}" matches a bundled template — uploading will create a custom version that overrides it.`;
+    warn.style.display = "block";
+  } else {
+    warn.style.display = "none";
+  }
+  confirmBtn.disabled = false;
+}
+
+function _tmplUploadOpen(file) {
+  _tmplUploadFile = file;
+  $("tmpl-upload-source").textContent = `Source: ${file.name} (${Math.round(file.size / 1024 * 10) / 10} KB)`;
+  $("tmpl-upload-name").value = _tmplSanitizeFilename(file.name);
+  $("tmpl-upload-mode-asis").checked = true;
+  $("tmpl-upload-warn").style.display = "none";
+  $("tmpl-upload-modal").style.display = "flex";
+  _tmplUploadValidate();
+  setTimeout(() => $("tmpl-upload-name").focus(), 0);
+}
+
+function _tmplUploadClose() {
+  $("tmpl-upload-modal").style.display = "none";
+  $("tmpl-upload-input").value = "";
+  _tmplUploadFile = null;
+}
+
+async function _tmplUploadConfirm() {
+  if (!_tmplUploadFile) return;
+  const filename = _tmplSanitizeFilename($("tmpl-upload-name").value);
+  if (!filename) return;
+
+  const mode = document.querySelector('input[name="tmpl_upload_mode"]:checked').value;
+  let content;
+  try {
+    content = await _tmplUploadFile.text();
+  } catch (_) {
+    $("tmpl-upload-warn").textContent = "⚠ Failed to read file.";
+    $("tmpl-upload-warn").style.display = "block";
+    return;
+  }
+  if (mode === "wrap") {
+    content = _TMPL_WRAP_HEADER + content.trimEnd() + _TMPL_WRAP_FOOTER;
+  }
+
+  const clash = _tmplData.find(t => t.name.toLowerCase() === filename.toLowerCase());
+  if (clash && clash.is_custom && !confirm(`"${filename}" already exists. Overwrite?`)) return;
+
+  const confirmBtn = $("tmpl-upload-confirm");
+  confirmBtn.disabled = true;
+  const r = await fetch(`/api/templates/${encodeURIComponent(filename)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (r.ok) {
+    _tmplUploadClose();
+    await _tmplFetchList();
+    await _tmplSelect(filename);
+    _tmplSyncDropdown();
+    $("tmpl-status").textContent = "Uploaded ✓";
+  } else {
+    $("tmpl-upload-warn").textContent = "⚠ Upload failed.";
+    $("tmpl-upload-warn").style.display = "block";
+    confirmBtn.disabled = false;
+  }
+}
+
 function _tmplSyncDropdown() {
   fetch("/templates")
     .then(r => r.json())
@@ -1418,7 +1550,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("tmpl-search").addEventListener("input", () => _tmplRenderList());
   $("tmpl-content").addEventListener("input", _tmplMarkDirty);
   $("tmpl-modal").addEventListener("click", (e) => { if (e.target === $("tmpl-modal")) tmplClose(); });
+
+  // Upload wiring
+  $("tmpl-upload").addEventListener("click", () => $("tmpl-upload-input").click());
+  $("tmpl-upload-input").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) _tmplUploadOpen(file);
+  });
+  $("tmpl-upload-close").addEventListener("click", _tmplUploadClose);
+  $("tmpl-upload-cancel").addEventListener("click", _tmplUploadClose);
+  $("tmpl-upload-confirm").addEventListener("click", _tmplUploadConfirm);
+  $("tmpl-upload-name").addEventListener("input", _tmplUploadValidate);
+  $("tmpl-upload-modal").addEventListener("click", (e) => {
+    if (e.target === $("tmpl-upload-modal")) _tmplUploadClose();
+  });
+
   document.addEventListener("keydown", (e) => {
+    if ($("tmpl-upload-modal").style.display !== "none") {
+      if (e.key === "Escape") _tmplUploadClose();
+      return;
+    }
     if ($("tmpl-modal").style.display !== "none") {
       if (e.key === "Escape") tmplClose();
       if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); tmplSave(); }
