@@ -322,7 +322,62 @@ def settings_page(request: Request, username: str = Depends(_verify_auth)):
 
 @app.get("/templates")
 def list_templates(username: str = Depends(_verify_auth)):
-    return {"templates": _list_templates()}
+    user_dir = os.path.join(config.save_directory or "", "templates")
+    user_names: set[str] = set()
+    if os.path.isdir(user_dir):
+        user_names = {f for f in os.listdir(user_dir) if f.endswith((".txt", ".md"))}
+    return {
+        "templates": [
+            {"name": t, "is_custom": t in user_names}
+            for t in _list_templates()
+        ]
+    }
+
+
+_TEMPLATE_NAME_RE = re.compile(r'^[\w\-. ]+\.(txt|md)$')
+
+
+@app.get("/api/templates/{name}")
+def get_template_content(name: str, username: str = Depends(_verify_auth)):
+    if not _TEMPLATE_NAME_RE.match(name):
+        raise HTTPException(status_code=400, detail="Invalid template name")
+    user_dir = os.path.join(config.save_directory or "", "templates")
+    user_path = os.path.join(user_dir, name)
+    bundled_path = os.path.join(_BUNDLED_TEMPLATES_DIR, name)
+    if os.path.exists(user_path):
+        with open(user_path, "r", encoding="utf-8") as f:
+            return {"content": f.read(), "is_custom": True}
+    if os.path.exists(bundled_path):
+        with open(bundled_path, "r", encoding="utf-8") as f:
+            return {"content": f.read(), "is_custom": False}
+    raise HTTPException(status_code=404, detail="Template not found")
+
+
+class _TemplateSaveBody(BaseModel):
+    content: str
+
+
+@app.put("/api/templates/{name}")
+def save_template_content(name: str, body: _TemplateSaveBody, username: str = Depends(_verify_auth)):
+    if not _TEMPLATE_NAME_RE.match(name):
+        raise HTTPException(status_code=400, detail="Invalid template name")
+    user_dir = os.path.join(config.save_directory or "", "templates")
+    os.makedirs(user_dir, exist_ok=True)
+    with open(os.path.join(user_dir, name), "w", encoding="utf-8") as f:
+        f.write(body.content)
+    return {"ok": True}
+
+
+@app.delete("/api/templates/{name}")
+def delete_template_content(name: str, username: str = Depends(_verify_auth)):
+    if not _TEMPLATE_NAME_RE.match(name):
+        raise HTTPException(status_code=400, detail="Invalid template name")
+    user_dir = os.path.join(config.save_directory or "", "templates")
+    path = os.path.join(user_dir, name)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="No custom version found")
+    os.remove(path)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

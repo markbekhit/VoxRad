@@ -35,6 +35,7 @@
           {% endfor %}
         </select>
       </div>
+      <button id="btn-template-edit" class="btn btn-ghost btn-sm" type="button" title="View / edit templates" style="flex-shrink:0;margin-bottom:1px;">&#9998; Edit</button>
     </div>
 
     <details style="margin-top:10px;" open>
@@ -140,6 +141,37 @@
   Credentials are sent in cleartext over plain HTTP — run behind HTTPS in production.
   Reports contain PHI: treat this server accordingly.
 </footer>
+
+<!-- ── Template Editor Modal ── -->
+<div id="tmpl-modal" class="tmpl-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Template Editor">
+  <div class="tmpl-modal">
+    <!-- Left: list -->
+    <div class="tmpl-sidebar">
+      <div class="tmpl-sidebar-header">
+        <span class="card-title" style="margin-bottom:0;">Templates</span>
+        <button id="tmpl-new" class="btn btn-ghost btn-sm" title="Create new template">+ New</button>
+      </div>
+      <input id="tmpl-search" type="text" class="tmpl-search" placeholder="Search…" autocomplete="off" />
+      <ul id="tmpl-list" class="tmpl-list"></ul>
+    </div>
+    <!-- Right: editor -->
+    <div class="tmpl-editor-pane">
+      <div class="tmpl-editor-header">
+        <span id="tmpl-editor-title" style="font-weight:600;font-size:13px;color:var(--muted);">Select a template</span>
+        <button id="tmpl-close" class="btn btn-ghost btn-sm" title="Close (Esc)">&#10005;</button>
+      </div>
+      <textarea id="tmpl-content" class="tmpl-textarea" placeholder="Select a template from the list…" spellcheck="false"></textarea>
+      <div class="tmpl-actions">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="tmpl-save" class="btn btn-secondary btn-sm" disabled>&#10003; Save</button>
+          <button id="tmpl-restore" class="btn btn-ghost btn-sm" style="display:none;" title="Delete your custom version and revert to the bundled default">&#8635; Restore default</button>
+          <button id="tmpl-duplicate" class="btn btn-ghost btn-sm" disabled>Duplicate&hellip;</button>
+        </div>
+        <span id="tmpl-status" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/static/app.js?v={{ static_version }}"></script>

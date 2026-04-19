@@ -1090,6 +1090,164 @@ function initCanvasResize() {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Template editor modal
+// ---------------------------------------------------------------------------
+let _tmplData = [];         // [{name, is_custom}]
+let _tmplCurrent = null;    // {name, is_custom}
+let _tmplDirty = false;
+
+async function tmplOpen() {
+  $("tmpl-modal").style.display = "flex";
+  await _tmplFetchList();
+}
+
+function tmplClose() {
+  if (_tmplDirty && !confirm("You have unsaved changes. Close anyway?")) return;
+  $("tmpl-modal").style.display = "none";
+  _tmplDirty = false;
+}
+
+async function _tmplFetchList() {
+  const r = await fetch("/templates");
+  const data = await r.json();
+  _tmplData = data.templates;   // [{name, is_custom}]
+  _tmplRenderList();
+}
+
+function _tmplRenderList() {
+  const q = $("tmpl-search").value.toLowerCase();
+  const ul = $("tmpl-list");
+  ul.innerHTML = "";
+  _tmplData
+    .filter(t => !q || t.name.toLowerCase().includes(q))
+    .forEach(t => {
+      const li = document.createElement("li");
+      li.dataset.name = t.name;
+      if (_tmplCurrent && t.name === _tmplCurrent.name) li.classList.add("tmpl-active");
+      const label = t.name.replace(/_/g, " ").replace(/\.(txt|md)$/, "");
+      li.innerHTML = `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>`
+        + (t.is_custom ? `<span class="tmpl-badge">Custom</span>` : "");
+      li.addEventListener("click", () => _tmplSelect(t.name));
+      ul.appendChild(li);
+    });
+}
+
+async function _tmplSelect(name) {
+  if (_tmplDirty && !confirm("You have unsaved changes. Switch template anyway?")) return;
+  _tmplDirty = false;
+
+  document.querySelectorAll("#tmpl-list li").forEach(li =>
+    li.classList.toggle("tmpl-active", li.dataset.name === name)
+  );
+
+  $("tmpl-status").textContent = "Loading…";
+  const r = await fetch(`/api/templates/${encodeURIComponent(name)}`);
+  if (!r.ok) { $("tmpl-status").textContent = "Failed to load."; return; }
+  const data = await r.json();
+
+  _tmplCurrent = { name, is_custom: data.is_custom };
+  const titleEl = $("tmpl-editor-title");
+  titleEl.textContent = name.replace(/_/g, " ").replace(/\.(txt|md)$/, "");
+  titleEl.classList.remove("tmpl-dirty");
+  $("tmpl-content").value = data.content;
+  $("tmpl-save").disabled = false;
+  $("tmpl-duplicate").disabled = false;
+  $("tmpl-restore").style.display = data.is_custom ? "inline-flex" : "none";
+  $("tmpl-status").textContent = data.is_custom ? "Custom version" : "Bundled default";
+}
+
+function _tmplMarkDirty() {
+  if (!_tmplCurrent) return;
+  _tmplDirty = true;
+  $("tmpl-editor-title").classList.add("tmpl-dirty");
+}
+
+async function tmplSave() {
+  if (!_tmplCurrent) return;
+  $("tmpl-status").textContent = "Saving…";
+  $("tmpl-save").disabled = true;
+  const r = await fetch(`/api/templates/${encodeURIComponent(_tmplCurrent.name)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: $("tmpl-content").value }),
+  });
+  $("tmpl-save").disabled = false;
+  if (r.ok) {
+    _tmplDirty = false;
+    _tmplCurrent.is_custom = true;
+    $("tmpl-editor-title").classList.remove("tmpl-dirty");
+    $("tmpl-restore").style.display = "inline-flex";
+    $("tmpl-status").textContent = "Saved ✓  (Custom version)";
+    await _tmplFetchList();
+  } else {
+    $("tmpl-status").textContent = "Save failed.";
+  }
+}
+
+async function tmplRestore() {
+  if (!_tmplCurrent) return;
+  const label = _tmplCurrent.name.replace(/_/g, " ").replace(/\.(txt|md)$/, "");
+  if (!confirm(`Restore "${label}" to the bundled default? Your customisation will be deleted.`)) return;
+  const r = await fetch(`/api/templates/${encodeURIComponent(_tmplCurrent.name)}`, { method: "DELETE" });
+  if (r.ok) {
+    _tmplDirty = false;
+    await _tmplSelect(_tmplCurrent.name);
+    await _tmplFetchList();
+  }
+}
+
+async function tmplDuplicate() {
+  if (!_tmplCurrent) return;
+  const base = _tmplCurrent.name.replace(/\.(txt|md)$/, "");
+  const raw = prompt("New template filename (no extension):", `${base}_copy`);
+  if (!raw || !raw.trim()) return;
+  const filename = raw.trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9_\-. ]/g, "") + ".txt";
+  const r = await fetch(`/api/templates/${encodeURIComponent(filename)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: $("tmpl-content").value }),
+  });
+  if (r.ok) {
+    await _tmplFetchList();
+    await _tmplSelect(filename);
+    _tmplSyncDropdown();
+  }
+}
+
+async function tmplNew() {
+  const raw = prompt("New template filename (no extension):", "My_Template");
+  if (!raw || !raw.trim()) return;
+  const filename = raw.trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9_\-. ]/g, "") + ".txt";
+  const r = await fetch(`/api/templates/${encodeURIComponent(filename)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: "" }),
+  });
+  if (r.ok) {
+    await _tmplFetchList();
+    await _tmplSelect(filename);
+    _tmplSyncDropdown();
+  }
+}
+
+function _tmplSyncDropdown() {
+  fetch("/templates")
+    .then(r => r.json())
+    .then(data => {
+      const sel = $("template-select");
+      const current = sel.value;
+      sel.innerHTML = '<option value="">Auto-select (AI chooses)</option>';
+      data.templates.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.name;
+        opt.textContent = t.name.replace(/_/g, " ").replace(/\.(txt|md)$/, "");
+        if (t.name === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   initCanvasResize();
   setUI("idle");
@@ -1249,6 +1407,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btn-copy").addEventListener("click", copyReport);
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
   $("btn-lookup").addEventListener("click", lookupPatient);
+
+  // Template editor
+  $("btn-template-edit").addEventListener("click", tmplOpen);
+  $("tmpl-close").addEventListener("click", tmplClose);
+  $("tmpl-save").addEventListener("click", tmplSave);
+  $("tmpl-restore").addEventListener("click", tmplRestore);
+  $("tmpl-duplicate").addEventListener("click", tmplDuplicate);
+  $("tmpl-new").addEventListener("click", tmplNew);
+  $("tmpl-search").addEventListener("input", () => _tmplRenderList());
+  $("tmpl-content").addEventListener("input", _tmplMarkDirty);
+  $("tmpl-modal").addEventListener("click", (e) => { if (e.target === $("tmpl-modal")) tmplClose(); });
+  document.addEventListener("keydown", (e) => {
+    if ($("tmpl-modal").style.display !== "none") {
+      if (e.key === "Escape") tmplClose();
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); tmplSave(); }
+    }
+  });
 
   // Check streaming STT capability
   try {
