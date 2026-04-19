@@ -24,13 +24,14 @@ Chest X-Ray (CXR)
 **Instructions:**
 - Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
 - For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor.
+- Do NOT use framing phrases such as "as the radiograph demonstrates", "the X-ray shows", or "on this study". State findings directly.
 - Normal groups may be combined. Only itemise individually when pathology is present.
 
 **Technical Adequacy**
 - Comment on rotation, inspiratory effort, and exposure if suboptimal. Omit this section entirely if technically adequate.
 
 **Lungs**
-- Default: "Lungs clear bilaterally. No focal consolidation, collapse, or nodule."
+- Default: "The lungs are clear bilaterally. No focal consolidation, collapse, or nodule."
 - If pathology: describe by zone (upper/mid/lower), laterality, morphology, and distribution.
 
 **Hila**
@@ -39,17 +40,15 @@ Chest X-Ray (CXR)
 **Pleura**
 - Default: "No pleural effusion, pneumothorax, or pleural thickening."
 
-**Cardiac Silhouette**
-- Default: "Heart normal in size. Cardiothoracic ratio within normal limits."
-
-**Mediastinum**
-- Default: "Mediastinal contour normal. Trachea central. Aortic knuckle unremarkable."
+**Cardiomediastinum**
+- Default: "Cardiomediastinal contour is normal. Trachea central. Aortic knuckle unremarkable."
+- If cardiac pathology only: describe heart size separately before the mediastinal comment.
 
 **Hemidiaphragms**
 - Default: "Hemidiaphragms well-defined bilaterally. Costophrenic angles sharp."
 
 **Bones**
-- Default: "Bony thorax intact. No rib fracture or lytic lesion."
+- Default: "No suspicious osseous lesion. No rib fracture."
 - ALWAYS use the radiologist's exact words if bones are mentioned.
 
 **Soft Tissues**
@@ -61,7 +60,7 @@ Chest X-Ray (CXR)
 Lines, tubes, and devices — comment if present.
 
 - **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
-[correct spellings] chest x-ray PA. Lungs clear bilaterally, no consolidation, effusion, or pneumothorax. Hila normal. Heart normal size, cardiothoracic ratio within normal limits. Mediastinum normal. Trachea central. Costophrenic angles sharp. No rib fracture. Soft tissues unremarkable. No free air under the diaphragm. [correct spellings]
+[correct spellings] chest x-ray PA. The lungs are clear bilaterally, no consolidation, effusion, or pneumothorax. Hila normal. Cardiomediastinal contour is normal. Trachea central. Costophrenic angles sharp. No suspicious osseous lesion, no rib fracture. Soft tissues unremarkable. No free air under the diaphragm. [correct spellings]
 - If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
 
 ### Impression:
