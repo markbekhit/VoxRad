@@ -11,17 +11,14 @@ Whole-body FDG PET-CT was performed from the vertex to the mid-thighs following 
 
 ### Clinical Details
 **Instructions:**
-- **If provided:**
-  - 'The patient presented with [describe symptoms or reason for the examination], with a medical history notable for [mention relevant medical conditions, primary malignancy, staging/restaging/response assessment].'
-  - **Exclude** name, age, gender, and IDs anywhere in the report, even if provided in the transcript.
-
-- **If not provided:**
-  - 'No clinical details provided.'
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
 
 ### Comparison:
 **Instructions:**
-- **If provided:** Mention any prior imaging studies and briefly note significant changes or findings compared to previous examinations.
-- **If not provided:** 'No prior imaging scans/reports available for comparison.'
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
 
 ### Findings:
 **Instructions:**
@@ -37,6 +34,8 @@ Whole-body FDG PET-CT was performed from the vertex to the mid-thighs following 
 ### Impression:
 **Instructions:**
 - Create an impression from findings, into a brief description in bullet points. Include staging summary (TNM) if applicable.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
 - **Sample:**
   - FDG-avid [primary tumour] at [site] with [mediastinal / pelvic] lymph node involvement — [Stage].
   - No evidence of distant metastatic disease.
