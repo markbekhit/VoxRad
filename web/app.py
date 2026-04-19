@@ -213,7 +213,14 @@ def _list_templates() -> list[str]:
     for d in (template_dir, _BUNDLED_TEMPLATES_DIR):
         if os.path.isdir(d):
             names.update(f for f in os.listdir(d) if f.endswith((".txt", ".md")))
-    return sorted(names)
+    # Pin Plain_Prose.txt to the top so the unstructured option is discoverable
+    # without scrolling past the alphabetical list of structured templates.
+    ordered = sorted(names)
+    for pinned in ("Plain_Prose.txt",):
+        if pinned in ordered:
+            ordered.remove(pinned)
+            ordered.insert(0, pinned)
+    return ordered
 
 
 def _load_template_content(template_name: str) -> str:
