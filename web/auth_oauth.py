@@ -2,22 +2,17 @@
 
 Supported providers: Google, Microsoft (Azure AD / Entra ID).
 
-Required environment variables
---------------------------------
-SESSION_SECRET_KEY         — random secret for signing session cookies (required)
-OAUTH_REDIRECT_BASE_URL    — public base URL, e.g. https://voxrad.example.com
-                             (defaults to http://localhost:8765 for local dev)
+Configuration is stored in settings.ini [OAUTH] section and can be edited
+through the web Settings page.  Environment variables override settings.ini
+values when both are present (useful for Docker / 12-factor deployments).
 
-Google
-  GOOGLE_CLIENT_ID
-  GOOGLE_CLIENT_SECRET
+  RedirectBaseURL        — public base URL, e.g. https://voxrad.example.com
+  GoogleClientID / GoogleClientSecret
+  MicrosoftClientID / MicrosoftClientSecret
+  SessionSecretKey       — auto-generated on first run; never needs manual entry
 
-Microsoft / Azure AD
-  MICROSOFT_CLIENT_ID
-  MICROSOFT_CLIENT_SECRET
-
-If neither provider is configured, oauth_enabled == False and the web app
-falls back to HTTP Basic Auth (single shared password — existing behaviour).
+If neither Google nor Microsoft credentials are present, oauth_enabled is False
+and the server falls back to HTTP Basic Auth.
 """
 
 from __future__ import annotations
@@ -30,26 +25,65 @@ from typing import Optional
 
 import httpx
 from fastapi import HTTPException, Request
+from config.config import config
 
 # ---------------------------------------------------------------------------
-# Provider configuration — read at import time
+# Lazy helpers — read from config at call time so values set via the Settings
+# UI take effect without a server restart (for the next login only).
 # ---------------------------------------------------------------------------
 
-GOOGLE_CLIENT_ID      = os.environ.get("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET  = os.environ.get("GOOGLE_CLIENT_SECRET")
-MICROSOFT_CLIENT_ID     = os.environ.get("MICROSOFT_CLIENT_ID")
-MICROSOFT_CLIENT_SECRET = os.environ.get("MICROSOFT_CLIENT_SECRET")
 
-OAUTH_REDIRECT_BASE_URL = (
-    os.environ.get("OAUTH_REDIRECT_BASE_URL", "").rstrip("/")
-    or "http://localhost:8765"
-)
+def _client_id(provider: str) -> str:
+    return (config.google_client_id if provider == "google" else config.microsoft_client_id) or ""
 
-SESSION_SECRET_KEY = os.environ.get("SESSION_SECRET_KEY") or secrets.token_hex(32)
 
-google_enabled    = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-microsoft_enabled = bool(MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET)
-oauth_enabled     = google_enabled or microsoft_enabled
+def _client_secret(provider: str) -> str:
+    return (config.google_client_secret if provider == "google" else config.microsoft_client_secret) or ""
+
+
+def _redirect_base() -> str:
+    return (config.oauth_redirect_base_url or "").rstrip("/") or "http://localhost:8765"
+
+
+@property  # type: ignore[misc]
+def google_enabled() -> bool:  # type: ignore[override]
+    return bool(config.google_client_id and config.google_client_secret)
+
+
+@property  # type: ignore[misc]
+def microsoft_enabled() -> bool:  # type: ignore[override]
+    return bool(config.microsoft_client_id and config.microsoft_client_secret)
+
+
+@property  # type: ignore[misc]
+def oauth_enabled() -> bool:  # type: ignore[override]
+    return bool(
+        (config.google_client_id and config.google_client_secret)
+        or (config.microsoft_client_id and config.microsoft_client_secret)
+    )
+
+
+def _google_enabled() -> bool:
+    return bool(config.google_client_id and config.google_client_secret)
+
+
+def _microsoft_enabled() -> bool:
+    return bool(config.microsoft_client_id and config.microsoft_client_secret)
+
+
+def _oauth_enabled() -> bool:
+    return _google_enabled() or _microsoft_enabled()
+
+
+# Module-level aliases that app.py imports — these are callables that reflect
+# the current config state rather than a value frozen at import time.
+google_enabled    = _google_enabled
+microsoft_enabled = _microsoft_enabled
+oauth_enabled     = _oauth_enabled
+
+
+def SESSION_SECRET_KEY() -> str:  # noqa: N802
+    return config.session_secret_key or ""
 
 # ---------------------------------------------------------------------------
 # SQLite user database
@@ -220,16 +254,16 @@ def clear_session(request: Request) -> None:
 # ---------------------------------------------------------------------------
 
 def _google_redirect_uri() -> str:
-    return f"{OAUTH_REDIRECT_BASE_URL}/auth/google/callback"
+    return f"{_redirect_base()}/auth/google/callback"
 
 
 def _microsoft_redirect_uri() -> str:
-    return f"{OAUTH_REDIRECT_BASE_URL}/auth/microsoft/callback"
+    return f"{_redirect_base()}/auth/microsoft/callback"
 
 
 def google_auth_url(state: str) -> str:
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
-        "client_id":     GOOGLE_CLIENT_ID,
+        "client_id":     _client_id("google"),
         "redirect_uri":  _google_redirect_uri(),
         "response_type": "code",
         "scope":         "openid email profile",
@@ -241,7 +275,7 @@ def google_auth_url(state: str) -> str:
 
 def microsoft_auth_url(state: str) -> str:
     return "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?" + urllib.parse.urlencode({
-        "client_id":       MICROSOFT_CLIENT_ID,
+        "client_id":       _client_id("microsoft"),
         "redirect_uri":    _microsoft_redirect_uri(),
         "response_type":   "code",
         "scope":           "openid email profile",
@@ -263,8 +297,8 @@ def exchange_google_code(code: str) -> dict:
             "https://oauth2.googleapis.com/token",
             data={
                 "code":          code,
-                "client_id":     GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_id":     _client_id("google"),
+                "client_secret": _client_secret("google"),
                 "redirect_uri":  redirect_uri,
                 "grant_type":    "authorization_code",
             },
@@ -293,8 +327,8 @@ def exchange_microsoft_code(code: str) -> dict:
             "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             data={
                 "code":          code,
-                "client_id":     MICROSOFT_CLIENT_ID,
-                "client_secret": MICROSOFT_CLIENT_SECRET,
+                "client_id":     _client_id("microsoft"),
+                "client_secret": _client_secret("microsoft"),
                 "redirect_uri":  redirect_uri,
                 "grant_type":    "authorization_code",
                 "scope":         "openid email profile",

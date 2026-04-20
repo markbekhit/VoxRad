@@ -8,6 +8,24 @@ from ui.utils import update_status
 
 logger = logging.getLogger(__name__)
 
+
+def _auto_save_session_key(config_path: str, key: str) -> None:
+    """Write the auto-generated session key back to settings.ini immediately."""
+    cp = configparser.ConfigParser()
+    try:
+        cp.read(config_path)
+    except configparser.Error:
+        pass
+    if "OAUTH" not in cp:
+        cp["OAUTH"] = {}
+    cp["OAUTH"]["SessionSecretKey"] = key
+    try:
+        with open(config_path, "w") as f:
+            cp.write(f)
+    except OSError as e:
+        logger.warning("Could not persist session key: %s", e)
+
+
 def get_default_config_path():
     """Returns the platform-specific default config file path."""
     if os.name == "nt":  # Windows
@@ -60,6 +78,31 @@ def load_settings(web_mode: bool = False):
         config.SELECTED_TRANSCRIPTION_MODEL = "whisper-large-v3-turbo"
         config.BASE_URL = "https://api.openai.com/v1"
         config.SELECTED_MODEL = "gpt-4o-mini"
+
+    if "OAUTH" in config_parser:
+        o = config_parser["OAUTH"]
+        config.oauth_redirect_base_url = o.get("RedirectBaseURL", "")
+        config.google_client_id        = o.get("GoogleClientID", "")
+        config.google_client_secret    = o.get("GoogleClientSecret", "")
+        config.microsoft_client_id     = o.get("MicrosoftClientID", "")
+        config.microsoft_client_secret = o.get("MicrosoftClientSecret", "")
+        config.session_secret_key      = o.get("SessionSecretKey", "")
+
+    # Auto-generate and persist the session secret key if it hasn't been set.
+    if not config.session_secret_key:
+        import secrets as _secrets
+        config.session_secret_key = _secrets.token_hex(32)
+        # Persist immediately so it survives restarts.
+        _auto_save_session_key(config_path, config.session_secret_key)
+        logger.info("Generated and saved new SESSION_SECRET_KEY to settings.ini")
+
+    # Env-var overrides (allow operators to inject secrets without writing to disk)
+    config.google_client_id        = os.environ.get("GOOGLE_CLIENT_ID",        config.google_client_id)
+    config.google_client_secret    = os.environ.get("GOOGLE_CLIENT_SECRET",    config.google_client_secret)
+    config.microsoft_client_id     = os.environ.get("MICROSOFT_CLIENT_ID",     config.microsoft_client_id)
+    config.microsoft_client_secret = os.environ.get("MICROSOFT_CLIENT_SECRET", config.microsoft_client_secret)
+    config.oauth_redirect_base_url = os.environ.get("OAUTH_REDIRECT_BASE_URL", config.oauth_redirect_base_url)
+    config.session_secret_key      = os.environ.get("SESSION_SECRET_KEY",      config.session_secret_key)
 
     if "STYLE" in config_parser:
         s = config_parser["STYLE"]
@@ -245,6 +288,14 @@ def save_web_settings():
     config_parser["STYLE"]["ImpressionStyle"]      = config.style_impression_style
     config_parser["STYLE"]["NegationPhrasing"]     = config.style_negation_phrasing
     config_parser["STYLE"]["DateFormat"]           = config.style_date_format
+    if "OAUTH" not in config_parser:
+        config_parser["OAUTH"] = {}
+    config_parser["OAUTH"]["RedirectBaseURL"]      = config.oauth_redirect_base_url or ""
+    config_parser["OAUTH"]["GoogleClientID"]       = config.google_client_id or ""
+    config_parser["OAUTH"]["GoogleClientSecret"]   = config.google_client_secret or ""
+    config_parser["OAUTH"]["MicrosoftClientID"]    = config.microsoft_client_id or ""
+    config_parser["OAUTH"]["MicrosoftClientSecret"]= config.microsoft_client_secret or ""
+    config_parser["OAUTH"]["SessionSecretKey"]     = config.session_secret_key or ""
     with open(get_default_config_path(), "w") as f:
         config_parser.write(f)
 

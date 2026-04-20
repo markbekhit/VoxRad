@@ -62,6 +62,13 @@ async function loadSettings() {
     if (!resp.ok) throw new Error(resp.statusText);
     const data = await resp.json();
 
+    // Live-update callback URL previews when redirect base URL changes
+    const rbuEl = $("oauth_redirect_base_url");
+    if (rbuEl && !rbuEl._listenerAdded) {
+      rbuEl.addEventListener("input", () => _updateCallbackUrls(rbuEl.value.trim()));
+      rbuEl._listenerAdded = true;
+    }
+
     _keys = data.keys;
     _currentProvider = data.streaming_stt_provider || "";
 
@@ -77,6 +84,16 @@ async function loadSettings() {
     if ($("text_base_url"))          $("text_base_url").value          = data.text_base_url          || "";
     if ($("text_model"))             $("text_model").value             = data.text_model             || "";
     if ($("fhir_export_enabled"))    $("fhir_export_enabled").checked  = !!data.fhir_export_enabled;
+
+    // OAuth settings
+    const oauth = data.oauth || {};
+    if ($("oauth_redirect_base_url"))  $("oauth_redirect_base_url").value  = oauth.redirect_base_url  || "";
+    if ($("google_client_id"))         $("google_client_id").value         = oauth.google_client_id   || "";
+    if ($("google_client_secret"))     $("google_client_secret").value     = oauth.google_client_secret ? "••••••••" : "";
+    if ($("microsoft_client_id"))      $("microsoft_client_id").value      = oauth.microsoft_client_id  || "";
+    if ($("microsoft_client_secret"))  $("microsoft_client_secret").value  = oauth.microsoft_client_secret ? "••••••••" : "";
+
+    _updateCallbackUrls(oauth.redirect_base_url || "");
 
     // Reporting style
     const style = data.style || {};
@@ -137,6 +154,17 @@ async function saveSettings() {
     style_impression_style:      ($("style_impression_style")      || {}).value || null,
     style_negation_phrasing:     ($("style_negation_phrasing")     || {}).value || null,
     style_date_format:           ($("style_date_format")           || {}).value || null,
+    oauth_redirect_base_url:     ($("oauth_redirect_base_url")     || {}).value || null,
+    google_client_id:            ($("google_client_id")            || {}).value || null,
+    google_client_secret:        (() => {
+      const v = ($("google_client_secret") || {}).value || "";
+      return v && !v.startsWith("•") ? v : null;
+    })(),
+    microsoft_client_id:         ($("microsoft_client_id")         || {}).value || null,
+    microsoft_client_secret:     (() => {
+      const v = ($("microsoft_client_secret") || {}).value || "";
+      return v && !v.startsWith("•") ? v : null;
+    })(),
   };
 
   const btn = $("btn-save");
@@ -164,6 +192,12 @@ async function saveSettings() {
   } finally {
     btn.disabled = false;
   }
+}
+
+function _updateCallbackUrls(base) {
+  const b = base.replace(/\/+$/, "") || window.location.origin;
+  const g = $("cb-google");    if (g) g.textContent = `${b}/auth/google/callback`;
+  const m = $("cb-microsoft"); if (m) m.textContent = `${b}/auth/microsoft/callback`;
 }
 
 function showStatus(text, type) {

@@ -65,7 +65,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="VoxRad Web", docs_url=None, redoc_url=None)
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY, max_age=86400)
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY(), max_age=86400)
 # auto_error=False so we can return a redirect (not a 401) when OAuth is active
 security = HTTPBasic(auto_error=False)
 
@@ -175,7 +175,7 @@ def _verify_auth(
     OAuth mode  — reads the session; returns 307 → /login if not signed in.
     Basic Auth mode — validates the shared password; returns 401 if wrong.
     """
-    if oauth_enabled:
+    if oauth_enabled():
         return require_oauth_user(request)
 
     # Basic Auth mode
@@ -205,14 +205,14 @@ def _get_username(user: dict) -> str:
 
 def _user_style(user: dict) -> Optional[dict]:
     """Return per-user style dict in OAuth mode; None (→ global config) in Basic Auth mode."""
-    if oauth_enabled and user.get("id") is not None:
+    if oauth_enabled() and user.get("id") is not None:
         return get_user_style(user["id"])
     return None
 
 
 def _user_fhir_enabled(user: dict) -> bool:
     """Per-user FHIR export toggle in OAuth mode; global config in Basic Auth mode."""
-    if oauth_enabled and user.get("id") is not None:
+    if oauth_enabled() and user.get("id") is not None:
         return get_user_style(user["id"]).get("fhir_export_enabled", False)
     return config.fhir_export_enabled
 
@@ -363,8 +363,8 @@ def login_page(request: Request):
         "login.html",
         {
             "request": request,
-            "google_enabled": google_enabled,
-            "microsoft_enabled": microsoft_enabled,
+            "google_enabled": google_enabled(),
+            "microsoft_enabled": microsoft_enabled(),
             "error": request.query_params.get("error"),
             "static_version": _STATIC_VERSION,
         },
@@ -373,7 +373,7 @@ def login_page(request: Request):
 
 @app.get("/auth/google")
 def auth_google(request: Request):
-    if not google_enabled:
+    if not google_enabled():
         raise HTTPException(status_code=404)
     state = secrets.token_urlsafe(16)
     request.session["oauth_state"] = state
@@ -401,7 +401,7 @@ def auth_google_callback(request: Request, code: str = "", state: str = "", erro
 
 @app.get("/auth/microsoft")
 def auth_microsoft(request: Request):
-    if not microsoft_enabled:
+    if not microsoft_enabled():
         raise HTTPException(status_code=404)
     state = secrets.token_urlsafe(16)
     request.session["oauth_state"] = state
@@ -446,7 +446,7 @@ def index(request: Request, user: dict = Depends(_verify_auth)):
             "fhir_enabled": _user_fhir_enabled(user),
             "ws_token": _make_ws_token(_username),
             "static_version": _STATIC_VERSION,
-            "oauth_mode": oauth_enabled,
+            "oauth_mode": oauth_enabled(),
         },
     )
 
@@ -1048,6 +1048,12 @@ class SettingsRequest(BaseModel):
     text_base_url: Optional[str] = None
     text_model: Optional[str] = None
     fhir_export_enabled: bool = False
+    # OAuth configuration
+    oauth_redirect_base_url: Optional[str] = None
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+    microsoft_client_id: Optional[str] = None
+    microsoft_client_secret: Optional[str] = None
     # Reporting style preferences
     style_spelling: Optional[str] = None
     style_numerals: Optional[str] = None
@@ -1113,7 +1119,14 @@ def api_get_settings(user: dict = Depends(_verify_auth)):
         "text_model":             config.SELECTED_MODEL or "",
         "fhir_export_enabled":    style.get("fhir_export_enabled", config.fhir_export_enabled),
         "style":                  {k: v for k, v in style.items() if k != "fhir_export_enabled"},
-        "oauth_mode":             oauth_enabled,
+        "oauth_mode":             oauth_enabled(),
+        "oauth": {
+            "redirect_base_url":       config.oauth_redirect_base_url or "",
+            "google_client_id":        config.google_client_id or "",
+            "google_client_secret":    bool(config.google_client_secret),
+            "microsoft_client_id":     config.microsoft_client_id or "",
+            "microsoft_client_secret": bool(config.microsoft_client_secret),
+        },
         "keys": {
             "transcription": bool(config.TRANSCRIPTION_API_KEY),
             "text":          bool(config.TEXT_API_KEY),
@@ -1153,6 +1166,18 @@ def api_save_settings(req: SettingsRequest, user: dict = Depends(_verify_auth)):
     if req.text_model:
         config.SELECTED_MODEL = req.text_model
 
+    # OAuth settings — only update fields that were explicitly sent
+    if req.oauth_redirect_base_url is not None:
+        config.oauth_redirect_base_url = req.oauth_redirect_base_url.rstrip("/")
+    if req.google_client_id is not None:
+        config.google_client_id = req.google_client_id
+    if req.google_client_secret is not None:
+        config.google_client_secret = req.google_client_secret
+    if req.microsoft_client_id is not None:
+        config.microsoft_client_id = req.microsoft_client_id
+    if req.microsoft_client_secret is not None:
+        config.microsoft_client_secret = req.microsoft_client_secret
+
     # Validate style fields
     style_update: dict = {}
     for req_field, style_key in _STYLE_FIELD_MAP.items():
@@ -1167,7 +1192,7 @@ def api_save_settings(req: SettingsRequest, user: dict = Depends(_verify_auth)):
             )
         style_update[style_key] = val
 
-    if oauth_enabled and user.get("id") is not None:
+    if oauth_enabled() and user.get("id") is not None:
         # Per-user: merge with existing preferences and save to SQLite
         existing = get_user_style(user["id"])
         existing.update(style_update)

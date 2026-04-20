@@ -36,6 +36,13 @@ class Config:
     style_impression_style = "bulleted"         # "bulleted" | "numbered" | "prose"
     style_negation_phrasing = "no_evidence_of"  # "no_evidence_of" | "no_x_identified" | "x_absent"
     style_date_format = "dd_mm_yyyy"            # "dd_mm_yyyy" | "mm_dd_yyyy" | "yyyy_mm_dd"
+    # OAuth / session settings
+    oauth_redirect_base_url = ""     # e.g. https://voxrad.example.com
+    google_client_id = ""
+    google_client_secret = ""
+    microsoft_client_id = ""
+    microsoft_client_secret = ""
+    session_secret_key = ""          # auto-generated and persisted on first run
 
 config = Config()
 
