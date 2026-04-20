@@ -190,51 +190,6 @@
     </div>
   </div>
 
-  <!-- ── OAuth / Login ── -->
-  <div class="card">
-    <div class="settings-section">
-      <div class="settings-section-title">OAuth Login (Google &amp; Microsoft)</div>
-      <p class="settings-info" style="margin-bottom:10px;">
-        Configure one or both providers to replace the shared password with per-account sign-in.
-        Leave both sections empty to keep using HTTP Basic Auth.
-        The session secret is auto-generated on first run &mdash; you do not need to set it manually.
-      </p>
-
-      <div class="settings-field">
-        <label for="oauth_redirect_base_url">Redirect Base URL</label>
-        <input type="text" id="oauth_redirect_base_url" placeholder="https://voxrad.example.com" autocomplete="off" />
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-          The public address of this VoxRad instance (no trailing slash).
-          Used to build the callback URLs you register in the provider consoles.
-        </div>
-      </div>
-
-      <div class="style-grid" style="margin-top:10px;">
-        <div class="settings-field">
-          <label for="google_client_id">Google Client ID</label>
-          <input type="text" id="google_client_id" placeholder="…apps.googleusercontent.com" autocomplete="off" />
-        </div>
-        <div class="settings-field">
-          <label for="google_client_secret">Google Client Secret</label>
-          <input type="password" id="google_client_secret" placeholder="GOCSPX-…" autocomplete="off" />
-        </div>
-        <div class="settings-field">
-          <label for="microsoft_client_id">Microsoft Client ID</label>
-          <input type="text" id="microsoft_client_id" placeholder="xxxxxxxx-xxxx-…" autocomplete="off" />
-        </div>
-        <div class="settings-field">
-          <label for="microsoft_client_secret">Microsoft Client Secret</label>
-          <input type="password" id="microsoft_client_secret" placeholder="Client secret value" autocomplete="off" />
-        </div>
-      </div>
-
-      <p class="settings-info" style="margin-top:10px;">
-        Google callback URL: <code id="cb-google" style="user-select:all;"></code><br>
-        Microsoft callback URL: <code id="cb-microsoft" style="user-select:all;"></code>
-      </p>
-    </div>
-  </div>
-
   <!-- ── FHIR Export ── -->
   <div class="card">
     <div class="settings-section">

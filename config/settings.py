@@ -290,12 +290,7 @@ def save_web_settings():
     config_parser["STYLE"]["DateFormat"]           = config.style_date_format
     if "OAUTH" not in config_parser:
         config_parser["OAUTH"] = {}
-    config_parser["OAUTH"]["RedirectBaseURL"]      = config.oauth_redirect_base_url or ""
-    config_parser["OAUTH"]["GoogleClientID"]       = config.google_client_id or ""
-    config_parser["OAUTH"]["GoogleClientSecret"]   = config.google_client_secret or ""
-    config_parser["OAUTH"]["MicrosoftClientID"]    = config.microsoft_client_id or ""
-    config_parser["OAUTH"]["MicrosoftClientSecret"]= config.microsoft_client_secret or ""
-    config_parser["OAUTH"]["SessionSecretKey"]     = config.session_secret_key or ""
+    config_parser["OAUTH"]["SessionSecretKey"] = config.session_secret_key or ""
     with open(get_default_config_path(), "w") as f:
         config_parser.write(f)
 

@@ -1048,12 +1048,6 @@ class SettingsRequest(BaseModel):
     text_base_url: Optional[str] = None
     text_model: Optional[str] = None
     fhir_export_enabled: bool = False
-    # OAuth configuration
-    oauth_redirect_base_url: Optional[str] = None
-    google_client_id: Optional[str] = None
-    google_client_secret: Optional[str] = None
-    microsoft_client_id: Optional[str] = None
-    microsoft_client_secret: Optional[str] = None
     # Reporting style preferences
     style_spelling: Optional[str] = None
     style_numerals: Optional[str] = None
@@ -1120,13 +1114,6 @@ def api_get_settings(user: dict = Depends(_verify_auth)):
         "fhir_export_enabled":    style.get("fhir_export_enabled", config.fhir_export_enabled),
         "style":                  {k: v for k, v in style.items() if k != "fhir_export_enabled"},
         "oauth_mode":             oauth_enabled(),
-        "oauth": {
-            "redirect_base_url":       config.oauth_redirect_base_url or "",
-            "google_client_id":        config.google_client_id or "",
-            "google_client_secret":    bool(config.google_client_secret),
-            "microsoft_client_id":     config.microsoft_client_id or "",
-            "microsoft_client_secret": bool(config.microsoft_client_secret),
-        },
         "keys": {
             "transcription": bool(config.TRANSCRIPTION_API_KEY),
             "text":          bool(config.TEXT_API_KEY),
@@ -1165,18 +1152,6 @@ def api_save_settings(req: SettingsRequest, user: dict = Depends(_verify_auth)):
         config.BASE_URL = req.text_base_url
     if req.text_model:
         config.SELECTED_MODEL = req.text_model
-
-    # OAuth settings — only update fields that were explicitly sent
-    if req.oauth_redirect_base_url is not None:
-        config.oauth_redirect_base_url = req.oauth_redirect_base_url.rstrip("/")
-    if req.google_client_id is not None:
-        config.google_client_id = req.google_client_id
-    if req.google_client_secret is not None:
-        config.google_client_secret = req.google_client_secret
-    if req.microsoft_client_id is not None:
-        config.microsoft_client_id = req.microsoft_client_id
-    if req.microsoft_client_secret is not None:
-        config.microsoft_client_secret = req.microsoft_client_secret
 
     # Validate style fields
     style_update: dict = {}
