@@ -41,6 +41,20 @@
 
     <details style="margin-top:10px;" open>
       <summary>Patient Context</summary>
+
+      <div id="worklist-panel" class="mt-8" style="display:none;">
+        <div style="display:flex;gap:6px;align-items:flex-end;">
+          <div style="flex:1;min-width:0;">
+            <label class="fhir-label" for="worklist-select">HL7 Worklist <span id="worklist-count" style="color:var(--muted);font-weight:400;"></span></label>
+            <select id="worklist-select">
+              <option value="">Select a pending order…</option>
+            </select>
+          </div>
+          <button id="btn-worklist-refresh" class="btn btn-ghost btn-sm" type="button" title="Rescan HL7 inbox">&#8635;</button>
+          <button id="btn-worklist-archive" class="btn btn-ghost btn-sm" type="button" title="Archive this order (move to processed/)" disabled>Archive</button>
+        </div>
+      </div>
+
       <div class="fhir-grid mt-8">
         <div>
           <label class="fhir-label" for="patient-name">Patient Name</label>

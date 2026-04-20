@@ -85,6 +85,7 @@ def load_settings(web_mode: bool = False):
         config.hl7_outbox_path        = h.get("OutboxPath", "")
         config.hl7_sending_facility   = h.get("SendingFacility", "VOXRAD")
         config.hl7_receiving_facility = h.get("ReceivingFacility", "")
+        config.hl7_inbox_path         = h.get("InboxPath", "")
 
     if "OAUTH" in config_parser:
         o = config_parser["OAUTH"]
@@ -118,6 +119,7 @@ def load_settings(web_mode: bool = False):
     config.hl7_outbox_path        = os.environ.get("VOXRAD_HL7_OUTBOX",             config.hl7_outbox_path)
     config.hl7_sending_facility   = os.environ.get("VOXRAD_HL7_SENDING_FACILITY",   config.hl7_sending_facility)
     config.hl7_receiving_facility = os.environ.get("VOXRAD_HL7_RECEIVING_FACILITY", config.hl7_receiving_facility)
+    config.hl7_inbox_path         = os.environ.get("VOXRAD_HL7_INBOX",              config.hl7_inbox_path)
 
     if "STYLE" in config_parser:
         s = config_parser["STYLE"]
@@ -312,6 +314,7 @@ def save_web_settings():
     config_parser["HL7"]["OutboxPath"]       = config.hl7_outbox_path or ""
     config_parser["HL7"]["SendingFacility"]  = config.hl7_sending_facility or "VOXRAD"
     config_parser["HL7"]["ReceivingFacility"] = config.hl7_receiving_facility or ""
+    config_parser["HL7"]["InboxPath"]        = config.hl7_inbox_path or ""
     with open(get_default_config_path(), "w") as f:
         config_parser.write(f)
 

@@ -950,6 +950,96 @@ async function lookupPatient() {
 }
 
 // ---------------------------------------------------------------------------
+// HL7 worklist — pending orders from the RIS inbox
+// ---------------------------------------------------------------------------
+let _worklistOrders = [];
+
+function _worklistLabel(order) {
+  const bits = [];
+  if (order.modality || order.procedure) {
+    bits.push(order.modality ? `${order.modality}${order.body_part ? " " + order.body_part : ""}` : order.procedure);
+  }
+  if (order.patient_name) bits.push(order.patient_name);
+  if (order.accession)    bits.push(`#${order.accession}`);
+  return bits.join(" · ") || order.order_id || "(unnamed order)";
+}
+
+async function refreshWorklist() {
+  const panel = $("worklist-panel");
+  const select = $("worklist-select");
+  const count = $("worklist-count");
+  if (!panel || !select) return;
+  try {
+    const resp = await fetch("/api/hl7/worklist");
+    if (!resp.ok) {
+      panel.style.display = "none";
+      return;
+    }
+    const data = await resp.json();
+    _worklistOrders = data.orders || [];
+    // Hide the panel entirely when no inbox is configured and no orders exist.
+    if (!data.enabled && _worklistOrders.length === 0) {
+      panel.style.display = "none";
+      return;
+    }
+    panel.style.display = "";
+    select.innerHTML = '<option value="">Select a pending order…</option>';
+    for (const order of _worklistOrders) {
+      const opt = document.createElement("option");
+      opt.value = order.order_id;
+      opt.textContent = _worklistLabel(order);
+      select.appendChild(opt);
+    }
+    count.textContent = _worklistOrders.length ? `(${_worklistOrders.length})` : "(empty)";
+    $("btn-worklist-archive").disabled = true;
+  } catch (err) {
+    console.warn("Worklist refresh failed:", err);
+  }
+}
+
+function applyWorklistOrder() {
+  const select = $("worklist-select");
+  const archiveBtn = $("btn-worklist-archive");
+  if (!select) return;
+  const id = select.value;
+  archiveBtn.disabled = !id;
+  if (!id) return;
+  const order = _worklistOrders.find((o) => o.order_id === id);
+  if (!order) return;
+
+  const setIfEmpty = (elId, val) => {
+    if (!val) return;
+    const el = $(elId);
+    if (el && !el.value.trim()) el.value = val;
+  };
+  setIfEmpty("patient-name",         order.patient_name);
+  setIfEmpty("patient-dob",          order.patient_dob);
+  setIfEmpty("patient-id",           order.patient_id);
+  setIfEmpty("accession",            order.accession);
+  setIfEmpty("modality",             order.modality);
+  setIfEmpty("body-part",            order.body_part);
+  setIfEmpty("referring-physician",  order.referring_physician);
+  setStatus(`Loaded order ${order.accession || order.order_id}`, "active");
+}
+
+async function archiveWorklistOrder() {
+  const select = $("worklist-select");
+  if (!select || !select.value) return;
+  const id = select.value;
+  try {
+    const resp = await fetch(`/api/hl7/worklist/${encodeURIComponent(id)}/archive`, { method: "POST" });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    setStatus(`Order ${id} archived.`, "active");
+    await refreshWorklist();
+  } catch (err) {
+    setStatus(`Archive failed: ${err.message}`, "error");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Format — streaming SSE
 // ---------------------------------------------------------------------------
 async function formatReport() {
@@ -1725,6 +1815,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btn-copy").addEventListener("click", copyReport);
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
   $("btn-lookup").addEventListener("click", lookupPatient);
+
+  // HL7 worklist
+  if ($("worklist-select")) {
+    $("worklist-select").addEventListener("change", applyWorklistOrder);
+    $("btn-worklist-refresh").addEventListener("click", refreshWorklist);
+    $("btn-worklist-archive").addEventListener("click", archiveWorklistOrder);
+    refreshWorklist();
+  }
 
   // Voice feedback
   $("btn-refine").addEventListener("click", startFeedback);

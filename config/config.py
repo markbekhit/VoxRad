@@ -26,6 +26,7 @@ class Config:
     hl7_outbox_path = ""              # defaults to {save_directory}/hl7_outbox when empty
     hl7_sending_facility = "VOXRAD"
     hl7_receiving_facility = ""       # e.g. "NSWHEALTH", "SECTRA", "KESTRAL"
+    hl7_inbox_path = ""               # defaults to {save_directory}/hl7_inbox when empty
     # Streaming STT
     STREAMING_STT_PROVIDER = None   # "deepgram" | "assemblyai" | None
     DEEPGRAM_API_KEY = None

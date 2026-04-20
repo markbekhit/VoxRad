@@ -39,6 +39,7 @@ from config.config import config
 from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
 from llm.hl7_export import save_hl7_report
+from llm.hl7_import import archive_order, list_inbox
 from llm.format import apply_report_feedback, capitalize_after_colon, format_text, stream_format_text
 from web.auth_oauth import (
     exchange_google_code,
@@ -790,6 +791,15 @@ def _hl7_outbox_dir() -> Optional[str]:
     return None
 
 
+def _hl7_inbox_dir() -> Optional[str]:
+    """Resolve the HL7 order inbox directory used by the worklist."""
+    if config.hl7_inbox_path:
+        return config.hl7_inbox_path
+    if config.save_directory:
+        return os.path.join(config.save_directory, "hl7_inbox")
+    return None
+
+
 def _patient_context(req: "FormatRequest") -> Optional[dict]:
     """Build a patient context dict from a FormatRequest, returning None if all fields empty."""
     ctx = {k: v for k, v in {
@@ -1133,6 +1143,40 @@ def api_capabilities():
         "streaming_stt": provider is not None,
         "provider": config.STREAMING_STT_PROVIDER,
     }
+
+
+@app.get("/api/hl7/worklist")
+def api_hl7_worklist(user: dict = Depends(_verify_auth)):
+    """Return pending radiology orders parsed from the HL7 inbox directory.
+
+    The inbox is configured via VOXRAD_HL7_INBOX or the [HL7] InboxPath
+    setting, and defaults to {save_directory}/hl7_inbox. Each order includes
+    an order_id so the client can dismiss it after dictating.
+    """
+    inbox = _hl7_inbox_dir()
+    if not inbox:
+        return {"enabled": False, "orders": []}
+    try:
+        orders = list_inbox(inbox)
+    except Exception as e:
+        logger.warning("HL7 worklist scan failed: %s", e)
+        return {"enabled": True, "orders": [], "error": str(e)}
+    return {"enabled": True, "orders": orders, "inbox": inbox}
+
+
+@app.post("/api/hl7/worklist/{order_id}/archive")
+def api_hl7_worklist_archive(order_id: str, user: dict = Depends(_verify_auth)):
+    """Move a processed order out of the inbox into the 'processed' subfolder."""
+    inbox = _hl7_inbox_dir()
+    if not inbox:
+        raise HTTPException(status_code=404, detail="HL7 inbox not configured")
+    # Reject path traversal — order_id must be a simple filename stem.
+    if "/" in order_id or "\\" in order_id or order_id.startswith("."):
+        raise HTTPException(status_code=400, detail="Invalid order_id")
+    ok = archive_order(inbox, order_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Order not found in inbox")
+    return {"ok": True}
 
 
 @app.get("/api/settings")
