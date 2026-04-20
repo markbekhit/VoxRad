@@ -204,32 +204,6 @@
     </div>
   </div>
 
-  <!-- ── HL7 v2.4 ORU^R01 Export (RIS/PACS integration) ── -->
-  <div class="card">
-    <div class="settings-section">
-      <div class="settings-section-title">HL7 v2.4 Export <span style="font-weight:400;text-transform:none;letter-spacing:0;">(RIS/PACS integration)</span></div>
-      <label class="provider-option" style="cursor:pointer;margin-bottom:12px;">
-        <input type="checkbox" id="hl7_export_enabled" style="accent-color:var(--yellow);width:16px;height:16px;" />
-        <div class="provider-label">
-          <div class="provider-name">Drop ORU^R01 message to outbox after each report</div>
-          <div class="provider-desc">Works with Sectra, Kestral, Intelerad, Voyager and any integration engine that polls a directory for HL7 files.</div>
-        </div>
-      </label>
-      <div class="settings-field">
-        <label for="hl7_outbox_path">Outbox directory</label>
-        <input type="text" id="hl7_outbox_path" placeholder="{working_dir}/hl7_outbox" />
-      </div>
-      <div class="settings-field">
-        <label for="hl7_sending_facility">Sending facility</label>
-        <input type="text" id="hl7_sending_facility" placeholder="VOXRAD" />
-      </div>
-      <div class="settings-field">
-        <label for="hl7_receiving_facility">Receiving facility</label>
-        <input type="text" id="hl7_receiving_facility" placeholder="e.g. NSWHEALTH, SECTRA, KESTRAL" />
-      </div>
-    </div>
-  </div>
-
   <!-- ── API Key Status ── -->
   <div class="card">
     <div class="settings-section">
