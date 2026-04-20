@@ -953,6 +953,19 @@ async function lookupPatient() {
 // HL7 worklist — pending orders from the RIS inbox
 // ---------------------------------------------------------------------------
 let _worklistOrders = [];
+let _worklistFilter = "";
+const _KNOWN_MODALITIES = new Set(["CT", "MR", "US", "XR"]);
+
+function _waitingTime(receivedAt) {
+  if (!receivedAt) return "";
+  const secs = Math.max(0, Math.floor(Date.now() / 1000 - receivedAt));
+  if (secs < 60)     return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60)     return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)      return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 function _worklistLabel(order) {
   const bits = [];
@@ -961,13 +974,51 @@ function _worklistLabel(order) {
   }
   if (order.patient_name) bits.push(order.patient_name);
   if (order.accession)    bits.push(`#${order.accession}`);
+  const wait = _waitingTime(order.received_at);
+  if (wait) bits.push(wait);
   return bits.join(" · ") || order.order_id || "(unnamed order)";
+}
+
+function _worklistMatchesFilter(order) {
+  if (!_worklistFilter) return true;
+  const mod = (order.modality || "").toUpperCase();
+  if (_worklistFilter === "OTHER") return !_KNOWN_MODALITIES.has(mod);
+  return mod === _worklistFilter;
+}
+
+function _renderWorklistOptions() {
+  const select = $("worklist-select");
+  const count = $("worklist-count");
+  if (!select) return;
+  const prev = select.value;
+  const filtered = _worklistOrders.filter(_worklistMatchesFilter);
+  select.innerHTML = '<option value="">Select a pending order…</option>';
+  for (const order of filtered) {
+    const opt = document.createElement("option");
+    opt.value = order.order_id;
+    opt.textContent = _worklistLabel(order);
+    select.appendChild(opt);
+  }
+  // Preserve selection across filter changes when the order is still visible.
+  if (prev && filtered.some((o) => o.order_id === prev)) {
+    select.value = prev;
+  } else {
+    select.value = "";
+    $("btn-worklist-archive").disabled = true;
+  }
+  const total = _worklistOrders.length;
+  if (count) {
+    if (_worklistFilter && filtered.length !== total) {
+      count.textContent = `(${filtered.length} / ${total})`;
+    } else {
+      count.textContent = total ? `(${total})` : "(empty)";
+    }
+  }
 }
 
 async function refreshWorklist() {
   const panel = $("worklist-panel");
   const select = $("worklist-select");
-  const count = $("worklist-count");
   if (!panel || !select) return;
   try {
     const resp = await fetch("/api/hl7/worklist");
@@ -983,18 +1034,18 @@ async function refreshWorklist() {
       return;
     }
     panel.style.display = "";
-    select.innerHTML = '<option value="">Select a pending order…</option>';
-    for (const order of _worklistOrders) {
-      const opt = document.createElement("option");
-      opt.value = order.order_id;
-      opt.textContent = _worklistLabel(order);
-      select.appendChild(opt);
-    }
-    count.textContent = _worklistOrders.length ? `(${_worklistOrders.length})` : "(empty)";
-    $("btn-worklist-archive").disabled = true;
+    _renderWorklistOptions();
   } catch (err) {
     console.warn("Worklist refresh failed:", err);
   }
+}
+
+function _setWorklistFilter(modality) {
+  _worklistFilter = modality || "";
+  document.querySelectorAll(".worklist-chip").forEach((chip) => {
+    chip.classList.toggle("active", (chip.dataset.modality || "") === _worklistFilter);
+  });
+  _renderWorklistOptions();
 }
 
 function applyWorklistOrder() {
@@ -1157,34 +1208,66 @@ function toggleReportEdit() {
 }
 
 // ---------------------------------------------------------------------------
-// Copy report
+// Copy report — honors the user's paste_format preference
 // ---------------------------------------------------------------------------
+function _pasteFormat() {
+  return document.body.dataset.pasteFormat || "rich";
+}
+
+function _renderedPlainText() {
+  // Use the rendered DOM's innerText so headings stay on their own line and
+  // bold/italic markers are dropped — what most RIS text fields want.
+  const div = $("report-rendered");
+  return (div && div.innerText ? div.innerText : $("report-raw").value).trim();
+}
+
 async function copyReport() {
   const markdown = $("report-raw").value;
   if (!markdown.trim()) return;
+  const fmt = _pasteFormat();
+  const plain = _renderedPlainText();
   const html = $("report-rendered").innerHTML ||
                (window.marked ? marked.parse(markdown) : markdown);
   // Wrap in a minimal document so rich-text targets (PowerScribe, Word, Outlook)
   // reliably pick up the text/html flavor.
   const htmlDoc = `<!DOCTYPE html><html><body>${html}</body></html>`;
+
+  // Build the clipboard payload per the user's paste-format preference.
+  //   rich     — html + plain-rendered fallback
+  //   plain    — plain-rendered only (strips markdown markers)
+  //   markdown — raw markdown source only
+  const payload =
+    fmt === "markdown" ? { plain: markdown } :
+    fmt === "plain"    ? { plain } :
+                         { plain, html: htmlDoc };
+  const labelSuffix =
+    fmt === "markdown" ? " (markdown)" :
+    fmt === "plain"    ? " (plain)" :
+                         "";
+
   try {
-    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+    if (payload.html && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
       const item = new ClipboardItem({
-        "text/html": new Blob([htmlDoc], { type: "text/html" }),
-        "text/plain": new Blob([markdown], { type: "text/plain" }),
+        "text/html":  new Blob([payload.html],  { type: "text/html" }),
+        "text/plain": new Blob([payload.plain], { type: "text/plain" }),
       });
       await navigator.clipboard.write([item]);
-      setStatus("Report copied to clipboard.", "success");
-      return;
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(payload.plain);
+    } else {
+      throw new Error("Clipboard API unavailable");
     }
-    await navigator.clipboard.writeText(markdown);
-    setStatus("Report copied to clipboard.", "success");
+    setStatus(`Report copied to clipboard${labelSuffix}. Press Alt+N for next case.`, "success");
+    return;
   } catch {
-    // Fallback: use a contenteditable div + execCommand("copy") so the HTML
-    // flavor is still placed on the clipboard.
+    // Fallback: use a contenteditable div + execCommand("copy").
     const div = document.createElement("div");
     div.contentEditable = "true";
-    div.innerHTML = html;
+    if (payload.html) {
+      div.innerHTML = html;
+    } else {
+      div.textContent = payload.plain;
+    }
     div.style.position = "fixed";
     div.style.left = "-9999px";
     div.style.top = "0";
@@ -1197,13 +1280,55 @@ async function copyReport() {
     sel.addRange(range);
     try {
       document.execCommand("copy");
-      setStatus("Report copied to clipboard.", "success");
+      setStatus(`Report copied to clipboard${labelSuffix}. Press Alt+N for next case.`, "success");
     } catch {
       setStatus("Copy failed — select and copy manually.", "error");
     }
     sel.removeAllRanges();
     div.remove();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Next Case — atomically reset the UI so a radiologist can burn through a list
+// ---------------------------------------------------------------------------
+function nextCase({ keepRadiologist = true } = {}) {
+  // Transcription + report
+  $("transcription").value = "";
+  $("report-raw").value = "";
+  $("report-rendered").innerHTML = "";
+
+  // Patient context — preserve radiologist name so they don't retype it each case.
+  const fields = [
+    "patient-name", "patient-dob", "patient-id",
+    "accession", "modality", "body-part", "referring-physician",
+  ];
+  if (!keepRadiologist) fields.push("radiologist");
+  for (const id of fields) {
+    const el = $(id);
+    if (el) el.value = "";
+  }
+
+  // Worklist — clear selection and disable archive button
+  const wl = $("worklist-select");
+  if (wl) wl.value = "";
+  const arch = $("btn-worklist-archive");
+  if (arch) arch.disabled = true;
+
+  // Reset edit state so the user sees the rendered view next time
+  if (typeof _setReportEditMode === "function") _setReportEditMode(false);
+
+  // New dictation session
+  state.sessionId = null;
+  state.voiceEditTarget = null;
+  if (fbState) fbState.selectedText = "";
+
+  setUI("idle");
+  setStatus("Ready for next case.", "active");
+
+  // Focus the transcription textarea so the user can start immediately
+  const t = $("transcription");
+  if (t) t.focus();
 }
 
 // ---------------------------------------------------------------------------
@@ -1815,13 +1940,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btn-copy").addEventListener("click", copyReport);
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
   $("btn-lookup").addEventListener("click", lookupPatient);
+  if ($("btn-next-case")) $("btn-next-case").addEventListener("click", () => nextCase());
 
   // HL7 worklist
   if ($("worklist-select")) {
     $("worklist-select").addEventListener("change", applyWorklistOrder);
     $("btn-worklist-refresh").addEventListener("click", refreshWorklist);
     $("btn-worklist-archive").addEventListener("click", archiveWorklistOrder);
+    document.querySelectorAll(".worklist-chip").forEach((chip) => {
+      chip.addEventListener("click", () => _setWorklistFilter(chip.dataset.modality || ""));
+    });
     refreshWorklist();
+    // Refresh waiting-time labels every 30s without re-fetching the inbox.
+    setInterval(() => {
+      if ($("worklist-panel") && $("worklist-panel").style.display !== "none") {
+        _renderWorklistOptions();
+      }
+    }, 30000);
   }
 
   // Voice feedback
@@ -1861,6 +1996,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if ($("tmpl-modal").style.display !== "none") {
       if (e.key === "Escape") tmplClose();
       if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); tmplSave(); }
+      return;
+    }
+    // Alt+N — Next Case. Fires even while focused in the report/transcription
+    // fields, since the whole point is to clear them quickly.
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "n" || e.key === "N")) {
+      e.preventDefault();
+      nextCase();
     }
   });
 

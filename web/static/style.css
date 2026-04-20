@@ -111,6 +111,9 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 .btn-secondary:hover { background: rgba(255,215,0,0.08); }
 .btn-sm        { padding: 5px 10px; font-size: 12px; }
 
+.worklist-chip { padding: 3px 9px; font-size: 11px; }
+.worklist-chip.active { background: var(--yellow); color: #0E1118; border-color: var(--yellow); }
+
 /* ── Recording section ── */
 .record-row {
   display: flex;

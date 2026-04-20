@@ -90,6 +90,7 @@ async function loadSettings() {
       ["style_impression_style",     style.impression_style],
       ["style_negation_phrasing",    style.negation_phrasing],
       ["style_date_format",          style.date_format],
+      ["style_paste_format",         style.paste_format],
     ];
     for (const [id, val] of styleFields) {
       const el = $(id);
@@ -137,6 +138,7 @@ async function saveSettings() {
     style_impression_style:      ($("style_impression_style")      || {}).value || null,
     style_negation_phrasing:     ($("style_negation_phrasing")     || {}).value || null,
     style_date_format:           ($("style_date_format")           || {}).value || null,
+    style_paste_format:          ($("style_paste_format")          || {}).value || null,
   };
 
   const btn = $("btn-save");

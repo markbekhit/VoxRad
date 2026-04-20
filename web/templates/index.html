@@ -6,7 +6,7 @@
   <title>VoxRad</title>
   <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
 </head>
-<body data-ws-token="{{ ws_token }}">
+<body data-ws-token="{{ ws_token }}" data-paste-format="{{ paste_format }}">
 
 <header>
   <div>
@@ -52,6 +52,14 @@
           </div>
           <button id="btn-worklist-refresh" class="btn btn-ghost btn-sm" type="button" title="Rescan HL7 inbox">&#8635;</button>
           <button id="btn-worklist-archive" class="btn btn-ghost btn-sm" type="button" title="Archive this order (move to processed/)" disabled>Archive</button>
+        </div>
+        <div id="worklist-filters" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip active" data-modality="">All</button>
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip" data-modality="CT">CT</button>
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip" data-modality="MR">MR</button>
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip" data-modality="US">US</button>
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip" data-modality="XR">XR</button>
+          <button type="button" class="btn btn-ghost btn-sm worklist-chip" data-modality="OTHER">Other</button>
         </div>
       </div>
 
@@ -140,7 +148,8 @@
       <div class="row" style="gap:6px;">
         <button id="btn-refine" class="btn btn-ghost btn-sm" disabled title="Select a passage then dictate a correction, or just dictate overall feedback">&#127908; Refine</button>
         <button id="btn-edit-toggle" class="btn btn-ghost btn-sm" disabled>&#9998; Edit</button>
-        <button id="btn-copy" class="btn btn-ghost btn-sm" disabled>&#128203; Copy</button>
+        <button id="btn-copy" class="btn btn-ghost btn-sm" disabled title="Copy report to clipboard (Ctrl/Cmd+Shift+C)">&#128203; Copy</button>
+        <button id="btn-next-case" class="btn btn-primary btn-sm" title="Clear report and patient context, ready for the next case (Alt+N)">&#10227; Next Case</button>
       </div>
     </div>
     <!-- Feedback recording bar — shown while recording feedback dictation -->

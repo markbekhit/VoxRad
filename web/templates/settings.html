@@ -186,6 +186,18 @@
             <option value="yyyy_mm_dd">YYYY-MM-DD</option>
           </select>
         </div>
+
+        <div class="settings-field">
+          <label for="style_paste_format">Copy / paste format</label>
+          <select id="style_paste_format">
+            <option value="rich">Rich text (Word, Outlook, PowerScribe)</option>
+            <option value="plain">Plain text (most RIS text fields)</option>
+            <option value="markdown">Markdown source (** __ etc.)</option>
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+            Rich text copies formatted headings; plain copies cleanly stripped text; markdown copies the raw source.
+          </div>
+        </div>
       </div>
     </div>
   </div>

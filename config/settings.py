@@ -135,6 +135,7 @@ def load_settings(web_mode: bool = False):
         config.style_impression_style      = s.get("ImpressionStyle", config.style_impression_style)
         config.style_negation_phrasing     = s.get("NegationPhrasing", config.style_negation_phrasing)
         config.style_date_format           = s.get("DateFormat", config.style_date_format)
+        config.style_paste_format          = s.get("PasteFormat", config.style_paste_format)
 
     logger.debug("Using save_directory: %s", config.save_directory)
     logger.debug("Using Transcription Base URL: %s", config.TRANSCRIPTION_BASE_URL)
@@ -305,6 +306,7 @@ def save_web_settings():
     config_parser["STYLE"]["ImpressionStyle"]      = config.style_impression_style
     config_parser["STYLE"]["NegationPhrasing"]     = config.style_negation_phrasing
     config_parser["STYLE"]["DateFormat"]           = config.style_date_format
+    config_parser["STYLE"]["PasteFormat"]          = config.style_paste_format
     if "OAUTH" not in config_parser:
         config_parser["OAUTH"] = {}
     config_parser["OAUTH"]["SessionSecretKey"] = config.session_secret_key or ""

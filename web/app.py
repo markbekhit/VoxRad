@@ -438,6 +438,8 @@ def logout(request: Request):
 @app.get("/")
 def index(request: Request, user: dict = Depends(_verify_auth)):
     _username = _get_username(user)
+    _style = _user_style(user) or {}
+    paste_format = _style.get("paste_format", config.style_paste_format) or "rich"
     return _jinja.TemplateResponse(
         request,
         "index.html",
@@ -449,6 +451,7 @@ def index(request: Request, user: dict = Depends(_verify_auth)):
             "ws_token": _make_ws_token(_username),
             "static_version": _STATIC_VERSION,
             "oauth_mode": oauth_enabled(),
+            "paste_format": paste_format,
         },
     )
 
@@ -1115,6 +1118,7 @@ class SettingsRequest(BaseModel):
     style_impression_style: Optional[str] = None
     style_negation_phrasing: Optional[str] = None
     style_date_format: Optional[str] = None
+    style_paste_format: Optional[str] = None
     # HL7 v2.4 ORU^R01 export (global, server-admin controlled)
     hl7_export_enabled: Optional[bool] = None
     hl7_outbox_path: Optional[str] = None
@@ -1132,6 +1136,7 @@ _STYLE_ALLOWED = {
     "style_impression_style": {"bulleted", "numbered", "prose"},
     "style_negation_phrasing": {"no_evidence_of", "no_x_identified", "x_absent"},
     "style_date_format": {"dd_mm_yyyy", "mm_dd_yyyy", "yyyy_mm_dd"},
+    "style_paste_format": {"rich", "plain", "markdown"},
 }
 
 
@@ -1199,6 +1204,7 @@ def api_get_settings(user: dict = Depends(_verify_auth)):
             "impression_style":      config.style_impression_style,
             "negation_phrasing":     config.style_negation_phrasing,
             "date_format":           config.style_date_format,
+            "paste_format":          config.style_paste_format,
             "fhir_export_enabled":   config.fhir_export_enabled,
         }
     return {
@@ -1235,6 +1241,7 @@ _STYLE_FIELD_MAP = {
     "style_impression_style":     "impression_style",
     "style_negation_phrasing":    "negation_phrasing",
     "style_date_format":          "date_format",
+    "style_paste_format":         "paste_format",
 }
 
 
