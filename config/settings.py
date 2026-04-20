@@ -79,6 +79,13 @@ def load_settings(web_mode: bool = False):
         config.BASE_URL = "https://api.openai.com/v1"
         config.SELECTED_MODEL = "gpt-4o-mini"
 
+    if "HL7" in config_parser:
+        h = config_parser["HL7"]
+        config.hl7_export_enabled     = h.getboolean("ExportEnabled", False)
+        config.hl7_outbox_path        = h.get("OutboxPath", "")
+        config.hl7_sending_facility   = h.get("SendingFacility", "VOXRAD")
+        config.hl7_receiving_facility = h.get("ReceivingFacility", "")
+
     if "OAUTH" in config_parser:
         o = config_parser["OAUTH"]
         config.oauth_redirect_base_url = o.get("RedirectBaseURL", "")
@@ -103,6 +110,14 @@ def load_settings(web_mode: bool = False):
     config.microsoft_client_secret = os.environ.get("MICROSOFT_CLIENT_SECRET", config.microsoft_client_secret)
     config.oauth_redirect_base_url = os.environ.get("OAUTH_REDIRECT_BASE_URL", config.oauth_redirect_base_url)
     config.session_secret_key      = os.environ.get("SESSION_SECRET_KEY",      config.session_secret_key)
+
+    # HL7 env-var overrides (for Docker / 12-factor deployments)
+    _hl7_enabled_env = os.environ.get("VOXRAD_HL7_ENABLED")
+    if _hl7_enabled_env is not None:
+        config.hl7_export_enabled = _hl7_enabled_env.strip().lower() in ("1", "true", "yes", "on")
+    config.hl7_outbox_path        = os.environ.get("VOXRAD_HL7_OUTBOX",             config.hl7_outbox_path)
+    config.hl7_sending_facility   = os.environ.get("VOXRAD_HL7_SENDING_FACILITY",   config.hl7_sending_facility)
+    config.hl7_receiving_facility = os.environ.get("VOXRAD_HL7_RECEIVING_FACILITY", config.hl7_receiving_facility)
 
     if "STYLE" in config_parser:
         s = config_parser["STYLE"]
@@ -291,6 +306,12 @@ def save_web_settings():
     if "OAUTH" not in config_parser:
         config_parser["OAUTH"] = {}
     config_parser["OAUTH"]["SessionSecretKey"] = config.session_secret_key or ""
+    if "HL7" not in config_parser:
+        config_parser["HL7"] = {}
+    config_parser["HL7"]["ExportEnabled"]    = str(config.hl7_export_enabled)
+    config_parser["HL7"]["OutboxPath"]       = config.hl7_outbox_path or ""
+    config_parser["HL7"]["SendingFacility"]  = config.hl7_sending_facility or "VOXRAD"
+    config_parser["HL7"]["ReceivingFacility"] = config.hl7_receiving_facility or ""
     with open(get_default_config_path(), "w") as f:
         config_parser.write(f)
 

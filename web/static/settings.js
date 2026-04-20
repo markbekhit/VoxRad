@@ -78,6 +78,13 @@ async function loadSettings() {
     if ($("text_model"))             $("text_model").value             = data.text_model             || "";
     if ($("fhir_export_enabled"))    $("fhir_export_enabled").checked  = !!data.fhir_export_enabled;
 
+    // HL7 export
+    const hl7 = data.hl7 || {};
+    if ($("hl7_export_enabled"))     $("hl7_export_enabled").checked   = !!hl7.export_enabled;
+    if ($("hl7_outbox_path"))        $("hl7_outbox_path").value        = hl7.outbox_path || "";
+    if ($("hl7_sending_facility"))   $("hl7_sending_facility").value   = hl7.sending_facility || "";
+    if ($("hl7_receiving_facility")) $("hl7_receiving_facility").value = hl7.receiving_facility || "";
+
     // Reporting style
     const style = data.style || {};
     const styleFields = [
@@ -137,6 +144,10 @@ async function saveSettings() {
     style_impression_style:      ($("style_impression_style")      || {}).value || null,
     style_negation_phrasing:     ($("style_negation_phrasing")     || {}).value || null,
     style_date_format:           ($("style_date_format")           || {}).value || null,
+    hl7_export_enabled:     !!($("hl7_export_enabled")     || {}).checked,
+    hl7_outbox_path:        ($("hl7_outbox_path")          || {}).value ?? "",
+    hl7_sending_facility:   ($("hl7_sending_facility")     || {}).value ?? "",
+    hl7_receiving_facility: ($("hl7_receiving_facility")   || {}).value ?? "",
   };
 
   const btn = $("btn-save");

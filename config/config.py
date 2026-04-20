@@ -21,6 +21,11 @@ class Config:
     current_encrypted_report = None  # To store the encrypted report
     current_report_encryption_key = None # To store the key for the encrypted report
     fhir_export_enabled = False  # Export FHIR R4 JSON after each report
+    # HL7 v2.4 ORU^R01 file-drop export (for RIS/PACS integration engines)
+    hl7_export_enabled = False
+    hl7_outbox_path = ""              # defaults to {save_directory}/hl7_outbox when empty
+    hl7_sending_facility = "VOXRAD"
+    hl7_receiving_facility = ""       # e.g. "NSWHEALTH", "SECTRA", "KESTRAL"
     # Streaming STT
     STREAMING_STT_PROVIDER = None   # "deepgram" | "assemblyai" | None
     DEEPGRAM_API_KEY = None

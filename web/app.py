@@ -38,6 +38,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from config.config import config
 from config.settings import save_web_settings
 from llm.fhir_export import save_fhir_report
+from llm.hl7_export import save_hl7_report
 from llm.format import apply_report_feedback, capitalize_after_colon, format_text, stream_format_text
 from web.auth_oauth import (
     exchange_google_code,
@@ -778,6 +779,17 @@ class FormatRequest(BaseModel):
     radiologist: Optional[str] = None
 
 
+def _hl7_outbox_dir() -> Optional[str]:
+    """Resolve the HL7 outbox directory, falling back to {save_directory}/hl7_outbox."""
+    if not config.hl7_export_enabled:
+        return None
+    if config.hl7_outbox_path:
+        return config.hl7_outbox_path
+    if config.save_directory:
+        return os.path.join(config.save_directory, "hl7_outbox")
+    return None
+
+
 def _patient_context(req: "FormatRequest") -> Optional[dict]:
     """Build a patient context dict from a FormatRequest, returning None if all fields empty."""
     ctx = {k: v for k, v in {
@@ -834,8 +846,27 @@ def format_report(req: FormatRequest, user: dict = Depends(_verify_auth)):
         )
         fhir_saved = path is not None
 
-    logger.info("Report formatted (%d chars), fhir_saved=%s", len(report), fhir_saved)
-    return {"report": report, "fhir_saved": fhir_saved}
+    hl7_saved = False
+    _hl7_dir = _hl7_outbox_dir()
+    if _hl7_dir:
+        try:
+            path = save_hl7_report(
+                report_text=report,
+                outbox_path=_hl7_dir,
+                patient_context=_patient_context(req),
+                template_name=req.template_name,
+                sending_facility=config.hl7_sending_facility or "VOXRAD",
+                receiving_facility=config.hl7_receiving_facility or "",
+            )
+            hl7_saved = path is not None
+        except Exception as e:
+            logger.warning("HL7 save failed: %s", e)
+
+    logger.info(
+        "Report formatted (%d chars), fhir_saved=%s, hl7_saved=%s",
+        len(report), fhir_saved, hl7_saved,
+    )
+    return {"report": report, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved}
 
 
 @app.post("/format/stream")
@@ -907,7 +938,23 @@ def format_report_stream(req: FormatRequest, user: dict = Depends(_verify_auth))
             except Exception as e:
                 logger.warning("FHIR save failed during streaming: %s", e)
 
-        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "report": corrected_report})}\n\n'
+        hl7_saved = False
+        _hl7_dir = _hl7_outbox_dir()
+        if _hl7_dir and corrected_report:
+            try:
+                path = save_hl7_report(
+                    report_text=corrected_report,
+                    outbox_path=_hl7_dir,
+                    patient_context=_ctx,
+                    template_name=req.template_name,
+                    sending_facility=config.hl7_sending_facility or "VOXRAD",
+                    receiving_facility=config.hl7_receiving_facility or "",
+                )
+                hl7_saved = path is not None
+            except Exception as e:
+                logger.warning("HL7 save failed during streaming: %s", e)
+
+        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved, "report": corrected_report})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 
@@ -1058,6 +1105,11 @@ class SettingsRequest(BaseModel):
     style_impression_style: Optional[str] = None
     style_negation_phrasing: Optional[str] = None
     style_date_format: Optional[str] = None
+    # HL7 v2.4 ORU^R01 export (global, server-admin controlled)
+    hl7_export_enabled: Optional[bool] = None
+    hl7_outbox_path: Optional[str] = None
+    hl7_sending_facility: Optional[str] = None
+    hl7_receiving_facility: Optional[str] = None
 
 
 _STYLE_ALLOWED = {
@@ -1114,6 +1166,12 @@ def api_get_settings(user: dict = Depends(_verify_auth)):
         "fhir_export_enabled":    style.get("fhir_export_enabled", config.fhir_export_enabled),
         "style":                  {k: v for k, v in style.items() if k != "fhir_export_enabled"},
         "oauth_mode":             oauth_enabled(),
+        "hl7": {
+            "export_enabled":     config.hl7_export_enabled,
+            "outbox_path":        config.hl7_outbox_path or "",
+            "sending_facility":   config.hl7_sending_facility or "VOXRAD",
+            "receiving_facility": config.hl7_receiving_facility or "",
+        },
         "keys": {
             "transcription": bool(config.TRANSCRIPTION_API_KEY),
             "text":          bool(config.TEXT_API_KEY),
@@ -1167,12 +1225,30 @@ def api_save_settings(req: SettingsRequest, user: dict = Depends(_verify_auth)):
             )
         style_update[style_key] = val
 
+    # HL7 settings are always global (server-admin controlled).
+    hl7_touched = False
+    if req.hl7_export_enabled is not None:
+        config.hl7_export_enabled = bool(req.hl7_export_enabled)
+        hl7_touched = True
+    if req.hl7_outbox_path is not None:
+        config.hl7_outbox_path = req.hl7_outbox_path.strip()
+        hl7_touched = True
+    if req.hl7_sending_facility is not None:
+        config.hl7_sending_facility = req.hl7_sending_facility.strip() or "VOXRAD"
+        hl7_touched = True
+    if req.hl7_receiving_facility is not None:
+        config.hl7_receiving_facility = req.hl7_receiving_facility.strip()
+        hl7_touched = True
+
     if oauth_enabled() and user.get("id") is not None:
         # Per-user: merge with existing preferences and save to SQLite
         existing = get_user_style(user["id"])
         existing.update(style_update)
         existing["fhir_export_enabled"] = req.fhir_export_enabled
         save_user_style(user["id"], existing)
+        if hl7_touched:
+            # Persist the global HL7 change to settings.ini.
+            save_web_settings()
     else:
         # Basic Auth / global mode: write to config + settings.ini
         config.fhir_export_enabled = req.fhir_export_enabled
