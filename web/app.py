@@ -511,6 +511,49 @@ def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
     return False
 
 
+# Valid single-word replacements a radiologist may dictate in voice-edit mode.
+# We allow these through the voice-edit hallucination filter; the regular
+# dictation filter still rejects them (because standalone they're suspicious).
+_VOICE_EDIT_ALLOWED_SHORT = {
+    "no", "yes", "normal", "intact", "clear", "stable", "benign", "mild",
+    "mild.", "none", "absent", "unchanged", "present", "abnormal", "positive",
+    "negative", "patent", "occluded",
+}
+
+
+def _is_voice_edit_hallucination(text: str, asr_prompt: str = "") -> bool:
+    """Hallucination filter for voice-edit mode.
+
+    Same as _is_hallucination but permissive of short valid replacements
+    (e.g. "normal", "intact", "no") that a radiologist may genuinely say.
+    Still rejects known Whisper garbage phrases, prompt-echo, and repetition
+    loops — the ones that fire on silent/noisy audio.
+    """
+    normalised = text.strip().lower().rstrip(".,!?;: ").strip()
+    if normalised in _VOICE_EDIT_ALLOWED_SHORT:
+        return False
+    if normalised in _HALLUCINATIONS:
+        return True
+    words = normalised.split()
+    # Repetition loop
+    if len(words) >= 10:
+        seen: set[tuple] = set()
+        for i in range(len(words) - 4):
+            ngram = tuple(words[i:i+5])
+            if ngram in seen:
+                return True
+            seen.add(ngram)
+    # Prompt-echo: Whisper repeats the surrounding-text prompt verbatim on
+    # silent audio. Decisive signal — keep this check active.
+    if asr_prompt:
+        text_norm = text.strip().lower().rstrip(".,!?;: ")
+        for sentence in re.split(r"[.!?]", asr_prompt):
+            s = sentence.strip().lower().rstrip(".,!?;: ")
+            if len(s) > 15 and (text_norm == s or text_norm in s or s in text_norm):
+                return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Radiology vocabulary prompt for Whisper
 # Two-part design per OpenAI Whisper docs:
@@ -678,13 +721,18 @@ async def transcribe(
             )
 
         text = result.text.strip()
-        # Skip hallucination filtering in voice-edit mode: the user's intentional
-        # replacement is frequently a single short word (e.g. "normal", "intact",
-        # "no") that would be falsely rejected, and the prompt-echo check would
-        # discard any replacement that happens to appear in the surrounding text.
+        # Hallucination filtering. Voice-edit mode uses a permissive variant
+        # that allows short valid replacements ("normal", "intact", "no") but
+        # still rejects known Whisper garbage phrases (e.g. "thank you for
+        # watching") that fire on silent or noisy audio.
         is_voice_edit = whisper_prompt is not None
-        if not is_voice_edit and _is_hallucination(text, asr_prompt):
-            logger.debug("Discarded hallucination: %r", text)
+        hallucinated = (
+            _is_voice_edit_hallucination(text, asr_prompt)
+            if is_voice_edit
+            else _is_hallucination(text, asr_prompt)
+        )
+        if hallucinated:
+            logger.debug("Discarded hallucination (voice_edit=%s): %r", is_voice_edit, text)
             return {"transcription": "", "session_id": ""}
 
         _prune_sessions()

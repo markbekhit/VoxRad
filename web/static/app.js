@@ -50,6 +50,10 @@ const SILENCE_THRESHOLD   = 0.01;   // RMS below this = silence
 const SPEECH_THRESHOLD    = 0.015;  // RMS above this = speech
 const SILENCE_DURATION_MS = 800;    // 800 ms pause triggers segment
 const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this
+// Require at least this many ms of cumulative speech-level audio before we
+// trust a segment. A single RMS spike (breath, chair creak, keyboard click)
+// is not enough — prevents accidental voice-edit replacement on noise.
+const MIN_SPEECH_MS       = 250;
 
 // ---------------------------------------------------------------------------
 // UI helpers
@@ -153,7 +157,20 @@ function startWaveform(stream) {
       const now = Date.now();
 
       if (rms >= SPEECH_THRESHOLD) {
-        state.speechDetected = true;
+        // Accumulate elapsed speech time so a single noise spike (breath,
+        // keyboard click) can't flip speechDetected on its own.
+        if (state._speechLastFrameTs) {
+          const dt = now - state._speechLastFrameTs;
+          // Cap per-frame delta at 100 ms so a slow frame (background tab)
+          // doesn't single-handedly cross the threshold.
+          state.speechMs = (state.speechMs || 0) + Math.min(dt, 100);
+        }
+        state._speechLastFrameTs = now;
+        if (state.speechMs >= MIN_SPEECH_MS) {
+          state.speechDetected = true;
+        }
+      } else {
+        state._speechLastFrameTs = null;
       }
       if (rms >= SILENCE_THRESHOLD) {
         state.silenceStart = null;
@@ -234,6 +251,8 @@ function _startMediaRecorder() {
   state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
   state.audioChunks = [];
   state.speechDetected = false;  // reset VAD flag for new segment
+  state.speechMs = 0;             // reset cumulative speech duration
+  state._speechLastFrameTs = null;
   state.silenceStart = null;
 
   state.mediaRecorder.ondataavailable = (e) => {
@@ -835,17 +854,32 @@ async function submitAudioSegment(chunks, isFinal) {
     console.log("[voice-edit] /transcribe returned:", JSON.stringify(newText), "editTarget still:", editTarget ? editTarget.elId : "null");
 
     if (editTarget) {
+      const wasMidRecording = !!editTarget.keepRecording;
+
+      // If the server returned empty text (genuine silence, or hallucination
+      // filter rejected what Whisper fabricated), preserve the user's
+      // selection unchanged. Never delete highlighted text on empty.
+      if (!newText) {
+        state.voiceEditTarget = null;
+        if (wasMidRecording && state.isRecording) {
+          setStatus("No speech detected — edit unchanged. Keep dictating.", "active");
+        } else {
+          setUI(_inferUIMode());
+          setStatus("No speech detected — edit unchanged.", "error");
+        }
+        return;
+      }
+
       if (editTarget.elId === "report-rendered") {
         // Voice edit on the rendered report: find-and-replace in raw markdown.
         const raw = $("report-raw").value;
-        const updated = _spliceRenderedEdit(raw, editTarget.selectedText, newText || "");
+        const updated = _spliceRenderedEdit(raw, editTarget.selectedText, newText);
         state.voiceEditTarget = null;
         if (updated !== null) {
           $("report-raw").value = updated;
           $("report-rendered").innerHTML = marked.parse(updated);
           setUI(_inferUIMode());
-          setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
-                    newText ? "success" : "error");
+          setStatus("Voice edit applied.", "success");
         } else {
           setUI(_inferUIMode());
           setStatus("Could not locate selected text in report — edit manually.", "error");
@@ -854,24 +888,18 @@ async function submitAudioSegment(chunks, isFinal) {
         // Voice edit on a textarea: splice at selection position.
         const el = $(editTarget.elId);
         const { start, end } = editTarget;
-        el.value = el.value.slice(0, start) + (newText || "") + el.value.slice(end);
-        if (newText) {
-          el.selectionStart = el.selectionEnd = start + newText.length;
-          el.focus();
-        }
+        el.value = el.value.slice(0, start) + newText + el.value.slice(end);
+        el.selectionStart = el.selectionEnd = start + newText.length;
+        el.focus();
         if (editTarget.elId === "report-raw") {
           $("report-rendered").innerHTML = marked.parse(el.value);
         }
-        const wasMidRecording = !!editTarget.keepRecording;
         state.voiceEditTarget = null;
         if (wasMidRecording && state.isRecording) {
-          setStatus(newText ? "Voice edit applied — keep dictating."
-                            : "No speech detected — edit unchanged. Keep dictating.",
-                    "active");
+          setStatus("Voice edit applied — keep dictating.", "active");
         } else {
           setUI(_inferUIMode());
-          setStatus(newText ? "Voice edit applied." : "No speech detected — edit unchanged.",
-                    newText ? "success" : "error");
+          setStatus("Voice edit applied.", "success");
         }
       }
     } else {
