@@ -27,6 +27,11 @@ class Config:
     hl7_sending_facility = "VOXRAD"
     hl7_receiving_facility = ""       # e.g. "NSWHEALTH", "SECTRA", "KESTRAL"
     hl7_inbox_path = ""               # defaults to {save_directory}/hl7_inbox when empty
+    # MWL (DICOM Modality Worklist) bridge agent
+    # The clinic runs a small agent inside their firewall that polls the PACS
+    # MWL SCP and POSTs the orders to /api/worklist/push. The token guards that
+    # endpoint — when unset, the push endpoint is disabled entirely.
+    mwl_agent_token = ""
     # Streaming STT
     STREAMING_STT_PROVIDER = None   # "deepgram" | "assemblyai" | None
     DEEPGRAM_API_KEY = None

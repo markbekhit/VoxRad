@@ -35,6 +35,14 @@ _DEFAULT_ESC = "\\"
 _DEFAULT_SUB_SEP = "&"
 
 _VALID_EXTENSIONS = (".hl7", ".HL7", ".txt", ".TXT", ".dat", ".DAT")
+_MWL_EXTENSIONS = (".json", ".JSON")
+# MWL bridge agents write one JSON file per order into the same inbox dir.
+# The file contains the already-parsed order dict so no HL7 parsing is needed.
+_MWL_FIELDS = (
+    "patient_name", "patient_dob", "patient_id",
+    "accession", "modality", "body_part", "procedure",
+    "referring_physician", "scheduled_datetime",
+)
 
 
 def _unescape(value: str, esc: str) -> str:
@@ -260,18 +268,34 @@ def list_inbox(inbox_path: str) -> list[dict]:
         return []
 
     for name in entries:
-        if not name.endswith(_VALID_EXTENSIONS):
-            continue
         fpath = os.path.join(inbox_path, name)
         if not os.path.isfile(fpath):
             continue
-        try:
-            with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-        except OSError as e:
-            logger.warning("Could not read HL7 inbox file %s: %s", fpath, e)
+
+        parsed: Optional[dict] = None
+        if name.endswith(_VALID_EXTENSIONS):
+            try:
+                with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+            except OSError as e:
+                logger.warning("Could not read HL7 inbox file %s: %s", fpath, e)
+                continue
+            parsed = parse_orm_o01(content)
+        elif name.endswith(_MWL_EXTENSIONS):
+            # MWL bridge agent wrote an already-parsed order.
+            try:
+                import json
+                with open(fpath, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+            except (OSError, ValueError) as e:
+                logger.warning("Could not read MWL inbox file %s: %s", fpath, e)
+                continue
+            if isinstance(raw, dict):
+                parsed = {k: raw.get(k) for k in _MWL_FIELDS if raw.get(k)}
+                parsed["source"] = raw.get("source", "mwl")
+        else:
             continue
-        parsed = parse_orm_o01(content)
+
         if not parsed:
             continue
         parsed["order_id"] = os.path.splitext(name)[0]
@@ -298,7 +322,7 @@ def archive_order(inbox_path: str, order_id: str, archive_dirname: str = "proces
         logger.warning("Could not create HL7 archive dir: %s", e)
         return False
 
-    for ext in _VALID_EXTENSIONS:
+    for ext in _VALID_EXTENSIONS + _MWL_EXTENSIONS:
         src = os.path.join(inbox_path, f"{order_id}{ext}")
         if os.path.isfile(src):
             dst = os.path.join(archive_dir, f"{order_id}{ext}")

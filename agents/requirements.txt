@@ -1,0 +1,3 @@
+pynetdicom>=2.0
+pydicom>=2.4
+requests>=2.31

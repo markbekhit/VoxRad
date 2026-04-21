@@ -25,7 +25,7 @@ import time
 import uuid
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -1182,6 +1182,79 @@ def api_hl7_worklist_archive(order_id: str, user: dict = Depends(_verify_auth)):
     if not ok:
         raise HTTPException(status_code=404, detail="Order not found in inbox")
     return {"ok": True}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MWL bridge agent — accepts pushed DICOM Modality Worklist orders
+# ─────────────────────────────────────────────────────────────────────────────
+# The clinic's on-prem agent runs C-FIND SCU against their PACS/broker and
+# POSTs each parsed order here. We write one JSON file per order into the
+# HL7 inbox so the existing worklist UI, filter, and archive flow pick it up
+# with no further changes. Shared-secret auth only — not a user session.
+
+_MWL_FIELD_WHITELIST = {
+    "patient_name", "patient_dob", "patient_id",
+    "accession", "modality", "body_part", "procedure",
+    "referring_physician", "scheduled_datetime",
+}
+
+
+@app.post("/api/worklist/push")
+def api_worklist_push(
+    payload: dict = Body(...),
+    x_voxrad_agent_token: str | None = Header(None),
+):
+    """Accept a batch of MWL orders from an on-prem bridge agent.
+
+    Authentication is via the X-VoxRad-Agent-Token header matching the
+    VOXRAD_MWL_AGENT_TOKEN env var. When the token is unset, the endpoint
+    is disabled. The agent POSTs `{"orders": [{...}, ...]}` — each order
+    uses the same field names as the HL7 worklist output.
+    """
+    expected = (config.mwl_agent_token or "").strip()
+    if not expected:
+        raise HTTPException(status_code=404, detail="MWL push not configured")
+    if not x_voxrad_agent_token or not secrets.compare_digest(
+        x_voxrad_agent_token.strip(), expected
+    ):
+        raise HTTPException(status_code=401, detail="Invalid agent token")
+
+    inbox = _hl7_inbox_dir()
+    if not inbox:
+        raise HTTPException(status_code=500, detail="HL7 inbox not configured on server")
+
+    orders = payload.get("orders") if isinstance(payload, dict) else None
+    if not isinstance(orders, list):
+        raise HTTPException(status_code=400, detail="Expected {'orders': [...]}")
+
+    written = 0
+    skipped = 0
+    for order in orders:
+        if not isinstance(order, dict):
+            skipped += 1
+            continue
+        clean = {k: v for k, v in order.items() if k in _MWL_FIELD_WHITELIST and v}
+        if not clean.get("accession") and not clean.get("patient_id"):
+            # Need at least one stable identifier to build the filename
+            skipped += 1
+            continue
+        clean["source"] = "mwl"
+        # Deterministic order_id so re-pushed orders overwrite rather than
+        # duplicating — keyed on accession (preferred) or patient+scheduled.
+        key = clean.get("accession") or f"{clean.get('patient_id','')}_{clean.get('scheduled_datetime','')}"
+        # Sanitise for filesystem
+        safe = re.sub(r"[^A-Za-z0-9_.-]", "_", key)[:80] or "order"
+        fname = f"mwl_{safe}.json"
+        fpath = os.path.join(inbox, fname)
+        try:
+            with open(fpath, "w", encoding="utf-8") as f:
+                json.dump(clean, f, ensure_ascii=False, indent=2)
+            written += 1
+        except OSError as e:
+            logger.warning("Could not write MWL order %s: %s", fpath, e)
+            skipped += 1
+
+    return {"ok": True, "written": written, "skipped": skipped, "inbox": inbox}
 
 
 @app.get("/api/settings")

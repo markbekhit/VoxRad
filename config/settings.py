@@ -121,6 +121,9 @@ def load_settings(web_mode: bool = False):
     config.hl7_receiving_facility = os.environ.get("VOXRAD_HL7_RECEIVING_FACILITY", config.hl7_receiving_facility)
     config.hl7_inbox_path         = os.environ.get("VOXRAD_HL7_INBOX",              config.hl7_inbox_path)
 
+    # MWL bridge agent — env-var only (never written to settings.ini)
+    config.mwl_agent_token        = os.environ.get("VOXRAD_MWL_AGENT_TOKEN", config.mwl_agent_token)
+
     if "STYLE" in config_parser:
         s = config_parser["STYLE"]
         config.style_spelling              = s.get("Spelling", config.style_spelling)
