@@ -1,177 +1,291 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/PROJECT-ARCHIVED-red?style=for-the-badge&logo=github" />
-</p>
-
-This repository is no longer under active development. Development efforts have shifted to ****VOXRAD2****, a major redesign and evolution of this project. 📅 Planned Release: **Mid-2026** . This repository remains available for reference and historical purposes.
-
--------
-
-<p align="center">
-  <img src="images/voxrad_logo.jpg" alt="VOXRAD Logo" />
+  <img src="images/voxrad_logo.jpg" alt="VoxRad Logo" />
 </p>
 
 <div align="center">
-  
+
 [![Python Badge](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff&style=for-the-badge)](#)
-[![FFmpeg Badge](https://img.shields.io/badge/OpenAI%20API-eee?style=for-the-badge&logo=openai&logoColor=412991)]()
-[![GitBook Badge](https://img.shields.io/badge/GitBook-BBDDE5?logo=gitbook&logoColor=000&style=for-the-badge)](https://voxrad.gitbook.io/voxrad)
-
-[![Release](https://img.shields.io/github/v/release/drankush/voxrad?include_prereleases&color=blue)](https://github.com/drankush/voxrad/releases)
-[![License](https://flat.badgen.net/badge/license/GPLv3/green?icon=github)](https://github.com/drankush/voxrad/blob/main/LICENSE)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=fff&style=for-the-badge)](#)
+[![Fly.io](https://img.shields.io/badge/Fly.io-7C3AED?logo=flydotio&logoColor=fff&style=for-the-badge)](#)
+[![License](https://flat.badgen.net/badge/license/GPLv3/green?icon=github)](LICENSE)
 [![Python Version](https://flat.badgen.net/badge/python/3.11%20|%203.12/blue?icon=github)](#)
-
-[![Open Issues](https://img.shields.io/github/issues/drankush/voxrad.svg?color=orange)](https://github.com/drankush/voxrad/issues)
-[![Closed Issues](https://img.shields.io/github/issues-closed/drankush/voxrad.svg?color=red)](https://github.com/drankush/voxrad/issues?q=is%3Aissue+is%3Aclosed)
-
-
-[![Apple](https://flat.badgen.net/badge/icon/apple?icon=apple&label)](https://github.com/drankush/VoxRad/releases/download/v0.3.0-beta/VoxRad_macOS_v0.3.0-beta.zip)
-[![Windows](https://flat.badgen.net/badge/icon/windows?icon=windows&label)](https://github.com/drankush/VoxRad/releases/download/v0.1.0-alpha/VoxRad_winOS_v0.1.0-alpha.zip)
-
 
 </div>
 
-# 🚀 VOXRAD 
+# 🚀 VoxRad
 
-VOXRAD is a voice transcription application for radiologists leveraging voice transcription and large language models to restructure and format reports as per predefined user instruction templates.
+VoxRad is an AI-assisted voice reporting system for radiologists. Dictate a
+study, get back a structured, style-consistent report ready to paste into
+your RIS — or, where integrations are available, delivered automatically.
 
-**Welcome to The VOXRAD App! 🌟 🎙**
+The project is web-first: deploy a single container (or push to Fly.io) and
+your radiologists get a browser-based workstation with streaming speech-
+to-text, LLM report formatting, patient-context awareness, a DICOM/HL7
+worklist, and standards-based export back to the RIS. A legacy desktop
+(Tkinter) build is still in the tree for offline use.
 
-This application leverages the power of generative AI to efficiently transcribe and format radiology reports from audio inputs. Designed for radiologists and radiology residents, it transforms spoken content into structured, readable reports.
+> **Note on lineage** — this codebase began as a fork of Ankush Ankush's
+> original VoxRad desktop app (see [citation below](#-cite)) and has since
+> evolved into an independent, actively-developed web platform. It is
+> unrelated to any "VoxRad2" effort.
 
-**Etymology:**
+## ✨ What's in here
 
--  **VoxRad** /vɒks-ræd/ *noun*
+### Radiologist workstation (web)
+- 🎤 **Streaming STT** — Deepgram Nova-2-Medical or AssemblyAI with medical
+  vocabulary boost; falls back to Groq Whisper segment mode when no
+  streaming key is configured
+- 📝 **LLM report formatting** — OpenAI-compatible endpoint (OpenAI,
+  Gemini, Groq, local Ollama / vLLM, etc.) with user-editable templates
+- 🎯 **Voice refinement** — select a passage, speak corrections, regenerate
+- 🗂 **Worklist panel** — modality filter chips (CT/MR/US/XR/Other),
+  waiting-time labels, one-click archive
+- 📋 **Smart paste** — rich / plain / markdown clipboard payloads for
+  different RIS text fields, plus one-keystroke "Next Case" reset (Alt+N)
+- 🎨 **Reporting style preferences** — British/American spelling, grade
+  numerals, measurement units, impression format, laterality, date format
+- 👤 **Patient context** — name, DOB, MRN, accession, modality, body part,
+  referring physician; auto-populated from HL7 / MWL / FHIR lookup
+- 🔐 **Auth** — HTTP Basic or Google / Microsoft OAuth (per-user settings
+  in OAuth mode)
 
-1. A portmanteau derived from **Vox** (Latin for *voice*) and **Rad** (*radiology*), symbolizing the fusion of voice recognition with radiology. Represents the integration of voice recognition technology with radiological imaging and reporting.
+### Integration features
+- 📤 **HL7 v2.4 ORU^R01 export** — drop final reports to a file-drop inbox
+  for RIS integration engines to pick up
+- 📥 **HL7 v2.4 ORM^O01 ingestion** — parse inbound orders from integration
+  engines, surface them in the worklist
+- 🛰️ **DICOM Modality Worklist (MWL) bridge agent** — an on-prem Python
+  agent runs C-FIND against the clinic's PACS and pushes orders to the
+  cloud VoxRad instance over HTTPS, avoiding the inbound-firewall problem
+- 🧬 **FHIR R4 export** — `DiagnosticReport` JSON written per report
+- 🔎 **FHIR RIS patient lookup** — query a FHIR server by accession to
+  auto-fill patient context
 
-2. An AI-driven app transforming radiology reporting through voice transcription, enhancing accuracy in medical documentation.
-
-## ✨ Features 
-
-- 🎤 Voice transcription
-- 📝 Report formatting
-- 🤖 Integration with large language models
-- ⚙️ Customizable templates
-- 📈 Potential to extend the application for dictating other structured notes (discharge notes, OT notes or legal paperwork)
+### Desktop (legacy, still in tree)
+- Tkinter UI, multimodal (Gemini) mode, encrypted clipboard paste
+- Not at feature parity with the web app — new integration features are
+  web-only
 
 ## 🏗️ Architecture
 
-<p align="center">
-<img src="images/voxrad_architecture.png" alt="VOXRAD Logo" />
-</p>
-<p align="center">
-<i>Modified figure from Ankush et al. for v0.4.0-beta [1]</i>
-</p>
+```
+                    ┌── Clinic LAN ──┐             ┌── Fly.io / Docker ──┐
+                    │                │             │                     │
+  ┌─────────┐       │   ┌─────────┐  │             │                     │
+  │ PACS /  │──MWL──┼──▶│  MWL    │──┼── HTTPS ───▶│                     │
+  │  MWL    │       │   │  Bridge │  │             │      VoxRad         │
+  └─────────┘       │   └─────────┘  │             │      Web App        │
+                    │                │             │      (FastAPI)      │
+  ┌─────────┐       │   ┌─────────┐  │             │                     │
+  │   RIS   │──HL7──┼──▶│ Inbox   │  │ file drop   │                     │
+  │ engine  │◀─HL7──┼───│ Outbox  │──┼─────────────│                     │
+  └─────────┘       │   └─────────┘  │             │                     │
+                    └────────────────┘             │        │            │
+                                                   │        ▼            │
+                                                   │  ┌──────────────┐   │
+                                     browser ◀─────┤  │   OpenAI-    │   │
+                                     (dictate)─────┤──▶│   compatible │   │
+                                                   │  │   LLM        │   │
+                                                   │  └──────────────┘   │
+                                                   └─────────────────────┘
+```
 
-## 🛠️ Getting Set Up
+Core subsystems:
 
-### 💻 Installation 
+- `web/` — FastAPI app, Jinja2 templates, WebSocket streaming STT proxy
+- `llm/` — report formatting, HL7 import/export, FHIR export, style prompt
+- `audio/` — microphone capture + segment/stream encoding
+- `agents/` — on-prem MWL bridge (stands apart from the server)
+- `config/`, `utils/` — settings loader, encryption
+- `templates/` — ~29 bundled radiology report templates (CT, MR, US, XR,
+  mammo, bone, echo, obstetric, ophthalmology, paediatric, PET, etc.)
+- `guidelines/` — BIRADS, TIRADS, PIRADS, LIRADS, Fleischner reference
+- `ui/` — legacy Tkinter desktop
 
-- Download the `.app` file for Mac or the `.exe` file for Windows from the [releases](https://github.com/drankush/voxrad/releases).
+## 🚀 Quick start — web app
 
-### 🔄 Understanding Workflow
-VOXRAD uses two ways to transcribe audio to report.
+### Fly.io (recommended — always-on free tier)
 
-- Use a combination of using a transcription model to first transcribe audio and then format and restructure the transcript using instruction template.
-- Use a multimodal model to directly input the audio and instruction template to provide output (experimental).
+```bash
+flyctl auth login
+flyctl apps create voxrad-yourname
+flyctl volumes create voxrad_config --size 1 --region syd
+flyctl volumes create voxrad_data   --size 1 --region syd
 
-Read more about the supported models [here](https://voxrad.gitbook.io/voxrad/fundamentals/getting-set-up/understanding-workflow#supported-llms).
+flyctl secrets set \
+    VOXRAD_WEB_PASSWORD=changeme \
+    VOXRAD_TRANSCRIPTION_API_KEY=gsk_... \
+    VOXRAD_TEXT_API_KEY=sk-...
 
-### 📄 Customizing Templates and Guidelines
+flyctl deploy
+```
 
-- Click ⚙️ Settings button at bottom right corner of the application interface.
+Full guide: [docs/deploy-web.md](docs/deploy-web.md).
 
-  -  In the first Tab  🛠 General click Browse and select your desired working directory. 
+### Docker (local / self-hosted)
 
-  -  Here your templates files (predefined CoT-like systematic instructions such as HRCT_Thorax.txt, CT_Head.txt etc.) and guidelines (such as BIRADS.md, TIRADS.md, PIRADS.md etc.) will be kept.
+```bash
+docker compose up -d
+# → http://localhost:8000
+```
 
-Read more about [Customizing templates and guidelines](https://voxrad.gitbook.io/voxrad/fundamentals/getting-set-up/customizing-templates).
+### Configuration
 
+Everything is env-var driven; non-sensitive prefs live in `settings.ini`.
+Key vars:
 
-### 🔐 Managing Keys
+| Variable | Purpose |
+|---|---|
+| `VOXRAD_WEB_PASSWORD` | HTTP Basic password (single-user mode) |
+| `VOXRAD_TRANSCRIPTION_API_KEY` | Groq / Whisper API key |
+| `VOXRAD_TEXT_API_KEY` | LLM API key for report formatting |
+| `DEEPGRAM_API_KEY` / `ASSEMBLYAI_API_KEY` | Streaming STT provider keys |
+| `VOXRAD_STREAMING_STT_PROVIDER` | `deepgram` \| `assemblyai` \| unset |
+| `VOXRAD_WORKING_DIR` | Where templates / reports / inbox live |
+| `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID` / ... | OAuth mode |
 
-- You can encrypt keys of transcription, text and multimodal models with password and even lock and unlock them while the application is in use. The application will ask for this password every time you start the applicaiton if encrypted keys are stored.
-- In the "Base URL" field,  enter the base URL in OpenAI compatible format. Enter API key in the in the "API Key" field.
-- You can use any OpenAI-compatible API key and Base URL and even locally deployed models which create OpenAI compatible endpoints.
-- Click **Fetch Model** to see the available models and choose one.
-- Click **Save Settings** to save your selected model and Base URL (these are not encrypted).
-Read more about managing keys, best practices and troubleshooting [here](https://voxrad.gitbook.io/voxrad/fundamentals/getting-set-up/managing-keys).
+## 🔌 Integration setup
 
-### 🖥️ Running Models Locally
+### HL7 file-drop (generic RIS)
 
-- There are [various ways](https://voxrad.gitbook.io/voxrad/running-models-locally) to run models locally and create OpenAI compatible endpoints which can then used with this application.
-- You can also input OpenAI compatible Base URL and API key of [any remotely hosted service](https://voxrad.gitbook.io/voxrad/running-models-locally#remotely-hosted-models), however this is not recommended for sensitive data. For example: Groq: https://api.groq.com/openai/v1
+Any integration engine that can write/read HL7 v2.x files to a shared
+directory works. Point the engine at VoxRad's inbox/outbox:
 
-## 🖱️ Usage 
+```bash
+flyctl secrets set \
+    VOXRAD_HL7_INBOX=/data/hl7_inbox \
+    VOXRAD_HL7_OUTBOX=/data/hl7_outbox \
+    VOXRAD_HL7_SENDING_FACILITY=VOXRAD \
+    VOXRAD_HL7_RECEIVING_FACILITY=MYCLINIC
+```
 
-### 🎙 Main App Window 
+Inbound `ORM^O01` orders land in the worklist automatically. Outbound
+`ORU^R01` reports are written when `VOXRAD_HL7_ENABLED=true`.
 
-<!--
-<p align="center">
-  <img src="images/voxrad_gui.jpg" alt="VOXRAD Logo" />
-</p>
--->
+### DICOM MWL bridge (no integration engine required)
 
+For clinics with a PACS/MWL broker but no HL7 integration engine, run the
+on-prem bridge agent:
 
+```bash
+# Server side — set the shared secret
+flyctl secrets set VOXRAD_MWL_AGENT_TOKEN=$(openssl rand -hex 32)
 
-- Press the **Record 🔴** button and start dictating your report, keep it around max 15 minutes, as the file sent limit is 25 MB (the application will try to reduce the bitrate to accommodate this size for longer audios). You will see a waveform while the audio is recorded.
+# Clinic side — run the bridge
+pip install -r agents/requirements.txt
+python agents/voxrad_mwl_agent.py \
+    --mwl-host pacs.clinic.local --mwl-port 104 \
+    --called-ae MWLSCP --calling-ae VOXRAD \
+    --voxrad-url https://voxrad-yourname.fly.dev \
+    --token $VOXRAD_AGENT_TOKEN
+```
 
-- Press **Stop ⬜️** to stop recording. Your audio will be processed.
+Full guide: [docs/mwl-bridge-agent.md](docs/mwl-bridge-agent.md). This
+includes systemd unit, firewall / security notes, and recipes for
+testing against public SCPs (`dicomserver.co.uk`, Orthanc) without a
+real PACS.
 
-- The final formatted and structured report will be automatically posted on your clipboard. You can then directly paste using secure paste shortcut key defined in the General Settings (in macOS) or  (Ctrl + V in windows application) it into your application, word processor, or PACS.
+### FHIR R4
 
-Read detailed documentation of generating a report [here](https://voxrad.gitbook.io/voxrad/user-guide/generating-a-report).
+```bash
+flyctl secrets set \
+    FHIR_BASE_URL=https://ris.example.com/fhir \
+    VOXRAD_FHIR_EXPORT_ENABLED=true
+```
 
-## 📚 Documentation 
+Each finalised report emits a `DiagnosticReport` JSON to the working
+directory; the "Lookup" button queries the FHIR server by accession to
+pre-fill patient context.
 
-Read comprehensive VOXRAD documentation [here](http://voxrad.gitbook.io/voxrad).
+## 🖥️ Desktop app (legacy)
 
-## 🌟 Contributing 
+The original Tkinter desktop app still works for local, offline use:
 
-VOXRAD is a community-driven project, and we're grateful for the contributions of our team members. Read about the [key contributors](https://voxrad.gitbook.io/voxrad/support-and-contact/contributors). Please read the [contributing guidelines](CONTRIBUTING.md) before getting started.
+```bash
+pip install -r requirements.txt
+python VoxRad.py
+```
 
-## 📜 License 
+It supports encrypted paste, multimodal (Gemini) mode, and the same
+template library — but **does not** have the HL7 / MWL / FHIR
+integration features the web app has. New work lands web-first.
 
-This project is licensed under the GPLv3 License - see the [LICENSE](LICENSE) file for details. Till v0.3.0-beta, the application uses FFmpeg, which is licensed under the GNU General Public License (GPL) version 2 or later. For more details, please refer to the [documentation](https://github.com/drankush/voxrad/docs/FFmpeg.md/) in the repository.
+## 📚 Documentation
 
-## 🐞 Support 
+In this repo:
+- [`docs/deploy-web.md`](docs/deploy-web.md) — Fly.io / Docker deployment
+- [`docs/mwl-bridge-agent.md`](docs/mwl-bridge-agent.md) — MWL bridge setup
+- [`docs/local-whisper-setup.md`](docs/local-whisper-setup.md) — self-hosted STT
+- [`docs/FFmpeg.md`](docs/FFmpeg.md) — audio pipeline notes
+- [`CLAUDE.md`](CLAUDE.md) — project instructions for AI-assisted development
 
-To report bugs or issues, please follow [this guide](https://github.com/drankush/voxrad/blob/main/contributing.md#reporting-bugs) on how to report bugs.
+Original desktop app's GitBook: https://voxrad.gitbook.io/voxrad
+(historical reference — predates the web work)
 
-### 📧 Contact 
+## 🛠️ Development
 
-For any other questions, support or appreciation, please contact [here](mailto:voxrad@drankush.com).
+```bash
+# Clone + install
+git clone https://github.com/markbekhit/VoxRad.git
+cd VoxRad
+pip install -r requirements-web.txt
 
-## 🚨 Disclaimer 
+# Dev run with mock APIs
+VOXRAD_MOCK_MODE=1 VOXRAD_WEB_PASSWORD=dev \
+    python VoxRad.py --web --port 8000
 
-This is a pure demonstrative application for the capabilities of AI and may not be compliant with local regulations of handling sensitive and private data. This is not intended for any diagnostic and clinical use. Please read the terms of use of the API keys that you will be using.
+# → http://localhost:8000   (user: voxrad, pass: dev)
+```
 
-- The application is not intended to replace professional medical advice, diagnosis, or treatment.
-- Users must ensure they comply with all relevant local laws and regulations when using the application, especially concerning data privacy and security.
-- Users are advised to locally host voice transcription and text models and use its endpoints for sensitive data.
-- The developers are not responsible for any misuse of the application or any data breaches that may occur.
-- The application does not encrypt data by default; users must take additional steps to secure their data.
-- Always verify the accuracy of the transcriptions and generated reports manually.
+`VOXRAD_MOCK_MODE=1` stubs out transcription + LLM calls with canned
+responses — useful for UI work and CI without burning API credits.
+
+## 🤝 Contributing
+
+See [`contributing.md`](contributing.md). Bug reports and feature
+requests via GitHub issues; please include logs and the deployment mode
+(desktop / Fly.io / Docker).
+
+## 📜 License
+
+GPLv3 — see [LICENSE](LICENSE). Third-party licences for bundled
+binaries (e.g. FFmpeg in legacy desktop builds) are noted in
+[`docs/FFmpeg.md`](docs/FFmpeg.md).
+
+## 🚨 Disclaimer
+
+VoxRad is software for *drafting* radiology reports. It does not replace
+professional medical judgement, is not a medical device, and has not been
+certified for clinical use in any jurisdiction. Users are responsible for:
+
+- Verifying every generated report against the imaging
+- Compliance with local regulations for handling patient data (HIPAA,
+  GDPR, Australian Privacy Act, etc.) — for sensitive data, self-host
+  both the transcription and LLM endpoints
+- Reviewing and agreeing to the terms of service of any third-party API
+  keys configured (OpenAI, Groq, Deepgram, AssemblyAI, Gemini, etc.)
 
 ## 🔖 Cite
-```
+
+The upstream desktop project is published in *Clinical Imaging*:
+
+```bibtex
 @article{ankush_voxrad_2025,
-	title = {{VoxRad}: {Building} an open-source locally-hosted radiology reporting system},
-	volume = {119},
-	issn = {0899-7071, 1873-4499},
-	shorttitle = {{VoxRad}},
-	url = {https://www.clinicalimaging.org/article/S0899-7071(25)00014-2/abstract},
-	doi = {10.1016/j.clinimag.2025.110414},
-	language = {English},
-	urldate = {2025-02-01},
-	journal = {Clinical Imaging},
-	author = {Ankush, Ankush},
-	month = mar,
-	year = {2025},
-	pmid = {39884167},
-	note = {Publisher: Elsevier},
-	keywords = {Artificial intelligence, Efficiency, Informatics, Natural language processing, Speech recognition software},
+    title     = {{VoxRad}: {Building} an open-source locally-hosted radiology reporting system},
+    volume    = {119},
+    issn      = {0899-7071, 1873-4499},
+    shorttitle = {{VoxRad}},
+    url       = {https://www.clinicalimaging.org/article/S0899-7071(25)00014-2/abstract},
+    doi       = {10.1016/j.clinimag.2025.110414},
+    journal   = {Clinical Imaging},
+    author    = {Ankush, Ankush},
+    month     = mar,
+    year      = {2025},
+    pmid      = {39884167},
 }
 ```
-[1] Ankush A. (2025). VoxRad: Building an open-source locally-hosted radiology reporting system. Clinical imaging, 119, 110414. Advance online publication. https://doi.org/10.1016/j.clinimag.2025.110414 PMID:[39884167](https://pubmed.ncbi.nlm.nih.gov/39884167/)
 
+Ankush A. (2025). VoxRad: Building an open-source locally-hosted
+radiology reporting system. *Clinical Imaging*, 119, 110414.
+[doi:10.1016/j.clinimag.2025.110414](https://doi.org/10.1016/j.clinimag.2025.110414)
+· PMID [39884167](https://pubmed.ncbi.nlm.nih.gov/39884167/)
