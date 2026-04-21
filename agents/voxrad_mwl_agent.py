@@ -154,9 +154,14 @@ def _mwl_dataset_to_order(ds) -> dict:
     return out
 
 
-def _build_cfind_identifier(Dataset, modalities: Optional[list[str]] = None,
+def _build_cfind_identifier(Dataset, modality: str = "",
                             scheduled_ae: Optional[str] = None) -> "Dataset":
-    """Build the minimal C-FIND identifier for an MWL query."""
+    """Build the minimal C-FIND identifier for an MWL query.
+
+    `modality` filters to a single modality when non-empty. Multi-modality
+    filtering is handled by the caller issuing one query per modality —
+    many PACS implementations do not honour multi-valued CS queries.
+    """
     ds = Dataset()
     # Patient-level (return keys)
     ds.PatientName = ""
@@ -169,7 +174,7 @@ def _build_cfind_identifier(Dataset, modalities: Optional[list[str]] = None,
 
     # Scheduled Procedure Step — required sequence for MWL
     sps = Dataset()
-    sps.Modality = ""
+    sps.Modality = modality
     sps.ScheduledStationAETitle = scheduled_ae or ""
     sps.ScheduledProcedureStepStartDate = ""
     sps.ScheduledProcedureStepStartTime = ""
@@ -178,36 +183,23 @@ def _build_cfind_identifier(Dataset, modalities: Optional[list[str]] = None,
     sps.ScheduledProcedureStepID = ""
     ds.ScheduledProcedureStepSequence = [sps]
 
-    if modalities:
-        # If the SCP honours multi-value Modality, one query covers all. Some
-        # don't — fall back to single-modality queries in the caller if needed.
-        sps.Modality = "\\".join(m.upper() for m in modalities)
-
     return ds
 
 
 # ─── Core loop ──────────────────────────────────────────────────────────────
-def run_once(args) -> dict:
-    """Query the MWL SCP once and push results to VoxRad. Returns stats dict."""
-    AE, ModalityWorklistInformationFind, Dataset = _require_pynetdicom()
-
-    ae = AE(ae_title=args.calling_ae)
-    ae.add_requested_context(ModalityWorklistInformationFind)
-
-    logger.info("Connecting to %s:%d (called AE=%s, calling AE=%s)",
-                args.mwl_host, args.mwl_port, args.called_ae, args.calling_ae)
-
+def _query_one(ae, ModalityWorklistInformationFind, Dataset, args,
+               modality: str) -> list[dict]:
+    """Open an association, run a single C-FIND, return parsed orders."""
     identifier = _build_cfind_identifier(
         Dataset,
-        modalities=args.modalities.split(",") if args.modalities else None,
+        modality=modality,
         scheduled_ae=args.scheduled_ae or None,
     )
-
     assoc = ae.associate(args.mwl_host, args.mwl_port, ae_title=args.called_ae)
     if not assoc.is_established:
-        logger.error("Association rejected by %s", args.mwl_host)
-        return {"ok": False, "error": "association_rejected"}
-
+        logger.error("Association rejected by %s (modality=%s)",
+                     args.mwl_host, modality or "ANY")
+        return []
     orders: list[dict] = []
     try:
         responses = assoc.send_c_find(identifier, ModalityWorklistInformationFind)
@@ -221,8 +213,38 @@ def run_once(args) -> dict:
                     orders.append(order)
     finally:
         assoc.release()
+    return orders
 
-    logger.info("C-FIND returned %d orders", len(orders))
+
+def run_once(args) -> dict:
+    """Query the MWL SCP once and push results to VoxRad. Returns stats dict."""
+    AE, ModalityWorklistInformationFind, Dataset = _require_pynetdicom()
+
+    ae = AE(ae_title=args.calling_ae)
+    ae.add_requested_context(ModalityWorklistInformationFind)
+
+    logger.info("Connecting to %s:%d (called AE=%s, calling AE=%s)",
+                args.mwl_host, args.mwl_port, args.called_ae, args.calling_ae)
+
+    modalities = [m.strip().upper() for m in args.modalities.split(",") if m.strip()] \
+                 if args.modalities else [""]
+
+    # Dedupe: a PACS can match the same order under multiple modality queries
+    # (e.g. dual-modality studies). Key on accession (preferred) or falls back
+    # to patient_id + scheduled_datetime.
+    seen: set[str] = set()
+    orders: list[dict] = []
+    for mod in modalities:
+        batch = _query_one(ae, ModalityWorklistInformationFind, Dataset, args, mod)
+        for o in batch:
+            key = o.get("accession") or f"{o.get('patient_id','')}|{o.get('scheduled_datetime','')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            orders.append(o)
+        logger.info("C-FIND [modality=%s] returned %d orders", mod or "ANY", len(batch))
+
+    logger.info("Total unique orders: %d", len(orders))
 
     if args.dry_run:
         for i, o in enumerate(orders, 1):
