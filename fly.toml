@@ -6,6 +6,9 @@ primary_region = "syd"
 [build]
   dockerfile = "Dockerfile"
 
+[deploy]
+  strategy = "immediate"
+
 [env]
   VOXRAD_WORKING_DIR = "/data/working"
   VOXRAD_DB_PATH     = "/data/users.db"
