@@ -23,6 +23,8 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,108 @@ _MWL_FIELDS = (
     "accession", "modality", "body_part", "procedure",
     "referring_physician", "scheduled_datetime",
 )
+
+# --- Robustness guards ------------------------------------------------------
+# An HL7 ORM^O01 is typically < 10 KB. Anything > 5 MB is almost certainly a
+# misdelivery (a full DICOM file, a log blob, a runaway export). Reject rather
+# than OOM the /worklist request parsing it.
+_MAX_INBOX_FILE_BYTES = 5 * 1024 * 1024
+
+# Integration engines typically create `.foo.hl7` or `foo.hl7.tmp` while
+# writing, then rename to the final name atomically. Skip anything that looks
+# like an in-progress write or an OS metadata artefact.
+_TEMP_FILE_SUFFIXES = (".tmp", ".TMP", ".part", ".PART", ".crdownload", ".swp")
+_TEMP_FILE_PREFIXES = (".", "_")
+
+# Guard against partial writes from engines that do NOT use atomic renames:
+# don't parse a file whose mtime is within this window of `now` — it may
+# still be open for writing. One second is enough for most fsync-then-close
+# patterns without noticeably delaying order visibility.
+_MIN_INBOX_AGE_SECONDS = 1.0
+
+# Archive subdir names. Files that parse successfully go to `processed/` via
+# archive_order(). Files that are malformed / unparseable get quarantined so
+# the worklist doesn't repeatedly try — and fail — to parse them on every poll.
+_FAILED_SUBDIR = "failed"
+_PROCESSED_SUBDIR = "processed"
+
+
+def _should_defer_file(name: str, full_path: str) -> Optional[str]:
+    """Return a skip reason (str) for files that shouldn't be read right now.
+
+    Returns None when the file is ready to parse. Deferred files (too new, in
+    a temp state) are skipped silently on this poll and retried on the next
+    one — NOT quarantined, since they may become valid moments later.
+    """
+    if name.startswith(_TEMP_FILE_PREFIXES):
+        return "hidden or in-progress prefix"
+    if name.endswith(_TEMP_FILE_SUFFIXES):
+        return "temp-file suffix"
+    try:
+        st = os.stat(full_path)
+    except OSError:
+        return "stat failed"
+    if st.st_size == 0:
+        return "empty"
+    age = time.time() - st.st_mtime
+    if age < _MIN_INBOX_AGE_SECONDS:
+        return f"too new ({age:.2f}s — may still be writing)"
+    return None
+
+
+def _quarantine(fpath: str, reason: str) -> bool:
+    """Move an unparseable inbox file into a `failed/` subdir.
+
+    Keeps the active inbox clean so every /worklist poll doesn't retry the
+    same broken file. Filename is prefixed with a timestamp for traceability.
+    """
+    try:
+        inbox_dir = os.path.dirname(fpath)
+        failed_dir = os.path.join(inbox_dir, _FAILED_SUBDIR)
+        os.makedirs(failed_dir, exist_ok=True)
+        base = os.path.basename(fpath)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dst = os.path.join(failed_dir, f"{ts}_{base}")
+        os.replace(fpath, dst)
+        logger.warning("Quarantined inbox file %s → %s: %s", base, dst, reason)
+        return True
+    except OSError as e:
+        logger.error("Failed to quarantine %s: %s", fpath, e)
+        return False
+
+
+def _read_inbox_text(fpath: str) -> Optional[str]:
+    """Read an HL7 inbox file with encoding fallback.
+
+    HL7 v2 is conventionally ASCII; real-world messages may carry non-ASCII
+    Latin-1 characters in names (German ß, Swedish å, etc.). Try UTF-8 first
+    because modern engines default to it, then fall back to Latin-1 (always
+    succeeds, never corrupts ASCII).
+    """
+    try:
+        size = os.path.getsize(fpath)
+    except OSError as e:
+        logger.warning("stat failed on %s: %s", fpath, e)
+        return None
+    if size > _MAX_INBOX_FILE_BYTES:
+        logger.warning(
+            "Inbox file %s is %d bytes (cap %d) — quarantining",
+            fpath, size, _MAX_INBOX_FILE_BYTES,
+        )
+        _quarantine(fpath, f"over-size ({size} bytes)")
+        return None
+    for enc in ("utf-8", "latin-1"):
+        try:
+            with open(fpath, "r", encoding=enc) as f:
+                return f.read()
+        except UnicodeDecodeError:
+            continue
+        except OSError as e:
+            logger.warning("Read failed on %s: %s", fpath, e)
+            return None
+    logger.warning("Unable to decode %s with utf-8 or latin-1 — quarantining", fpath)
+    _quarantine(fpath, "encoding decode failed")
+    return None
 
 
 def _unescape(value: str, esc: str) -> str:
@@ -253,10 +357,17 @@ def parse_orm_o01(message: str) -> Optional[dict]:
 def list_inbox(inbox_path: str) -> list[dict]:
     """Scan an HL7 inbox directory and return parsed ORM^O01 orders.
 
-    The file's stable name (without extension) is returned as ``order_id`` so
-    the UI can reference and dismiss individual entries. Invalid or non-ORM
-    files are silently skipped to keep the worklist resilient to engine
-    misconfiguration.
+    Behaviour:
+    - Files matching `_VALID_EXTENSIONS` are parsed as HL7 v2 ORM^O01.
+    - Files matching `_MWL_EXTENSIONS` are loaded as pre-parsed JSON orders.
+    - Hidden files, temp-suffixed files, and files whose mtime is within the
+      last second are deferred (silently retried on the next poll).
+    - Files too large to be a plausible ORM (> `_MAX_INBOX_FILE_BYTES`),
+      files that fail to decode, and files that fail to parse are moved to
+      `failed/` so the inbox doesn't keep retrying the same broken input.
+    - `processed/` and `failed/` subdirectories are skipped.
+    - The file's stable name (without extension) is returned as ``order_id``
+      so the UI can reference and dismiss individual entries.
     """
     if not inbox_path or not os.path.isdir(inbox_path):
         return []
@@ -269,32 +380,61 @@ def list_inbox(inbox_path: str) -> list[dict]:
 
     for name in entries:
         fpath = os.path.join(inbox_path, name)
+        # Skip the archive subdirs and any other directories quickly.
         if not os.path.isfile(fpath):
             continue
 
+        # Extension gate — applied BEFORE defer check so we don't even stat
+        # files that aren't ours to begin with (Thumbs.db, .DS_Store, etc.
+        # are also caught by the hidden-prefix check below).
+        is_hl7 = name.endswith(_VALID_EXTENSIONS)
+        is_mwl = name.endswith(_MWL_EXTENSIONS)
+        if not (is_hl7 or is_mwl):
+            continue
+
+        defer_reason = _should_defer_file(name, fpath)
+        if defer_reason is not None:
+            logger.debug("Deferring inbox file %s: %s", name, defer_reason)
+            continue
+
         parsed: Optional[dict] = None
-        if name.endswith(_VALID_EXTENSIONS):
-            try:
-                with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                    content = f.read()
-            except OSError as e:
-                logger.warning("Could not read HL7 inbox file %s: %s", fpath, e)
+
+        if is_hl7:
+            content = _read_inbox_text(fpath)
+            if content is None:
+                # _read_inbox_text already quarantined or logged.
                 continue
-            parsed = parse_orm_o01(content)
-        elif name.endswith(_MWL_EXTENSIONS):
-            # MWL bridge agent wrote an already-parsed order.
+            try:
+                parsed = parse_orm_o01(content)
+            except Exception as e:
+                # parse_orm_o01 normally returns None on failure; an
+                # exception here is a programming/edge-case bug. Quarantine
+                # so operators can inspect the offending message.
+                logger.warning("Parser crashed on %s: %s", name, e)
+                _quarantine(fpath, f"parser exception: {e!r}")
+                continue
+            if not parsed:
+                # Not an ORM, malformed MSH, or missing required segments.
+                _quarantine(fpath, "not a parseable ORM^O01 message")
+                continue
+
+        elif is_mwl:
             try:
                 import json
                 with open(fpath, "r", encoding="utf-8") as f:
                     raw = json.load(f)
             except (OSError, ValueError) as e:
                 logger.warning("Could not read MWL inbox file %s: %s", fpath, e)
+                _quarantine(fpath, f"json error: {e}")
                 continue
-            if isinstance(raw, dict):
-                parsed = {k: raw.get(k) for k in _MWL_FIELDS if raw.get(k)}
-                parsed["source"] = raw.get("source", "mwl")
-        else:
-            continue
+            if not isinstance(raw, dict):
+                _quarantine(fpath, "JSON root is not an object")
+                continue
+            parsed = {k: raw.get(k) for k in _MWL_FIELDS if raw.get(k)}
+            if not parsed:
+                _quarantine(fpath, "no recognised MWL fields")
+                continue
+            parsed["source"] = raw.get("source", "mwl")
 
         if not parsed:
             continue
@@ -308,7 +448,7 @@ def list_inbox(inbox_path: str) -> list[dict]:
     return orders
 
 
-def archive_order(inbox_path: str, order_id: str, archive_dirname: str = "processed") -> bool:
+def archive_order(inbox_path: str, order_id: str, archive_dirname: str = _PROCESSED_SUBDIR) -> bool:
     """Move a processed order file out of the inbox into a subfolder.
 
     Returns True on success, False if the file wasn't found or couldn't be moved.

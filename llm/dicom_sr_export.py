@@ -272,23 +272,35 @@ def save_dicom_sr_report(
             institution_name=institution_name,
         )
 
+        import uuid as _uuid
         accession = (patient_context or {}).get("accession") or "NOACC"
         safe_acc = re.sub(r"[^A-Za-z0-9_-]", "_", str(accession))[:40]
-        filename = f"VOXRAD_SR_{safe_acc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.dcm"
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        uid = _uuid.uuid4().hex[:8]
+        filename = f"VOXRAD_SR_{safe_acc}_{ts}_{uid}.dcm"
         filepath = os.path.join(outbox_path, filename)
+        tmp_path = filepath + ".tmp"
 
+        # Atomic write: save to .tmp then os.replace into place so a PACS
+        # polling the outbox never reads a half-written .dcm.
         # Explicit LE + proper DICOM file format. The TransferSyntaxUID on
         # file_meta tells save_as the encoding; enforce_file_format writes the
         # 128-byte preamble + DICM magic + file meta group instead of a raw
         # dataset.
         try:
-            ds.save_as(filepath, enforce_file_format=True)
+            ds.save_as(tmp_path, enforce_file_format=True)
         except TypeError:
             # pydicom < 3.0 fallback
-            ds.save_as(filepath, write_like_original=False)
+            ds.save_as(tmp_path, write_like_original=False)
+        os.replace(tmp_path, filepath)
         logger.info("DICOM Basic Text SR saved: %s", filepath)
         return filepath
 
     except Exception as e:
         logger.error("DICOM SR export failed: %s", e)
+        try:
+            if "tmp_path" in locals() and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
         return None

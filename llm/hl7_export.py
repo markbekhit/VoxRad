@@ -270,8 +270,15 @@ def save_hl7_report(
 ) -> Optional[str]:
     """Build an ORU^R01 and write it to the outbox directory.
 
-    Filename: ``VOXRAD_{accession}_{timestamp}.hl7`` (accession replaced with
-    ``NOACC`` when not provided). Returns the saved path, or ``None`` on error.
+    Filename: ``VOXRAD_{accession}_{timestamp}_{uid}.hl7`` (accession replaced
+    with ``NOACC`` when not provided; ``uid`` is an 8-char random suffix to
+    prevent collisions on concurrent or same-second writes).
+
+    The write is atomic: the message is flushed+fsync'd to a ``.tmp`` file,
+    then renamed into place via ``os.replace``. An integration engine polling
+    the outbox will therefore never observe a partial/truncated .hl7 file.
+
+    Returns the saved path, or ``None`` on error.
     """
     try:
         if not outbox_path:
@@ -289,17 +296,34 @@ def save_hl7_report(
 
         accession = (patient_context or {}).get("accession") or "NOACC"
         safe_acc = re.sub(r"[^A-Za-z0-9_-]", "_", str(accession))[:40]
-        filename = f"VOXRAD_{safe_acc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.hl7"
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        uid = uuid.uuid4().hex[:8]
+        filename = f"VOXRAD_{safe_acc}_{ts}_{uid}.hl7"
         filepath = os.path.join(outbox_path, filename)
+        tmp_path = filepath + ".tmp"
 
         # HL7 wire encoding is typically 8-bit ASCII or ISO-8859-1; UTF-8 is
         # widely accepted by modern integration engines.
-        with open(filepath, "w", encoding="utf-8", newline="") as f:
+        with open(tmp_path, "w", encoding="utf-8", newline="") as f:
             f.write(message)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                # Not all filesystems support fsync (tmpfs, NFS with certain
+                # mount options). The rename below is still atomic.
+                pass
+        os.replace(tmp_path, filepath)
 
         logger.info("HL7 v2.4 ORU^R01 saved: %s", filepath)
         return filepath
 
     except Exception as e:
         logger.error("HL7 export failed: %s", e)
+        # Best-effort cleanup of any leftover .tmp so a retry can succeed.
+        try:
+            if "tmp_path" in locals() and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
         return None
