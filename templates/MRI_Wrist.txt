@@ -1,0 +1,77 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Wrist
+
+### Technique:
+MRI of the [right/left] wrist was performed using PD-weighted fat-suppressed, T2-weighted, T1-weighted, and STIR sequences in coronal, sagittal, and axial planes. [If MR arthrogram: Intra-articular gadolinium was administered; fat-suppressed T1-weighted sequences were obtained in three planes.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Describe pathological structures specifically. Normal structures within the same anatomical group may be combined into a single statement — do not force a separate bullet for every structure when all are normal.
+
+Cover all groups in this order:
+
+**Carpal Bones and Alignment**
+- Scaphoid, lunate, triquetrum, pisiform, trapezium, trapezoid, capitate, hamate (with hook)
+- Comment on alignment on sagittal sequences: scapholunate angle, capitolunate angle — note DISI, VISI, SLAC, SNAC patterns if present.
+- ALWAYS use the radiologist's exact dictated words for bony/marrow findings, whether normal or abnormal.
+- Default: "Normal carpal alignment. Normal marrow signal. No fracture, AVN, or aggressive bony lesion."
+
+**Triangular Fibrocartilage Complex (TFCC)**
+- Default: "TFCC intact. No tear."
+- If pathology: classify per Palmer (traumatic 1A–1D, degenerative 2A–2E) and localise.
+
+**Intrinsic Ligaments**
+- Scapholunate ligament (dorsal, proximal, volar bands)
+- Lunotriquetral ligament
+- Default: "Scapholunate and lunotriquetral ligaments intact."
+
+**Extrinsic Ligaments**
+- Radioscaphocapitate, long radiolunate, short radiolunate, ulnolunate, ulnotriquetral, dorsal intercarpal
+- Default: "Extrinsic carpal ligaments intact."
+
+**Tendons**
+- Extensor compartments 1–6 (1: APL/EPB; 2: ECRL/ECRB; 3: EPL; 4: EDC/EIP; 5: EDM; 6: ECU)
+- Flexor tendons (FCR, FCU, flexor digitorum, flexor pollicis longus)
+- Default: "Extensor and flexor tendons are intact with normal calibre and signal. No tenosynovitis."
+
+**Median, Ulnar, and Radial Nerves**
+- Default: "Median nerve normal calibre and signal within the carpal tunnel. Ulnar nerve normal within Guyon's canal."
+- If carpal tunnel syndrome: comment on median nerve flattening, palmar bowing of the flexor retinaculum, and T2 hyperintensity within the nerve.
+
+**Articular Cartilage and Joints**
+- Radiocarpal, midcarpal, distal radioulnar (DRUJ), carpometacarpal joints
+- Default: "Articular cartilage intact throughout, no focal chondral defect. DRUJ congruent."
+
+**Soft Tissues**
+- Default: "No ganglion cyst. Surrounding soft tissues unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI of the right wrist. Scaphoid, lunate, triquetrum, pisiform, trapezium, trapezoid, capitate, hamate. Hook of hamate. TFCC intact. Palmer classification. Scapholunate ligament. Lunotriquetral ligament. Dorsal intercarpal ligament. Radioscaphocapitate ligament. DISI, VISI, SLAC wrist, SNAC wrist. Extensor compartments. APL, EPB, ECRL, ECRB, EPL, EDC, EIP, EDM, ECU. Flexor carpi radialis, flexor carpi ulnaris. Median nerve within carpal tunnel. Flexor retinaculum. Guyon canal. Kienbock disease. Preiser disease. Ulnar variance. Ulnolunate abutment. Ganglion cyst. Tenosynovitis. De Quervain tenosynovitis. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - Scapholunate ligament tear with early SLAC changes.
+  - TFCC intact. No carpal bone fracture or AVN.
+
+---

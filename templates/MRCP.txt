@@ -1,0 +1,71 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRCP (Magnetic Resonance Cholangiopancreatography)
+
+### Technique:
+MRI of the upper abdomen with dedicated MRCP sequences was performed, including axial and coronal T2-weighted, axial T1-weighted in- and out-of-phase, axial fat-suppressed T2-weighted, thin-slab and thick-slab 3D MRCP, and diffusion-weighted imaging. [If contrast: Dynamic post-gadolinium T1-weighted sequences were also obtained.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- Localise biliary findings by segment (intrahepatic vs extrahepatic) and named duct (right/left hepatic, common hepatic, cystic, common bile duct).
+- Measure the common bile duct at the porta hepatis and the pancreatic duct at the head, body, and tail.
+
+**Liver**
+- Default: "Normal liver size, contour, and signal. No focal hepatic lesion."
+
+**Intrahepatic Bile Ducts**
+- Default: "Intrahepatic bile ducts not dilated. No filling defect or stricture."
+- If dilated: quantify calibre, identify level of obstruction, and describe any mass, stricture morphology (smooth, irregular, shouldered), or filling defect.
+
+**Extrahepatic Bile Ducts (CHD and CBD)**
+- Default: "Common hepatic and common bile ducts normal in calibre (CBD < 7 mm) with smooth walls and no filling defect or stricture."
+
+**Gallbladder and Cystic Duct**
+- Default: "Gallbladder normal in size and wall thickness. No calculus, sludge, or wall thickening. Cystic duct patent, no calculus."
+- If gallstones: number (single/multiple), size range, and presence of acute cholecystitis (wall thickening > 3 mm, pericholecystic fluid, gallbladder wall oedema).
+
+**Pancreas and Pancreatic Duct**
+- Default: "Pancreas normal in size, contour, and signal. Pancreatic duct normal calibre (< 3 mm), smooth, and non-dilated. No focal mass or cyst."
+
+**Portal Venous System**
+- Default: "Portal vein, splenic vein, and superior mesenteric vein are patent."
+
+**Spleen, Adrenals, Kidneys**
+- Default: "Spleen, adrenal glands, and kidneys are unremarkable."
+
+**Ampulla of Vater / Periampullary Region**
+- Default: "No ampullary mass or periampullary abnormality."
+
+**Other**
+- Default: "No ascites, lymphadenopathy, or peritoneal nodularity."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRCP. Intrahepatic bile ducts. Common hepatic duct. Common bile duct. CBD calibre. Cystic duct. Gallbladder. Cholelithiasis. Choledocholithiasis. Mirizzi syndrome. Pancreas. Main pancreatic duct. Accessory pancreatic duct. Duct of Wirsung. Duct of Santorini. Pancreas divisum. Ampulla of Vater. Periampullary. Klatskin tumour. Hilar cholangiocarcinoma. Primary sclerosing cholangitis. Primary biliary cholangitis. Intraductal papillary mucinous neoplasm. IPMN. Side-branch IPMN. Main-duct IPMN. Mucinous cystic neoplasm. Serous cystadenoma. Hepatolithiasis. Caroli disease. Choledochal cyst. Todani classification. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - Cholelithiasis with choledocholithiasis in the distal CBD causing upstream biliary dilatation.
+  - No pancreatic mass or pancreatic duct dilatation.
+
+---

@@ -1,0 +1,70 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Neck
+
+### Technique:
+Axial CT images of the neck were obtained from the skull base to the thoracic inlet. Coronal and sagittal reformats were reviewed. [If contrast: Scans were acquired following intravenous contrast administration.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor — do NOT write "appears normal" generically; use precise radiology language.
+- Localise nodal disease by level (I–VI) and side. Report pathologic nodes by short-axis diameter.
+
+**Nasopharynx and Oropharynx**
+- Default: "Nasopharynx and oropharynx symmetric and unremarkable. No mucosal mass."
+
+**Hypopharynx and Larynx**
+- Default: "Hypopharynx, supraglottis, glottis, and subglottis are symmetric. No mucosal lesion or airway narrowing. Piriform sinuses and valleculae are clear."
+
+**Oral Cavity and Floor of Mouth**
+- Default: "Oral cavity, tongue base, and floor of mouth unremarkable."
+
+**Salivary Glands**
+- Default: "Parotid, submandibular, and sublingual glands symmetric and normal in attenuation. No focal mass or ductal dilatation. No calculus."
+
+**Thyroid**
+- Default: "Thyroid gland symmetric, homogeneous in attenuation, with no focal nodule or mass."
+
+**Cervical Lymph Nodes**
+- Default: "No enlarged cervical lymph nodes. No pathologically enlarged node by size or morphologic criteria."
+- If pathologic: localise by level (Ia, Ib, II, III, IV, Va, Vb, VI, retropharyngeal) and side; give short-axis diameter; note central necrosis or extracapsular extension.
+
+**Major Vessels**
+- Default: "Carotid arteries and jugular veins are patent with no filling defect or aneurysm."
+
+**Cervical Spine and Skull Base**
+- Default: "Visualised cervical spine and skull base unremarkable. No destructive bony lesion."
+
+**Lung Apices**
+- Default: "Visualised lung apices clear."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT neck with contrast. Nasopharynx and oropharynx symmetric. Hypopharynx, supraglottis, glottis, subglottis unremarkable. Piriform sinuses and valleculae clear. Parotid, submandibular, sublingual glands normal. No sialolithiasis. Thyroid homogeneous, no nodule. Cervical lymph nodes level Ia, Ib, II, III, IV, Va, Vb, VI. No lymphadenopathy. No retropharyngeal node. Carotid and vertebral arteries patent. Internal jugular veins patent. Cervical spine visualised, no destructive lesion. Lung apices clear. Peritonsillar abscess. Retropharyngeal abscess. Ludwig angina. Parapharyngeal space. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - No aerodigestive mucosal mass or significant cervical lymphadenopathy.
+  - Thyroid and salivary glands unremarkable.
+
+---

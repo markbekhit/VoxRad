@@ -1,0 +1,66 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Paranasal Sinuses
+
+### Technique:
+Axial CT images of the paranasal sinuses were acquired and reformatted into coronal and sagittal planes. Images were reviewed in bone and soft-tissue windows. [If contrast: Scans were acquired following intravenous contrast administration.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each sinus/group: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use the default.
+- When opacification is present, describe as mucosal thickening (thickness in mm), polypoid/retention cyst, complete opacification, or air-fluid level. Localise anatomic obstruction (ostiomeatal complex, sphenoethmoidal recess, frontal recess).
+
+**Frontal Sinuses**
+- Default: "Frontal sinuses clear and well aerated."
+
+**Ethmoid Air Cells (Anterior and Posterior)**
+- Default: "Anterior and posterior ethmoid air cells clear."
+
+**Maxillary Sinuses**
+- Default: "Maxillary sinuses clear. Ostiomeatal complexes patent bilaterally."
+
+**Sphenoid Sinuses**
+- Default: "Sphenoid sinuses clear. Sphenoethmoidal recesses patent."
+
+**Nasal Cavity and Septum**
+- Default: "Nasal septum midline. Turbinates unremarkable. No nasal polyp or mass."
+
+**Osseous Structures**
+- Default: "No bony erosion or aggressive osseous lesion. No fracture."
+
+**Anatomic Variants**
+- Comment on variants relevant to endoscopic sinus surgery: concha bullosa, Haller cell, Onodi cell, septal deviation, dehiscence of the lamina papyracea or cribriform plate, Keros classification of the olfactory fossa.
+
+**Orbits and Adjacent Structures**
+- Default: "Orbits and visualised intracranial structures unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT paranasal sinuses. Frontal sinuses clear. Ethmoid air cells clear. Maxillary sinuses clear. Sphenoid sinuses clear. Ostiomeatal complex patent. Sphenoethmoidal recess patent. Frontal recess. Nasal septum midline or deviated. Turbinate hypertrophy. Concha bullosa. Haller cell. Onodi cell. Agger nasi cell. Lamina papyracea. Cribriform plate. Keros classification. Mucosal thickening. Polypoid mucosa. Retention cyst. Air-fluid level. Pansinusitis. Chronic rhinosinusitis. Nasal polyposis. Antrochoanal polyp. Inverted papilloma. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - Mild mucosal thickening of the bilateral maxillary sinuses consistent with chronic rhinosinusitis.
+  - Ostiomeatal complexes patent. No anatomic variant to preclude endoscopic sinus surgery.
+
+---

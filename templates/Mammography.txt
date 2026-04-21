@@ -1,0 +1,75 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Mammography [Screening / Diagnostic] — Bilateral
+
+### Technique:
+Bilateral digital mammography was performed in standard CC (craniocaudal) and MLO (mediolateral oblique) projections. [If tomosynthesis used: Digital breast tomosynthesis (3D) was also acquired.] [If diagnostic: Additional spot compression / magnification / true lateral views of the [right/left] [quadrant] were obtained.] [If US correlation: Targeted ultrasound of the [right/left] breast was performed — see separate report.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior mammograms referenced (year and facility if stated). Comparison findings (stability, interval change) belong in the Findings section.
+- **If not provided:** 'No prior mammograms available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- Use standard BI-RADS lexicon for composition and abnormality descriptors. Spell out side (right/left) — do not abbreviate.
+- Localise all findings by side, quadrant (UOQ, UIQ, LOQ, LIQ, retroareolar, subareolar), depth (anterior/middle/posterior third), and clock face position where relevant.
+
+**Breast Composition (ACR BI-RADS)**
+- Default: State one of:
+  - a. The breasts are almost entirely fatty.
+  - b. There are scattered areas of fibroglandular density.
+  - c. The breasts are heterogeneously dense, which may obscure small masses.
+  - d. The breasts are extremely dense, which lowers the sensitivity of mammography.
+
+**Masses**
+- Default: "No discrete mass identified."
+- If present: describe by shape (oval/round/irregular), margin (circumscribed/obscured/microlobulated/indistinct/spiculated), and density (high/equal/low/fat-containing). Include size in mm and location.
+
+**Calcifications**
+- Default: "No suspicious microcalcifications."
+- If present: distinguish benign-appearing (vascular, skin, coarse/popcorn, rim, dystrophic, milk of calcium, suture) from suspicious (amorphous, coarse heterogeneous, fine pleomorphic, fine linear/linear branching). Describe distribution (diffuse, regional, grouped/clustered, linear, segmental).
+
+**Architectural Distortion**
+- Default: "No architectural distortion."
+
+**Asymmetries**
+- Default: "No asymmetry, focal asymmetry, global asymmetry, or developing asymmetry."
+
+**Associated Features**
+- Default: "No skin thickening, nipple retraction, skin retraction, trabecular thickening, or axillary lymphadenopathy."
+
+**Implants (if applicable)**
+- Comment on implant type (saline/silicone), position (subglandular/subpectoral), and integrity. If no implants: omit this section.
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] mammography, tomosynthesis, craniocaudal, mediolateral oblique, fibroglandular, heterogeneously dense, extremely dense, BI-RADS, microcalcifications, pleomorphic, amorphous, coarse heterogeneous, architectural distortion, spiculated, circumscribed, microlobulated, indistinct margins, focal asymmetry, developing asymmetry, trabecular thickening, axillary lymphadenopathy, subglandular, subpectoral, saline, silicone, implant integrity, intracapsular rupture, extracapsular rupture. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary. Always end with a BI-RADS category for each breast (or a single combined category if symmetric).
+- BI-RADS assessment categories:
+  - 0 — Incomplete; additional imaging and/or prior comparison needed.
+  - 1 — Negative.
+  - 2 — Benign.
+  - 3 — Probably benign (short-interval follow-up).
+  - 4 — Suspicious (4A low, 4B moderate, 4C high).
+  - 5 — Highly suggestive of malignancy.
+  - 6 — Known biopsy-proven malignancy.
+- **Sample:**
+  - No suspicious mass, calcification, or architectural distortion.
+  - BI-RADS Category 1 — Negative. Recommend routine screening mammography in 12 months.
+
+---

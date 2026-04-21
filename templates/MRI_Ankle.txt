@@ -1,0 +1,80 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Ankle
+
+### Technique:
+MRI of the [right/left] ankle was performed using PD-weighted fat-suppressed, T2-weighted, T1-weighted, and STIR sequences in coronal, sagittal, and axial planes.
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Describe pathological structures specifically. Normal structures within the same anatomical group may be combined into a single statement — do not force a separate bullet for every structure when all are normal.
+- Use precise radiology terminology for normal structures:
+  - Tendons → "intact, normal calibre and signal"
+  - Ligaments → "intact"
+  - Articular cartilage → "intact, no focal chondral defect"
+  - Joint effusion → "no significant tibiotalar or subtalar effusion"
+  - Bony structures → "no fracture or aggressive bony lesion"
+  - Bone marrow → "no bone marrow oedema"
+
+Cover all groups in this order:
+
+**Tendons**
+- Medial: Posterior tibial, Flexor digitorum longus, Flexor hallucis longus (tarsal tunnel)
+- Lateral: Peroneus longus and brevis
+- Anterior: Tibialis anterior, Extensor hallucis longus, Extensor digitorum longus
+- Posterior: Achilles tendon (describe thickness, continuity, tendinosis, partial vs full thickness tear, insertional enthesopathy, retrocalcaneal bursitis)
+
+**Plantar Fascia**
+- Default: "Plantar fascia unremarkable, no thickening or signal abnormality."
+
+**Ligaments**
+- Lateral: ATFL, CFL, PTFL
+- Medial (deltoid): superficial and deep components
+- Syndesmosis: AITFL, PITFL, interosseous ligament
+- Spring ligament, bifurcate ligament, sinus tarsi contents
+
+**Articular Cartilage and Osteochondral Surfaces**
+- Comment specifically on the talar dome (medial and lateral shoulder) for osteochondral lesions. If pathology is present, grade and localise (medial/lateral, anterior/central/posterior).
+
+**Bony Structures**
+- ALWAYS use the radiologist's exact dictated words for bony/marrow findings, whether normal or abnormal.
+- Only use the default "Normal bony alignment. Bone marrow signal is normal. No fracture or aggressive osseous lesion." if the radiologist said NOTHING about bony structures.
+- Address specifically: tibia, fibula, talus, calcaneus, tarsal navicular, cuboid, cuneiforms, metatarsal bases, accessory bones (os trigonum, os peroneum).
+
+**Joint Effusion and Bursae**
+- Tibiotalar, subtalar (posterior/anterior), talonavicular, calcaneocuboid joints
+- Retrocalcaneal bursa, retro-Achilles bursa
+
+**Soft Tissues**
+- Default: "Surrounding soft tissues unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] MRI of the right ankle. Achilles tendon intact, normal calibre and signal. No insertional enthesopathy. No retrocalcaneal bursitis. Peroneus longus and brevis intact. Posterior tibial tendon intact. Flexor digitorum longus. Flexor hallucis longus. Tarsal tunnel. Tibialis anterior. Extensor hallucis longus. Extensor digitorum longus. Plantar fascia normal. Anterior talofibular ligament, calcaneofibular ligament, posterior talofibular ligament intact. Deltoid ligament intact. AITFL, PITFL, interosseous ligament. Spring ligament. Bifurcate ligament. Sinus tarsi. Osteochondral lesion of the talar dome. Tibiotalar effusion. Subtalar joint. Os trigonum. Os peroneum. Tarsal coalition. Haglund deformity. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - High-grade partial-thickness tear of the ATFL. CFL intact.
+  - Mild Achilles tendinosis. No tear.
+  - No osteochondral lesion. No significant joint effusion.
+
+---

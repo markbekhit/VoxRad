@@ -1,0 +1,64 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Doppler Ultrasound — Lower Limb Veins (DVT Assessment)
+
+### Technique:
+Greyscale, colour, and spectral Doppler ultrasound of the [right/left/bilateral] lower limb deep venous system was performed. Compressibility, colour filling, spontaneous and augmented flow, and phasicity with respiration were assessed at each segment.
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For EACH segment explicitly state: (i) compressibility, (ii) colour filling, and (iii) flow characteristics. Do not collapse the report into a single sentence — the clinical question (thrombus presence and extent) requires a segment-by-segment assessment.
+- If bilateral: repeat the structure for both sides. If unilateral: include only the side studied.
+
+**Common Femoral Vein**
+- Default: "Fully compressible. Normal colour filling, phasic flow with respiration, and augmentation on distal compression. No intraluminal thrombus."
+
+**Common Femoral Vein / Saphenofemoral Junction**
+- Default: "Normal. No thrombus extending into the great saphenous vein."
+
+**Femoral Vein (proximal, mid, and distal / adductor canal)**
+- Default: "Fully compressible throughout. Normal colour filling and phasic flow. No intraluminal thrombus."
+
+**Popliteal Vein**
+- Default: "Fully compressible. Normal colour filling and augmentation. No intraluminal thrombus."
+
+**Calf Veins (Posterior Tibial, Peroneal, Gastrocnemius, Soleal)**
+- Default: "Paired posterior tibial and peroneal veins are compressible with normal colour filling. Gastrocnemius and soleal venous sinuses are unremarkable."
+- If not fully examined (e.g., limited by body habitus or pain): explicitly state the limitation.
+
+**Superficial Veins (Great and Short Saphenous)**
+- Default: "Great and short saphenous veins are patent with normal calibre. No superficial thrombophlebitis."
+
+**Other**
+- Comment on any Baker's cyst, haematoma, or soft-tissue collection encountered that could explain the clinical presentation.
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] Doppler lower limb veins. Deep venous thrombosis. DVT. Compressibility. Augmentation. Phasicity. Common femoral vein. Saphenofemoral junction. Great saphenous vein. Small saphenous vein. Femoral vein. Superficial femoral vein. Profunda femoris. Popliteal vein. Paired posterior tibial veins. Peroneal veins. Gastrocnemius vein. Soleal vein. Non-occlusive thrombus. Occlusive thrombus. Acute thrombus. Chronic thrombus. Echogenic thrombus. Intraluminal echogenic material. Recanalisation. Baker cyst. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary. The first bullet must explicitly address the presence or absence of DVT and its level (proximal vs isolated distal).
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No evidence of deep venous thrombosis on this examination.'
+- **Sample:**
+  - No evidence of acute deep venous thrombosis in the [right/left/bilateral] lower limb(s).
+  - Examined veins are patent and fully compressible with normal phasic flow.
+
+---

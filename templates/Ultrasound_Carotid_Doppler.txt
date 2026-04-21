@@ -1,0 +1,70 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Carotid Doppler Ultrasound (Bilateral)
+
+### Technique:
+Greyscale, colour, and spectral Doppler ultrasound of the bilateral extracranial carotid and vertebral arteries was performed. Peak systolic velocity (PSV) and end-diastolic velocity (EDV) were recorded from the CCA, proximal/mid/distal ICA, and ECA bilaterally. Plaque morphology, residual lumen, and ICA/CCA PSV ratios were assessed. Vertebral artery direction of flow was documented.
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings side by side, right then left. Do NOT create new headings or rename sections.
+- Grade ICA stenosis using the SRU (Society of Radiologists in Ultrasound) consensus criteria by PSV, plaque estimate, EDV, and ICA/CCA PSV ratio.
+- Report plaque echogenicity (hyperechoic / isoechoic / hypoechoic / heterogeneous) and surface (smooth / irregular / ulcerated).
+
+**Right Side**
+
+- **Common Carotid Artery (CCA):** Normal calibre. [plaque description if any]. Peak systolic velocity [__] cm/s. Normal low-resistance waveform.
+- **Carotid Bulb:** [plaque description or default: "No significant plaque."]
+- **Internal Carotid Artery (ICA):** PSV [__] cm/s, EDV [__] cm/s, ICA/CCA PSV ratio [__]. [plaque description]. Low-resistance waveform preserved.
+- **External Carotid Artery (ECA):** Patent with high-resistance waveform. PSV [__] cm/s.
+- **Vertebral Artery:** Patent with antegrade flow. PSV [__] cm/s.
+
+**Left Side**
+
+- **Common Carotid Artery (CCA):** [as above]
+- **Carotid Bulb:** [as above]
+- **Internal Carotid Artery (ICA):** [as above]
+- **External Carotid Artery (ECA):** [as above]
+- **Vertebral Artery:** [as above]
+
+**Stenosis Grading (SRU / NASCET equivalents)**
+
+| Grade        | ICA PSV         | Plaque         | EDV            | ICA/CCA ratio |
+|--------------|-----------------|----------------|----------------|---------------|
+| Normal       | < 125 cm/s      | None           | < 40 cm/s      | < 2.0         |
+| < 50%        | < 125 cm/s      | < 50%          | < 40 cm/s      | < 2.0         |
+| 50–69%       | 125–230 cm/s    | ≥ 50%          | 40–100 cm/s    | 2.0–4.0       |
+| ≥ 70% — < near-occlusion | > 230 cm/s | ≥ 50%   | > 100 cm/s     | > 4.0         |
+| Near-occlusion | Variable      | Visible       | Variable       | Variable      |
+| Total occlusion | No detectable flow | Visible  | N/A            | N/A           |
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] Carotid Doppler. Extracranial carotid. Common carotid artery, CCA. Internal carotid artery, ICA. External carotid artery, ECA. Carotid bulb. Vertebral artery. Peak systolic velocity, PSV. End-diastolic velocity, EDV. ICA to CCA ratio. Antegrade flow. Retrograde flow. Subclavian steal. Low-resistance waveform. High-resistance waveform. Echogenic plaque. Hypoechoic plaque. Heterogeneous plaque. Ulcerated plaque. Calcified plaque. Intima-media thickness. NASCET. ECST. SRU criteria. Carotid body tumour. Carotid dissection. Pseudo-occlusion. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary. State stenosis grade for each ICA explicitly (right and left), followed by vertebral artery flow direction.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No evidence of haemodynamically significant carotid artery stenosis on this examination.'
+- **Sample:**
+  - Right ICA: < 50% stenosis with mixed-echogenicity plaque at the bulb.
+  - Left ICA: no significant stenosis.
+  - Bilateral vertebral arteries patent with antegrade flow.
+
+---

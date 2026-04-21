@@ -1,0 +1,50 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+MRI Thoracic Spine
+
+### Technique:
+MRI of the thoracic spine was performed using T1-weighted, T2-weighted, and STIR sequences in sagittal and axial planes. [If contrast: Post-gadolinium T1-weighted sequences were also obtained.]
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- First, identify at what anatomical site the pathologies are from the transcript. Then format it correctly, describing disc morphology (bulge/protrusion/extrusion/sequestration), signal change, degree of canal/foraminal compromise, and cord compression or signal change.
+- First mention the structures having the pathology.
+- Then mention ALL the structures that are normal. For your guidance, an MRI Thoracic Spine report involves Vertebral Bodies (T1–T12, visualised C7 and L1), Bone Marrow Signal, Intervertebral Discs (T1/2 through T12/L1), End Plates, Costovertebral Joints, Spinal Cord (calibre, T2 signal, conus position), Thecal Sac, Spinal Canal, Neural Foramina, Ligamentum Flavum, Paraspinal Soft Tissues, and Visualised Lung Parenchyma and Upper Abdominal Structures. If not mentioned, state "{structure} appears normal."
+
+  - Describe each abnormal disc level specifically. Normal disc levels may be grouped: e.g. "Remaining thoracic disc levels show preserved height and normal T2 signal."
+    For instance:
+    - **T7/T8:** Right paracentral disc protrusion indenting the ventral cord without cord signal abnormality.
+    - **Remaining Levels:** Normal disc height and T2 signal, no significant canal or foraminal compromise.
+    - **Spinal Cord:** Normal calibre and T2 signal throughout. No cord oedema, demyelination, or intramedullary lesion.
+    - **Vertebral Bodies and Marrow:** Normal alignment. Normal marrow signal. No compression fracture or aggressive osseous lesion.
+    - and so on...
+- **Commonly Misspelled Words:**
+[correct spellings] Scheuermann disease, Schmorl node, syringomyelia, syrinx, transverse myelitis, demyelination, cord contusion, compression fracture, pars defect, costovertebral joint, paraspinal, epidural, extradural, intramedullary, extramedullary intradural, conus medullaris [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Create an impression from findings, into a brief description in bullet points.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - Mild thoracic spondylosis, most significant at [level].
+  - No cord compression or intrinsic cord signal abnormality.
+  - No compression fracture or marrow signal abnormality.
+
+---

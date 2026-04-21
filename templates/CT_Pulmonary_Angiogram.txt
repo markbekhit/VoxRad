@@ -1,0 +1,78 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+CT Pulmonary Angiogram (CTPA)
+
+### Technique:
+Axial CT images of the chest were acquired during peak pulmonary arterial enhancement following intravenous contrast administration using a pulmonary embolism protocol. Coronal and sagittal reformats and thin-slice MIPs were reviewed.
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each section: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use an appropriate normal descriptor — do NOT write "appears normal" generically; use precise radiology language.
+- The Pulmonary Arteries section must always be addressed first and explicitly — it is the clinical question.
+
+**Contrast Opacification**
+- Default: "Diagnostic-quality pulmonary arterial opacification."
+- If suboptimal: state the reason (timing, motion, respiratory) and the level of the arterial tree that remains diagnostic.
+
+**Pulmonary Arteries**
+- Default: "No filling defect in the main, lobar, segmental, or visualised subsegmental pulmonary arteries. No acute pulmonary embolism."
+- If positive: describe clot burden (unilateral/bilateral, central [main/lobar] vs peripheral [segmental/subsegmental]), specific vessels involved, and whether acute or chronic features are present.
+
+**Right Heart Strain (if PE present)**
+- Comment on RV:LV diameter ratio, septal bowing, reflux of contrast into the IVC / hepatic veins, and pulmonary artery calibre (main PA > 29 mm suggests pulmonary hypertension).
+
+**Lungs**
+- Default: "Lungs clear. No consolidation, infarct, or nodule."
+- Look specifically for wedge-shaped peripheral opacities (pulmonary infarcts) when PE is present.
+
+**Pleura**
+- Default: "No pleural effusion or pneumothorax."
+
+**Mediastinum and Hila**
+- Default: "Mediastinum unremarkable. No mediastinal or hilar lymphadenopathy. No mediastinal mass."
+
+**Heart and Pericardium**
+- Default: "Heart normal in size. No pericardial effusion."
+
+**Thoracic Aorta and Great Vessels**
+- Default: "Thoracic aorta normal in calibre and contour. No aortic dissection. No acute aortic syndrome."
+
+**Chest Wall and Soft Tissues**
+- Default: "Chest wall and soft tissues unremarkable."
+
+**Bony Thorax**
+- ALWAYS use the radiologist's exact dictated words for bony findings. Only use the default "Bony thorax intact. No lytic or sclerotic lesion." if the radiologist said NOTHING about bones.
+
+**Visualised Upper Abdomen**
+- Default: "Visualised upper abdominal structures unremarkable."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] CT pulmonary angiogram. Diagnostic-quality pulmonary arterial opacification. No filling defect in the main, lobar, segmental, or visualised subsegmental pulmonary arteries. No acute pulmonary embolism. No right heart strain. RV to LV ratio normal. No septal bowing. Pulmonary artery normal calibre. Lungs clear. No infarct. No consolidation. No pleural effusion. No mediastinal or hilar lymphadenopathy. Thoracic aorta normal. No aortic dissection. Bony thorax intact. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary. The first bullet must explicitly address PE (present or absent).
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No pulmonary embolism or alternative cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - No acute pulmonary embolism.
+  - No alternative acute cardiopulmonary abnormality identified.
+
+---

@@ -1,0 +1,68 @@
+### THIS IS CONTINUATION OF SYSTEM PROMPT ###
+### THIS IS THE SAMPLE TEMPLATE TO BE USED FOR THE TRANSCRIPT ###
+
+---
+
+### Exam:
+Ultrasound Scrotum
+
+### Technique:
+Greyscale and colour Doppler ultrasound of the scrotum was performed with high-frequency linear transducer. Comparison images of both testes in the same field were obtained to assess symmetry of vascularity.
+
+### Clinical Details
+**Instructions:**
+- Record clinical details exactly as dictated. Do not rephrase or reformulate the wording.
+- **Exclude** patient name, date of birth, age, gender, and MRN/accession numbers from the report, even if mentioned in the transcript.
+- **If not provided:** 'No clinical details provided.'
+
+### Comparison:
+**Instructions:**
+- **If provided:** List the prior imaging studies mentioned (modality and date/year if stated). Do not summarise changes here — comparison findings belong in the Findings section.
+- **If not provided:** 'No prior imaging available for comparison.'
+
+### Findings:
+**Instructions:**
+- Present findings using the bold section headers below in this exact order. Do NOT create new headings or rename sections.
+- For each structure: if the radiologist mentioned it, reproduce their exact words. If not mentioned, use the default.
+- Measure each testis in three dimensions and report volumes. Describe focal lesions by size, location, echogenicity, vascularity, and cystic vs solid character.
+
+**Right Testis**
+- Default: "Right testis measures [__] x [__] x [__] mm (volume [__] mL). Normal size and homogeneous echotexture. Normal vascularity on colour Doppler. No focal testicular lesion. Tunica albuginea intact."
+
+**Left Testis**
+- Default: "Left testis measures [__] x [__] x [__] mm (volume [__] mL). Normal size and homogeneous echotexture. Normal vascularity on colour Doppler. No focal testicular lesion. Tunica albuginea intact."
+
+**Epididymides**
+- Default: "Bilateral epididymides (head, body, tail) normal in size and echogenicity. No mass or hyperaemia. No epididymal cyst."
+- If epididymo-orchitis: describe hyperaemia, wall thickening, and associated reactive hydrocele.
+
+**Spermatic Cords**
+- Default: "Spermatic cords unremarkable. No varicocele; veins measure < 2 mm with no reflux on Valsalva."
+- If varicocele: maximum vein diameter, grade (I–III), and reflux pattern with Valsalva.
+
+**Scrotal Wall and Sac**
+- Default: "Scrotal wall normal thickness. No hydrocele, pyocele, or haematocele."
+- If hydrocele: describe loculations and internal echoes.
+
+**Colour/Spectral Doppler**
+- Default: "Symmetric, normal intratesticular arterial flow with preserved diastolic component bilaterally. No testicular torsion."
+- If torsion suspected: explicitly comment on presence/absence of intratesticular flow, whirlpool sign of the cord, and heterogeneity of parenchyma.
+
+**Inguinal Regions**
+- Default: "No inguinal hernia on cough/Valsalva. No enlarged inguinal lymph nodes."
+
+- **ASR Prompt (for speech recognition spelling correction ONLY — do NOT copy this text into the report):**
+[correct spellings] ultrasound scrotum. Testis, testes, testicular. Homogeneous echotexture. Heterogeneous. Tunica albuginea. Mediastinum testis. Epididymis, epididymides, head, body, tail. Epididymo-orchitis. Reactive hydrocele. Varicocele. Valsalva manoeuvre. Pampiniform plexus. Hydrocele, pyocele, haematocele. Testicular torsion. Whirlpool sign. Bell-clapper deformity. Testicular microlithiasis. Appendix testis. Torsion of the appendix testis. Spermatocoele. Epidermoid cyst. Seminoma. Non-seminomatous germ cell tumour. Undescended testis. Cryptorchidism. [correct spellings]
+- If 'query' is mentioned in the transcript, it should be rendered as '?' in the report.
+
+### Impression:
+**Instructions:**
+- Concise bullet-point summary of key findings. For acute scrotal pain, the first bullet must explicitly address torsion.
+- Include only clinically relevant findings. Minor incidental findings that are fully described in the body do not need to be restated here.
+- For a normal/negative study, include a closing statement where appropriate, e.g. 'No cause for the patient's symptoms identified on this examination.'
+- **Sample:**
+  - Normal bilateral testicular size and vascularity. No evidence of testicular torsion.
+  - Small left-sided varicocele, grade II.
+  - Small right hydrocele.
+
+---
