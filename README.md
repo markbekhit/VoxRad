@@ -51,9 +51,14 @@ worklist, and standards-based export back to the RIS. A legacy desktop
 
 ### Integration features
 - 📤 **HL7 v2.4 ORU^R01 export** — drop final reports to a file-drop inbox
-  for RIS integration engines to pick up
+  for RIS integration engines to pick up (atomic writes, collision-safe
+  filenames)
 - 📥 **HL7 v2.4 ORM^O01 ingestion** — parse inbound orders from integration
-  engines, surface them in the worklist
+  engines, surface them in the worklist; malformed / oversize / mid-write
+  files are quarantined rather than retried forever
+- 💾 **DICOM Basic Text SR export** — finalised reports written as standard
+  SR (SOP Class `1.2.840.10008.5.1.4.1.1.88.11`) to a file-drop outbox,
+  for PACS that ingest SR directly instead of HL7
 - 🛰️ **DICOM Modality Worklist (MWL) bridge agent** — an on-prem Python
   agent runs C-FIND against the clinic's PACS and pushes orders to the
   cloud VoxRad instance over HTTPS, avoiding the inbound-firewall problem
@@ -97,8 +102,13 @@ Core subsystems:
 - `audio/` — microphone capture + segment/stream encoding
 - `agents/` — on-prem MWL bridge (stands apart from the server)
 - `config/`, `utils/` — settings loader, encryption
-- `templates/` — ~29 bundled radiology report templates (CT, MR, US, XR,
-  mammo, bone, echo, obstetric, ophthalmology, paediatric, PET, etc.)
+- `templates/` — 40 bundled report templates covering CT (chest, CTPA,
+  neck, sinuses, head/brain, abdo/pelvis, KUB, thoracic angio, HRCT,
+  spine C/T/L), MRI (brain, breast, MRCP, abdomen, hip, knee, ankle,
+  wrist, shoulder, pelvis, prostate, spine C/T/L), ultrasound (abdomen,
+  pelvis, breast, thyroid, scrotum, carotid Doppler, venous Doppler),
+  mammography (with BI-RADS), CXR, abdominal X-ray, echocardiography,
+  bone scan, PET/CT, plus a free-prose pseudo-template
 - `guidelines/` — BIRADS, TIRADS, PIRADS, LIRADS, Fleischner reference
 - `ui/` — legacy Tkinter desktop
 
@@ -142,6 +152,10 @@ Key vars:
 | `DEEPGRAM_API_KEY` / `ASSEMBLYAI_API_KEY` | Streaming STT provider keys |
 | `VOXRAD_STREAMING_STT_PROVIDER` | `deepgram` \| `assemblyai` \| unset |
 | `VOXRAD_WORKING_DIR` | Where templates / reports / inbox live |
+| `VOXRAD_HL7_ENABLED` / `_OUTBOX` / `_INBOX` | HL7 v2.4 file-drop integration |
+| `VOXRAD_DICOM_SR_ENABLED` / `_OUTBOX` / `_INSTITUTION` | DICOM Basic Text SR export |
+| `VOXRAD_MWL_AGENT_TOKEN` | Shared secret for the MWL bridge agent |
+| `VOXRAD_FHIR_EXPORT_ENABLED` / `FHIR_BASE_URL` | FHIR R4 export + RIS lookup |
 | `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID` / ... | OAuth mode |
 
 ## 🔌 Integration setup
@@ -161,6 +175,26 @@ flyctl secrets set \
 
 Inbound `ORM^O01` orders land in the worklist automatically. Outbound
 `ORU^R01` reports are written when `VOXRAD_HL7_ENABLED=true`.
+
+### DICOM Basic Text SR (for PACS that ingest SR directly)
+
+Some PACS (Sectra, Philips IntelliSpace, some Agfa configurations)
+accept radiology reports as DICOM SR instead of — or alongside — HL7.
+Enable SR export with:
+
+```bash
+flyctl secrets set \
+    VOXRAD_DICOM_SR_ENABLED=true \
+    VOXRAD_DICOM_SR_OUTBOX=/data/sr_outbox \
+    VOXRAD_DICOM_SR_INSTITUTION="My Clinic"
+```
+
+Each finalised report is written as a Basic Text SR instance
+(`1.2.840.10008.5.1.4.1.1.88.11`) with patient / study / series modules
+populated from the matching worklist order, so the PACS can match the
+SR on `AccessionNumber` + `PatientID`. File-drop model — same pattern
+as the HL7 outbox, so any PACS that polls a watched directory works.
+Can be enabled alongside HL7 export (they are independent outboxes).
 
 ### DICOM MWL bridge (no integration engine required)
 
