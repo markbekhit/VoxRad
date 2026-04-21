@@ -97,12 +97,35 @@ def load_settings(web_mode: bool = False):
         config.session_secret_key      = o.get("SessionSecretKey", "")
 
     # Auto-generate and persist the session secret key if it hasn't been set.
+    # Prefer a file on the persistent volume so the key survives container
+    # restarts and re-deploys without requiring a Fly secret.
+    if not config.session_secret_key:
+        import secrets as _secrets
+        _data_dir = os.path.dirname(os.environ.get("VOXRAD_DB_PATH", "")) or os.path.join(
+            os.path.expanduser("~"), ".voxrad"
+        )
+        _key_file = os.path.join(_data_dir, "session_secret.key")
+        try:
+            with open(_key_file) as _f:
+                config.session_secret_key = _f.read().strip()
+        except OSError:
+            pass
+
     if not config.session_secret_key:
         import secrets as _secrets
         config.session_secret_key = _secrets.token_hex(32)
-        # Persist immediately so it survives restarts.
-        _auto_save_session_key(config_path, config.session_secret_key)
-        logger.info("Generated and saved new SESSION_SECRET_KEY to settings.ini")
+        _data_dir = os.path.dirname(os.environ.get("VOXRAD_DB_PATH", "")) or os.path.join(
+            os.path.expanduser("~"), ".voxrad"
+        )
+        _key_file = os.path.join(_data_dir, "session_secret.key")
+        try:
+            os.makedirs(_data_dir, exist_ok=True)
+            with open(_key_file, "w") as _f:
+                _f.write(config.session_secret_key)
+            logger.info("Generated and saved SESSION_SECRET_KEY to %s", _key_file)
+        except OSError:
+            _auto_save_session_key(config_path, config.session_secret_key)
+            logger.info("Generated and saved SESSION_SECRET_KEY to settings.ini")
 
     # Env-var overrides (allow operators to inject secrets without writing to disk)
     config.google_client_id        = os.environ.get("GOOGLE_CLIENT_ID",        config.google_client_id)
