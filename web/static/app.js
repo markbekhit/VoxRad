@@ -53,7 +53,10 @@ const MIN_SEGMENT_BYTES   = 12000;  // ignore blobs smaller than this
 // Require at least this many ms of cumulative speech-level audio before we
 // trust a segment. A single RMS spike (breath, chair creak, keyboard click)
 // is not enough — prevents accidental voice-edit replacement on noise.
-const MIN_SPEECH_MS       = 250;
+// 120 ms is safely above any single click/pop but short enough to catch
+// one-syllable replacements like "right" or "no" whose voiced-above-threshold
+// portion is often only 150-200 ms.
+const MIN_SPEECH_MS       = 120;
 
 // ---------------------------------------------------------------------------
 // UI helpers

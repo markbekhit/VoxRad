@@ -514,10 +514,25 @@ def _is_hallucination(text: str, asr_prompt: str = "") -> bool:
 # Valid single-word replacements a radiologist may dictate in voice-edit mode.
 # We allow these through the voice-edit hallucination filter; the regular
 # dictation filter still rejects them (because standalone they're suspicious).
+# Laterality ("right"/"left") and severity/presence short words are the
+# most common one-word voice edits, so they must pass through even though
+# some (e.g. "right") are in _HALLUCINATIONS for the general filter.
 _VOICE_EDIT_ALLOWED_SHORT = {
-    "no", "yes", "normal", "intact", "clear", "stable", "benign", "mild",
-    "mild.", "none", "absent", "unchanged", "present", "abnormal", "positive",
-    "negative", "patent", "occluded",
+    # Laterality and orientation — critical for anatomy swaps
+    "left", "right", "bilateral", "upper", "lower",
+    "anterior", "posterior", "medial", "lateral",
+    "superior", "inferior", "proximal", "distal",
+    # Presence / absence
+    "no", "yes", "none", "absent", "present", "unchanged",
+    "normal", "abnormal", "positive", "negative",
+    # Severity
+    "mild", "moderate", "severe", "minimal", "marked",
+    "small", "large", "trace",
+    # Character
+    "acute", "chronic", "focal", "diffuse",
+    "intact", "clear", "stable", "benign", "patent", "occluded",
+    # Common punctuated variants the ASR may return
+    "mild.", "no.", "yes.", "right.", "left.",
 }
 
 
