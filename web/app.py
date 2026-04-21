@@ -251,26 +251,34 @@ def _make_ws_token(username: str) -> str:
     return base64.b64encode(f"{username}:{password}".encode()).decode()
 
 
-def _verify_ws_token(token: str) -> bool:
-    """Verify a WS auth token produced by _make_ws_token()."""
+def _verify_ws_token(token: str) -> Optional[dict]:
+    """Verify a WS auth token; return a minimal user dict on success, None on failure.
+
+    The token is base64(username:password). Returns {"id": None, "name": username}
+    — sufficient to load the shared vocab file in Basic Auth mode. OAuth per-user
+    vocab is not resolved here (the WS protocol doesn't carry the OAuth session).
+    """
     try:
         decoded = base64.b64decode(token).decode()
-        _, pw = decoded.split(":", 1)
+        username, pw = decoded.split(":", 1)
         expected = os.environ.get("VOXRAD_WEB_PASSWORD", _DEFAULT_WEB_PASSWORD)
-        return secrets.compare_digest(pw.encode(), expected.encode())
+        if secrets.compare_digest(pw.encode(), expected.encode()):
+            return {"id": None, "name": username, "email": username}
+        return None
     except Exception:
-        return False
+        return None
 
 
 # ---------------------------------------------------------------------------
 # Keyword list builder — used for provider-side vocabulary boosting
 # ---------------------------------------------------------------------------
 
-def _build_keyword_list(template_name: Optional[str]) -> list[str]:
+def _build_keyword_list(template_name: Optional[str], user: Optional[dict] = None) -> list:
     """Return a list of medical terms for STT keyword boosting.
 
     Prefers the [correct spellings] block from the selected template;
     falls back to extracting terms from _RADIOLOGY_PROMPT.
+    User-learned vocab terms are appended at the end.
     """
     text = _RADIOLOGY_PROMPT
     if template_name:
@@ -282,6 +290,11 @@ def _build_keyword_list(template_name: Optional[str]) -> list[str]:
             text = match.group(1).strip()
     parts = re.split(r"[,\n.]+", text)
     keywords = [p.strip() for p in parts if p.strip() and len(p.strip()) > 2]
+    if user:
+        user_vocab = _load_user_vocab(user)
+        for term in user_vocab:
+            if term not in keywords:
+                keywords.append(term)
     return keywords[:200]
 
 
@@ -1588,7 +1601,8 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
       5. Client sends JSON: {"type":"stop"} when done recording
       6. Server sends JSON: {"type":"session_complete","transcription":"...","session_id":"..."}
     """
-    if not _verify_ws_token(token):
+    ws_user = _verify_ws_token(token)
+    if not ws_user:
         await websocket.close(code=4001)
         return
 
@@ -1598,7 +1612,7 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
         # Step 1: receive config message
         config_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
         template_name = config_msg.get("template_name")
-        keywords = _build_keyword_list(template_name)
+        keywords = _build_keyword_list(template_name, ws_user)
 
         provider = get_streaming_provider()
         if not provider:
