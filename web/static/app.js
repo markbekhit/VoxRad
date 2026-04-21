@@ -38,6 +38,9 @@ const state = {
   streamingSelectedText: "",  // text user selected for replacement (kept visible until speech arrives)
   // Voice editing: {elId, start, end, selectedText} — used for segment (non-streaming) mode
   voiceEditTarget: null,
+  // The last report produced by the LLM — stored so we can diff against the
+  // user's edits on Copy and detect style-setting drift (impression style, date format).
+  reportLlmOutput: "",
   // Selection made DURING an active recording session. Set by the selectionchange
   // listener so the VAD/onstop handler can promote it to a voice-edit on the next cut.
   pendingVoiceEditSelection: null,
@@ -117,6 +120,68 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
+}
+
+// ---------------------------------------------------------------------------
+// Style-setting suggestion banner
+// ---------------------------------------------------------------------------
+// After voice edits or on Copy, the server may flag a repeated correction
+// pattern (e.g. always changing British→American spelling) and suggest
+// updating the matching style setting. The suggestion is shown in a
+// dismissable banner; dismiss is permanent (stored server-side).
+
+function showStyleSuggest(suggestion) {
+  const banner = $("style-suggest");
+  const text = $("style-suggest-text");
+  if (!banner || !text || !suggestion) return;
+  text.innerHTML = suggestion.message || "";
+  banner.dataset.suggestion = JSON.stringify(suggestion);
+  banner.style.display = "";
+}
+
+function hideStyleSuggest() {
+  const banner = $("style-suggest");
+  if (banner) {
+    banner.style.display = "none";
+    delete banner.dataset.suggestion;
+  }
+}
+
+async function applyStyleSuggest() {
+  const banner = $("style-suggest");
+  const raw = banner && banner.dataset.suggestion;
+  hideStyleSuggest();
+  if (!raw) return;
+  let suggestion;
+  try { suggestion = JSON.parse(raw); } catch { return; }
+  try {
+    const resp = await fetch("/api/style-suggestion/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(suggestion),
+    });
+    if (resp.ok) {
+      setStatus("Style preference saved.", "success");
+    } else {
+      setStatus("Could not save style preference.", "error");
+    }
+  } catch (err) {
+    setStatus(`Error saving preference: ${err.message}`, "error");
+  }
+}
+
+async function dismissStyleSuggest() {
+  const banner = $("style-suggest");
+  const raw = banner && banner.dataset.suggestion;
+  hideStyleSuggest();
+  if (!raw) return;
+  let suggestion;
+  try { suggestion = JSON.parse(raw); } catch { return; }
+  fetch("/api/style-suggestion/dismiss", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pattern_key: suggestion.pattern_key }),
+  }).catch(() => {});
 }
 
 function setUI(mode) {
@@ -942,6 +1007,7 @@ async function submitAudioSegment(chunks, isFinal) {
           setUI(_inferUIMode());
           setStatus("Voice edit applied.", "success");
           if (data.suggest_vocab) showVocabSuggest(data.suggest_vocab);
+          if (data.suggest_setting) showStyleSuggest(data.suggest_setting);
         } else {
           setUI(_inferUIMode());
           setStatus("Could not locate selected text in report — edit manually.", "error");
@@ -1254,6 +1320,8 @@ async function formatReport() {
             $("report-raw").value = msg.report;
             $("report-rendered").innerHTML = marked.parse(msg.report);
           }
+          // Snapshot the LLM output so copyReport() can diff for style-drift detection.
+          state.reportLlmOutput = $("report-raw").value;
           const fhirNote = msg.fhir_saved ? " · FHIR R4 JSON saved." : "";
           setUI("done");
           setStatus("Report ready." + fhirNote, "success");
@@ -1312,6 +1380,25 @@ function _renderedPlainText() {
   return (div && div.innerText ? div.innerText : $("report-raw").value).trim();
 }
 
+// Fire-and-forget: diff the current report against the LLM output to detect
+// impression-style or date-format drift, and show a style suggestion if found.
+function _trackReportEdit(currentReport) {
+  if (!state.reportLlmOutput || state.reportLlmOutput === currentReport) return;
+  fetch("/api/track-report-edit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      original_report: state.reportLlmOutput,
+      edited_report: currentReport,
+    }),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data && data.suggest_setting) showStyleSuggest(data.suggest_setting);
+    })
+    .catch(() => {});
+}
+
 async function copyReport() {
   const markdown = $("report-raw").value;
   if (!markdown.trim()) return;
@@ -1349,6 +1436,7 @@ async function copyReport() {
       throw new Error("Clipboard API unavailable");
     }
     setStatus(`Report copied to clipboard${labelSuffix}. Press Alt+N for next case.`, "success");
+    _trackReportEdit(markdown);
     return;
   } catch {
     // Fallback: use a contenteditable div + execCommand("copy").
@@ -2058,6 +2146,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if ($("vocab-suggest-accept")) {
     $("vocab-suggest-accept").addEventListener("click", acceptVocabSuggest);
     $("vocab-suggest-dismiss").addEventListener("click", hideVocabSuggest);
+  }
+
+  // Style-setting suggestion banner
+  if ($("style-suggest-apply")) {
+    $("style-suggest-apply").addEventListener("click", applyStyleSuggest);
+    $("style-suggest-dismiss").addEventListener("click", dismissStyleSuggest);
   }
 
   // Template editor

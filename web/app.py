@@ -762,6 +762,335 @@ def _should_suggest_vocab(user: dict, old: str, new: str) -> Optional[dict]:
     return {"old": a.rstrip(".,!?;:"), "new": b.rstrip(".,!?;:")}
 
 
+# ---------------------------------------------------------------------------
+# Style drift detection — proactive setting suggestions
+# ---------------------------------------------------------------------------
+# Detects when the user repeatedly corrects the LLM's output in a way that
+# signals a style-setting preference. After 2 similar edits, returns a
+# suggest_setting dict so the client can offer to save the preference.
+#
+# Patterns checked via voice-edit old/new pairs (/transcribe):
+#   1. Spelling — British↔American word substitutions
+#   3. Laterality — full ("left") ↔ abbreviated ("L")
+#   5. Negation phrasing — "no evidence of" / "no X identified" / "X absent"
+#   N. Numerals — same-combo rule: "grade VI"→"grade 6" must appear ≥2×
+#      for the SAME preceding-word+numeral combo to count
+#
+# Patterns checked via full-text report diff (/api/track-report-edit):
+#   4. Impression style — bullets ↔ numbered ↔ prose
+#   6. Date format — format inferred from the dates that appear in the report
+
+# British → American spelling pairs frequent in radiology.
+_BRIT_TO_AMER: dict = {
+    "colour": "color",        "colours": "colors",
+    "tumour": "tumor",        "tumours": "tumors",
+    "oedema": "edema",        "oedemas": "edemas",     "oedematous": "edematous",
+    "haemorrhage": "hemorrhage",  "haemorrhagic": "hemorrhagic",
+    "haematoma": "hematoma",  "haematomas": "hematomas",
+    "haematological": "hematological",
+    "anaesthesia": "anesthesia",  "anaesthetic": "anesthetic",
+    "paediatric": "pediatric",    "paediatrics": "pediatrics",
+    "localised": "localized",     "generalised": "generalized",
+    "organised": "organized",     "visualised": "visualized",
+    "recognised": "recognized",   "characterised": "characterized",
+    "analysed": "analyzed",
+    "oesophagus": "esophagus",    "oesophageal": "esophageal",
+    "orthopaedic": "orthopedic",  "orthopaedics": "orthopedics",
+    "gynaecology": "gynecology",  "gynaecological": "gynecological",
+    "diarrhoea": "diarrhea",
+    "foetal": "fetal",            "foetus": "fetus",
+    "aetiology": "etiology",      "aetiological": "etiological",
+    "grey": "gray",               "greys": "grays",
+    "artefact": "artifact",       "artefacts": "artifacts",
+    "caecum": "cecum",            "caecal": "cecal",
+    "oestrogen": "estrogen",      "haemoglobin": "hemoglobin",
+    "fibre": "fiber",             "fibres": "fibers",
+    "centre": "center",           "centres": "centers",
+}
+_AMER_TO_BRIT: dict = {v: k for k, v in _BRIT_TO_AMER.items()}
+
+# Roman ↔ Arabic numerals (I–XII covers all clinical grades/segments/stages).
+_ROMAN_TO_INT: dict = {
+    "i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6,
+    "vii": 7, "viii": 8, "ix": 9, "x": 10, "xi": 11, "xii": 12,
+}
+_INT_TO_ROMAN: dict = {v: k.upper() for k, v in _ROMAN_TO_INT.items()}
+
+# Per-user in-memory edit counters — {user_key: {pattern_key: count}}.
+# Resets on server restart (deploy). Two edits within a session is enough.
+_STYLE_COUNTS: dict = {}
+_STYLE_THRESHOLD = 2
+
+
+def _sty_key(user: dict) -> str:
+    return str(user.get("id") or user.get("email") or "anon")
+
+
+def _sty_count(user: dict, pk: str) -> int:
+    """Increment the counter for pattern_key and return the new count."""
+    k = _sty_key(user)
+    if k not in _STYLE_COUNTS:
+        _STYLE_COUNTS[k] = {}
+    _STYLE_COUNTS[k][pk] = _STYLE_COUNTS[k].get(pk, 0) + 1
+    return _STYLE_COUNTS[k][pk]
+
+
+def _dismissed_path(user: dict) -> str:
+    os.makedirs(_vocab_dir(), exist_ok=True)
+    return os.path.join(_vocab_dir(), f"style_dismissed_{_sty_key(user)}.json")
+
+
+def _load_dismissed(user: dict) -> set:
+    path = _dismissed_path(user)
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return set(json.load(f))
+    except (OSError, ValueError):
+        pass
+    return set()
+
+
+def _save_dismissed(user: dict, pattern_key: str) -> None:
+    current = _load_dismissed(user)
+    current.add(pattern_key)
+    with open(_dismissed_path(user), "w", encoding="utf-8") as f:
+        json.dump(list(current), f)
+
+
+def _numeral_prefs_path(user: dict) -> str:
+    os.makedirs(_vocab_dir(), exist_ok=True)
+    return os.path.join(_vocab_dir(), f"numeral_prefs_{_sty_key(user)}.json")
+
+
+def _load_numeral_prefs(user: dict) -> list:
+    """List of {pattern, replacement} dicts, e.g. [{"pattern": "grade VI", "replacement": "grade 6"}]."""
+    path = _numeral_prefs_path(user)
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except (OSError, ValueError):
+        pass
+    return []
+
+
+def _add_numeral_pref(user: dict, pattern: str, replacement: str) -> None:
+    prefs = [p for p in _load_numeral_prefs(user) if p.get("pattern", "").lower() != pattern.lower()]
+    prefs.append({"pattern": pattern, "replacement": replacement})
+    with open(_numeral_prefs_path(user), "w", encoding="utf-8") as f:
+        json.dump(prefs, f)
+    logger.info("Saved numeral pref %r→%r for %s", pattern, replacement, _get_username(user))
+
+
+def _make_suggest(setting: str, value: str, message: str, pattern_key: str, **extra) -> dict:
+    d = {"setting": setting, "value": value, "message": message, "pattern_key": pattern_key}
+    d.update(extra)
+    return d
+
+
+def _check_and_suggest(user: dict, pk: str, make_fn) -> Optional[dict]:
+    """Increment counter for pk; if >= threshold and not dismissed, return make_fn()."""
+    if pk in _load_dismissed(user):
+        return None
+    if _sty_count(user, pk) >= _STYLE_THRESHOLD:
+        return make_fn()
+    return None
+
+
+def _detect_style_drift(
+    user: dict, old: str, new: str, pre_context: str = ""
+) -> Optional[dict]:
+    """Detect style-setting drift from a voice-edit old→new pair.
+
+    Checks spelling, laterality, negation phrasing, and numerals (same-combo rule).
+    Returns a suggest_setting dict when the threshold is reached, else None.
+    """
+    if not old or not new:
+        return None
+    o_clean = re.sub(r"[^\w\s]", "", old.lower()).strip()
+    n_clean = re.sub(r"[^\w\s]", "", new.lower()).strip()
+    if not o_clean or not n_clean or o_clean == n_clean:
+        return None
+
+    o_set = set(o_clean.split())
+    n_set = set(n_clean.split())
+
+    # 1. Spelling drift (per-word scan handles multi-word selections)
+    for ow in o_set:
+        if ow in _BRIT_TO_AMER and _BRIT_TO_AMER[ow] in n_set:
+            amer = _BRIT_TO_AMER[ow]
+            pk = "spelling:brit→amer"
+            return _check_and_suggest(user, pk, lambda ow=ow, amer=amer: _make_suggest(
+                "style_spelling", "american",
+                f"You keep using American spelling (e.g. <b>{amer}</b> instead of <b>{ow}</b>) — set American English as default?",
+                pk,
+            ))
+        if ow in _AMER_TO_BRIT and _AMER_TO_BRIT[ow] in n_set:
+            brit = _AMER_TO_BRIT[ow]
+            pk = "spelling:amer→brit"
+            return _check_and_suggest(user, pk, lambda ow=ow, brit=brit: _make_suggest(
+                "style_spelling", "british",
+                f"You keep using British spelling (e.g. <b>{brit}</b> instead of <b>{ow}</b>) — set British English as default?",
+                pk,
+            ))
+
+    # 3. Laterality drift — full ↔ abbreviated
+    _lat_f2a = {"left": "l", "right": "r", "bilateral": "b"}
+    _lat_a2f = {v: k for k, v in _lat_f2a.items()}
+    for ow in o_set:
+        if ow in _lat_f2a and _lat_f2a[ow] in n_set:
+            abbrev = _lat_f2a[ow].upper()
+            pk = "laterality:full→abbrev"
+            return _check_and_suggest(user, pk, lambda ow=ow, abbrev=abbrev: _make_suggest(
+                "style_laterality", "abbrev",
+                f"You keep abbreviating laterality (e.g. <b>{ow}</b> → <b>{abbrev}</b>) — use abbreviated style by default?",
+                pk,
+            ))
+        if ow in _lat_a2f and _lat_a2f[ow] in n_set:
+            full = _lat_a2f[ow]
+            pk = "laterality:abbrev→full"
+            return _check_and_suggest(user, pk, lambda ow=ow, full=full: _make_suggest(
+                "style_laterality", "full",
+                f"You keep writing out laterality in full (e.g. <b>{ow.upper()}</b> → <b>{full}</b>) — use full style by default?",
+                pk,
+            ))
+
+    # 5. Negation phrasing drift — compare phrase structure
+    def _neg_style(text: str) -> Optional[str]:
+        t = text.lower()
+        if "no evidence of" in t:
+            return "no_evidence_of"
+        if re.search(r'\bno\b.{1,40}\bidentified\b', t):
+            return "no_x_identified"
+        if re.search(r'\b\w+\b.{0,30}\babsent\b', t):
+            return "x_absent"
+        return None
+
+    old_neg = _neg_style(old)
+    new_neg = _neg_style(new)
+    if old_neg and new_neg and old_neg != new_neg:
+        pk = f"negation:{old_neg}→{new_neg}"
+        label = new_neg.replace("_", " ")
+        sug = _check_and_suggest(user, pk, lambda label=label, new_neg=new_neg: _make_suggest(
+            "style_negation_phrasing", new_neg,
+            f"You keep rephrasing negations to <b>{label}</b> style — set as default?",
+            pk,
+        ))
+        if sug:
+            return sug
+
+    # Numerals — single-word only; same-combo rule uses preceding word from pre_context
+    o_words = o_clean.split()
+    n_words = n_clean.split()
+    if len(o_words) == 1 and len(n_words) == 1:
+        ow, nw = o_words[0], n_words[0]
+        roman_val = _ROMAN_TO_INT.get(ow)
+        if roman_val is not None and nw.isdigit() and int(nw) == roman_val:
+            ctx = (pre_context or "").strip()
+            preceding = re.sub(r"[^\w]", "", ctx.split()[-1]).lower() if ctx else ""
+            pk = f"numeral:roman→arabic:{preceding}:{ow}"
+            lbl = f"{preceding} {old.strip().upper()}".strip()
+            repl = f"{preceding} {new.strip()}".strip()
+            return _check_and_suggest(user, pk, lambda lbl=lbl, repl=repl, pk=pk: _make_suggest(
+                "numeral_correction", "",
+                f"You keep changing <b>{lbl}</b> to <b>{repl}</b> — remember this preference?",
+                pk,
+                numeral_pattern=lbl, numeral_replacement=repl,
+            ))
+        arabic_val = int(ow) if ow.isdigit() else None
+        if arabic_val is not None:
+            roman = _INT_TO_ROMAN.get(arabic_val, "").lower()
+            if roman and roman == nw:
+                ctx = (pre_context or "").strip()
+                preceding = re.sub(r"[^\w]", "", ctx.split()[-1]).lower() if ctx else ""
+                pk = f"numeral:arabic→roman:{preceding}:{ow}"
+                lbl = f"{preceding} {old.strip()}".strip()
+                repl = f"{preceding} {new.strip().upper()}".strip()
+                return _check_and_suggest(user, pk, lambda lbl=lbl, repl=repl, pk=pk: _make_suggest(
+                    "numeral_correction", "",
+                    f"You keep changing <b>{lbl}</b> to <b>{repl}</b> — remember this preference?",
+                    pk,
+                    numeral_pattern=lbl, numeral_replacement=repl,
+                ))
+
+    return None
+
+
+def _detect_report_drift(
+    user: dict, original_report: str, edited_report: str
+) -> Optional[dict]:
+    """Detect style drift by diffing the LLM-generated report against the user's final edit.
+
+    Checks impression style and date format — patterns not visible from single word edits.
+    """
+    if not original_report or not edited_report:
+        return None
+    # Safety cap
+    orig = original_report[:20_000]
+    edit = edited_report[:20_000]
+
+    # 4. Impression style
+    def _extract_impression(text: str) -> str:
+        m = re.search(
+            r'(?:^|\n)[^\n]*(?:IMPRESSION|Impression)\s*:?\s*\n(.*?)(?:\n\n|\Z)',
+            text, re.DOTALL,
+        )
+        return m.group(1).strip() if m else ""
+
+    def _imp_style(imp: str) -> Optional[str]:
+        lines = [ln.strip() for ln in imp.split("\n") if ln.strip()]
+        if len(lines) < 2:
+            return None
+        n_bullet = sum(1 for ln in lines if re.match(r"^[-*•]\s", ln))
+        n_num = sum(1 for ln in lines if re.match(r"^\d+[.)]\s", ln))
+        if n_bullet >= len(lines) // 2:
+            return "bulleted"
+        if n_num >= len(lines) // 2:
+            return "numbered"
+        return "prose"
+
+    old_imp = _imp_style(_extract_impression(orig))
+    new_imp = _imp_style(_extract_impression(edit))
+    if old_imp and new_imp and old_imp != new_imp:
+        pk = f"impression:{old_imp}→{new_imp}"
+        sug = _check_and_suggest(user, pk, lambda new_imp=new_imp: _make_suggest(
+            "style_impression_style", new_imp,
+            f"You keep reformatting your Impression to <b>{new_imp}</b> style — set as default?",
+            pk,
+        ))
+        if sug:
+            return sug
+
+    # 6. Date format
+    def _date_fmt(text: str) -> Optional[str]:
+        if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text):
+            return "yyyy_mm_dd"
+        hits = re.findall(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", text)
+        if hits:
+            if any(int(h[0]) > 12 for h in hits):
+                return "dd_mm_yyyy"
+            if any(int(h[1]) > 12 for h in hits):
+                return "mm_dd_yyyy"
+            return "dd_mm_yyyy"
+        return None
+
+    old_fmt = _date_fmt(orig)
+    new_fmt = _date_fmt(edit)
+    if old_fmt and new_fmt and old_fmt != new_fmt:
+        pk = f"date:{old_fmt}→{new_fmt}"
+        friendly = new_fmt.replace("_", "/")
+        sug = _check_and_suggest(user, pk, lambda friendly=friendly, new_fmt=new_fmt: _make_suggest(
+            "style_date_format", new_fmt,
+            f"You keep reformatting dates to <b>{friendly}</b> — set as default?",
+            pk,
+        ))
+        if sug:
+            return sug
+
+    return None
+
+
 _MOCK_TRANSCRIPTION = (
     "CT chest with contrast. "
     "The lungs are clear. No focal consolidation, pleural effusion, or pneumothorax. "
@@ -882,13 +1211,15 @@ async def transcribe(
         logger.info("Transcription complete for session %s (%d chars)", session_id, len(text))
 
         response = {"transcription": text, "session_id": session_id}
-        # Voice-edit correction suggestion: if the replacement sounds like
-        # a fix for a misheard word (not a mind-change), flag it so the
-        # client can offer to remember the spelling.
         if is_voice_edit and selected_text:
-            suggestion = _should_suggest_vocab(user, selected_text, text)
-            if suggestion:
-                response["suggest_vocab"] = suggestion
+            # Vocab suggestion: phonetically similar replacement → offer to remember spelling
+            vocab_sug = _should_suggest_vocab(user, selected_text, text)
+            if vocab_sug:
+                response["suggest_vocab"] = vocab_sug
+            # Style drift: repeated correction pattern → offer to change a style setting
+            style_sug = _detect_style_drift(user, selected_text, text, whisper_prompt or "")
+            if style_sug:
+                response["suggest_setting"] = style_sug
         return response
 
     except HTTPException:
@@ -921,6 +1252,71 @@ def vocab_add(req: VocabAddRequest, user: dict = Depends(_verify_auth)):
 def vocab_list(user: dict = Depends(_verify_auth)):
     """Return the signed-in user's custom vocabulary."""
     return {"terms": _load_user_vocab(user)}
+
+
+# ---------------------------------------------------------------------------
+# Style drift endpoints
+# ---------------------------------------------------------------------------
+
+class TrackReportEditRequest(BaseModel):
+    original_report: str
+    edited_report: str
+
+
+@app.post("/api/track-report-edit")
+def api_track_report_edit(req: TrackReportEditRequest, user: dict = Depends(_verify_auth)):
+    """Diff the LLM-generated report against the user's edited version.
+
+    Called (fire-and-forget) when the user copies a report. Detects
+    impression-style and date-format drift and returns a suggest_setting.
+    """
+    suggestion = _detect_report_drift(user, req.original_report, req.edited_report)
+    return {"suggest_setting": suggestion}
+
+
+class StyleSuggestionRequest(BaseModel):
+    pattern_key: str
+    setting: Optional[str] = None
+    value: Optional[str] = None
+    numeral_pattern: Optional[str] = None
+    numeral_replacement: Optional[str] = None
+
+
+@app.post("/api/style-suggestion/apply")
+def api_style_suggestion_apply(req: StyleSuggestionRequest, user: dict = Depends(_verify_auth)):
+    """Apply a suggested style change and mark the pattern as permanently dismissed."""
+    _save_dismissed(user, req.pattern_key)
+
+    if req.setting == "numeral_correction":
+        if req.numeral_pattern and req.numeral_replacement:
+            _add_numeral_pref(user, req.numeral_pattern, req.numeral_replacement)
+        return {"ok": True}
+
+    setting = req.setting or ""
+    style_key = _STYLE_FIELD_MAP.get(setting)
+    if not style_key:
+        raise HTTPException(status_code=400, detail=f"Unknown setting: {setting!r}")
+    allowed = _STYLE_ALLOWED.get(setting, set())
+    if req.value not in allowed:
+        raise HTTPException(status_code=400, detail=f"Invalid value {req.value!r} for {setting}")
+
+    if oauth_enabled() and user.get("id") is not None:
+        existing = get_user_style(user["id"])
+        existing[style_key] = req.value
+        save_user_style(user["id"], existing)
+    else:
+        setattr(config, setting, req.value)
+        save_web_settings()
+
+    logger.info("Applied style %s=%r for %s", setting, req.value, _get_username(user))
+    return {"ok": True}
+
+
+@app.post("/api/style-suggestion/dismiss")
+def api_style_suggestion_dismiss(req: StyleSuggestionRequest, user: dict = Depends(_verify_auth)):
+    """Permanently dismiss a style suggestion without applying it."""
+    _save_dismissed(user, req.pattern_key)
+    return {"ok": True}
 
 
 class FormatRequest(BaseModel):
@@ -996,7 +1392,10 @@ def format_report(req: FormatRequest, user: dict = Depends(_verify_auth)):
             status_code=503, detail="Text model API key not loaded on server."
         )
 
-    _style = _user_style(user)
+    _style = dict(_user_style(user) or {})
+    numeral_prefs = _load_numeral_prefs(user)
+    if numeral_prefs:
+        _style["numeral_corrections"] = numeral_prefs
     with _format_lock:
         old_template = config.global_md_text_content
         config.global_md_text_content = (
@@ -1092,7 +1491,10 @@ def format_report_stream(req: FormatRequest, user: dict = Depends(_verify_auth))
         return StreamingResponse(_err(), media_type="text/event-stream")
 
     _ctx = _patient_context(req)
-    _style = _user_style(user)
+    _style = dict(_user_style(user) or {})
+    numeral_prefs = _load_numeral_prefs(user)
+    if numeral_prefs:
+        _style["numeral_corrections"] = numeral_prefs
 
     def _generate():
         with _format_lock:

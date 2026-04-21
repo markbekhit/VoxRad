@@ -375,6 +375,18 @@ def _build_style_preamble(style: Optional[dict] = None) -> str:
     }
     lines.append(f"- Format all dates as {fmt_map.get(date_fmt, fmt_map['dd_mm_yyyy'])}.")
 
+    # Specific numeral corrections saved by the user (e.g. "grade 6" not "grade VI").
+    # These override the global numerals setting for their specific context.
+    numeral_corrections = (style or {}).get("numeral_corrections") or []
+    if numeral_corrections:
+        prefs_text = "; ".join(
+            f"{p.get('replacement', '?')} (not {p.get('pattern', '?')})"
+            for p in numeral_corrections
+            if p.get("pattern") and p.get("replacement")
+        )
+        if prefs_text:
+            lines.append(f"- Specific number preferences: {prefs_text}.")
+
     return (
         "\n**Reporting style preferences** (apply consistently throughout the "
         "report, overriding any contrary wording in the template):\n"
