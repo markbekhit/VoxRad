@@ -25,6 +25,21 @@ VoxRad/
 └── docs/              # Documentation
 ```
 
+## Deployment & infrastructure
+
+The owner is **not a developer** and does not use the terminal. All infrastructure operations are Claude's responsibility — never ask the owner to run terminal commands.
+
+### Fly.io
+
+- App name: `voxrad-v-hkvq`, region: `syd`
+- `flyctl` is installed in the Claude Code environment at `/usr/local/bin/flyctl`
+- Auth is via `FLY_API_TOKEN` env var — the owner should paste their token once per session if needed; Claude stores it in the env and handles all `flyctl` calls directly
+- To get the token: https://fly.io/user/personal_access_tokens → "Create token" → paste here
+- Prefer `flyctl -a voxrad-v-hkvq <command>` (explicit app flag) so commands work regardless of working directory
+- Volume `voxrad_data` is mounted at `/data` (persistent across deploys)
+- Persistent paths: `/data/users.db` (user DB), `/data/working` (templates/reports), `/data/hl7_inbox`, `/data/hl7_outbox`, `/data/sr_outbox`
+- Secrets are set via `flyctl secrets set KEY=VALUE -a voxrad-v-hkvq` — Claude does this, not the owner
+
 ## gstack
 
 gstack is installed globally at `~/.claude/skills/gstack`. Use the `/browse` skill from gstack for all web browsing — never use `mcp__claude-in-chrome__*` tools.
