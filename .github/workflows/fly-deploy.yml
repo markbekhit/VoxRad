@@ -38,7 +38,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Ensure persistent volume exists
-        run: flyctl volumes list -a voxrad-v-hkvq | grep -q voxrad_data || flyctl volumes create voxrad_data --size 1 --region syd -a voxrad-v-hkvq --yes
+        run: flyctl volumes list -a voxrad-v-hkvq 2>/dev/null | grep -q voxrad_data || flyctl volumes create voxrad_data --size 1 --region syd -a voxrad-v-hkvq --yes || true
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
