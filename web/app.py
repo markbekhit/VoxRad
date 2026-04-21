@@ -93,73 +93,6 @@ except Exception:
     _STATIC_VERSION = str(int(time.time()))
 
 # ---------------------------------------------------------------------------
-# Static version for cache-busting
-# ---------------------------------------------------------------------------
-
-try:
-    import subprocess as _sp
-    _STATIC_VERSION = _sp.check_output(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=_BASE_DIR,
-        stderr=_sp.DEVNULL,
-    ).decode().strip()
-except Exception:
-    _STATIC_VERSION = str(int(time.time()))
-
-# ---------------------------------------------------------------------------
-# Mock mode — activated by VOXRAD_MOCK_MODE env var
-# ---------------------------------------------------------------------------
-
-_MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
-
-_MOCK_TRANSCRIPTION = (
-    "There is a 1.2 cm nodule in the right upper lobe. "
-    "No pleural effusion. Heart size is normal. "
-    "Impression: solitary pulmonary nodule, right upper lobe. "
-    "Recommend CT chest with contrast for further evaluation."
-)
-
-_MOCK_REPORT = """## CHEST X-RAY
-
-**Clinical History:** Routine screening.
-
-### Findings
-
-- **Lungs:** 1.2 cm nodule right upper lobe. No consolidation or pleural effusion.
-- **Heart:** Normal size and contour.
-- **Mediastinum:** Unremarkable.
-- **Bones:** No acute osseous abnormality.
-
-### Impression
-
-1. Solitary pulmonary nodule, right upper lobe (1.2 cm). Recommend CT chest with contrast.
-"""
-
-# ---------------------------------------------------------------------------
-# Bundled templates directory (shipped with the app)
-# ---------------------------------------------------------------------------
-
-_BUNDLED_TEMPLATES_DIR = os.path.join(
-    os.path.dirname(_BASE_DIR), "templates"
-)
-
-# ---------------------------------------------------------------------------
-# RadLex-derived ASR vocabulary prompt for Whisper-compatible APIs
-# ---------------------------------------------------------------------------
-
-_RADIOLOGY_PROMPT = (
-    "adenopathy, atelectasis, attenuation, calcification, cardiomegaly, "
-    "consolidation, costophrenic, diaphragm, effusion, emphysema, hepatomegaly, "
-    "hilar, hydronephrosis, hyperechoic, hypoechoic, infiltrate, interstitial, "
-    "mediastinum, nodule, opacity, osseous, parenchyma, pericardial, pleural, "
-    "pneumothorax, splenomegaly, subsegmental, thoracic, vertebral, BIRADS, "
-    "TIRADS, PIRADS, LIRADS, Fleischner, T1, T2, FLAIR, DWI, ADC, SUV, "
-    "Hounsfield, coronal, sagittal, axial, bilateral, ipsilateral, contralateral, "
-    "anterolisthesis, spondylosis, stenosis, foraminal, ligamentum flavum, "
-    "pneumonia, edema, infarct, hemorrhage, aneurysm, dissection, thrombosis"
-)
-
-# ---------------------------------------------------------------------------
 # Authentication — OAuth (primary) or HTTP Basic Auth (fallback)
 # ---------------------------------------------------------------------------
 
@@ -259,10 +192,15 @@ _format_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
-# Helper: list available templates
+# Bundled templates directory (shipped with the app)
 # ---------------------------------------------------------------------------
 
 _BUNDLED_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+
+
+# ---------------------------------------------------------------------------
+# Helper: list available templates
+# ---------------------------------------------------------------------------
 
 
 def _list_templates() -> list[str]:
