@@ -31,14 +31,22 @@ The owner is **not a developer** and does not use the terminal. All infrastructu
 
 ### Fly.io
 
-- App name: `voxrad-v-hkvq`, region: `syd`
+- App name: `voxrad-v-hkvq`, region: `syd` (Sydney, Australia)
 - `flyctl` is installed in the Claude Code environment at `/usr/local/bin/flyctl`
-- Auth is via `FLY_API_TOKEN` env var — the owner should paste their token once per session if needed; Claude stores it in the env and handles all `flyctl` calls directly
-- To get the token: https://fly.io/user/personal_access_tokens → "Create token" → paste here
+- **Auth token is already saved** in `.claude/settings.local.json` as `FLY_API_TOKEN` — valid for 10 years. Claude can run `flyctl` directly in any session without asking the owner for credentials.
 - Prefer `flyctl -a voxrad-v-hkvq <command>` (explicit app flag) so commands work regardless of working directory
-- Volume `voxrad_data` is mounted at `/data` (persistent across deploys)
+- Volume `voxrad_data` (vol_vgn7n65eyn2eg604) is mounted at `/data` — persistent across deploys and machine replacements
 - Persistent paths: `/data/users.db` (user DB), `/data/working` (templates/reports), `/data/hl7_inbox`, `/data/hl7_outbox`, `/data/sr_outbox`
+- Session secret is auto-generated and persisted to `/data/session_secret.key` on first boot — users stay logged in across deploys without any manual setup
 - Secrets are set via `flyctl secrets set KEY=VALUE -a voxrad-v-hkvq` — Claude does this, not the owner
+
+### GitHub Actions CI/CD
+
+- Deploys automatically on every push to `main` (workflow: `.github/workflows/fly-deploy.yml`)
+- `FLY_API_TOKEN` is stored as a GitHub repo secret — CI can deploy without any manual steps
+- The workflow: builds + pushes the Docker image, ensures `voxrad_data` volume exists, **destroys any legacy machines that lack the volume mount** (one-time migration safety), then deploys
+- `fly.toml` uses `strategy = "immediate"` so a single volume is sufficient (no rolling-deploy two-machine requirement)
+- To trigger a deploy: push any commit to `main`. To force a redeploy without code changes: `git commit --allow-empty -m "redeploy" && git push`
 
 ## gstack
 
