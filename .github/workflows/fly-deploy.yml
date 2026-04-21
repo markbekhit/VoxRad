@@ -53,6 +53,34 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
+      - name: Destroy legacy machines missing the voxrad_data mount
+        # Machines created before [[mounts]] was added to fly.toml do not have
+        # the volume attached. Fly's deploy then refuses because it counts those
+        # mount-less machines as needing fresh volumes. Destroy them so the
+        # deploy step can create new ones that attach the existing volume.
+        # This is safe: persistent data lives on the volume, not the machine.
+        run: |
+          flyctl machines list -a voxrad-v-hkvq --json > /tmp/machines.json
+          python3 - <<'PY'
+          import json, subprocess
+          with open("/tmp/machines.json") as f:
+              machines = json.load(f)
+          for m in machines:
+              mid = m.get("id")
+              mounts = (m.get("config") or {}).get("mounts") or []
+              has_data_mount = any(mt.get("name") == "voxrad_data" for mt in mounts)
+              if not has_data_mount:
+                  print(f"Destroying legacy machine {mid} (no voxrad_data mount)")
+                  subprocess.run(
+                      ["flyctl", "machine", "destroy", mid, "-a", "voxrad-v-hkvq", "--force"],
+                      check=False,
+                  )
+              else:
+                  print(f"Keeping machine {mid} (already has voxrad_data mount)")
+          PY
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       - name: Deploy
         run: flyctl deploy --image registry.fly.io/voxrad-v-hkvq:${{ github.sha }} --wait-timeout 120
         env:
