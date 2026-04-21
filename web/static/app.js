@@ -69,6 +69,56 @@ function setStatus(msg, type = "") {
   el.className = type ? `${type}` : "";
 }
 
+// ---------------------------------------------------------------------------
+// Vocabulary correction suggestion banner
+// ---------------------------------------------------------------------------
+// After a voice edit, the server may flag the replacement as a likely ASR
+// correction (phonetically similar to the original, not a content change).
+// We show a small dismissable banner offering to remember the new spelling.
+function showVocabSuggest({ old, new: neu }) {
+  const banner = $("vocab-suggest");
+  const text = $("vocab-suggest-text");
+  if (!banner || !text) return;
+  text.innerHTML = `Looks like a spelling fix — remember <b>${escapeHtml(neu)}</b> for future dictations?`;
+  banner.dataset.term = neu;
+  banner.style.display = "";
+}
+
+function hideVocabSuggest() {
+  const banner = $("vocab-suggest");
+  if (banner) {
+    banner.style.display = "none";
+    delete banner.dataset.term;
+  }
+}
+
+async function acceptVocabSuggest() {
+  const banner = $("vocab-suggest");
+  const term = banner && banner.dataset.term;
+  hideVocabSuggest();
+  if (!term) return;
+  try {
+    const resp = await fetch("/vocab/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ term }),
+    });
+    if (resp.ok) {
+      setStatus(`Added "${term}" to your vocabulary.`, "success");
+    } else {
+      setStatus(`Could not save vocabulary term.`, "error");
+    }
+  } catch (err) {
+    setStatus(`Vocabulary save failed: ${err.message}`, "error");
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 function setUI(mode) {
   // mode: idle | recording | paused | processing | transcribed | formatting | done
   const rec = $("btn-record");
@@ -834,10 +884,18 @@ async function submitAudioSegment(chunks, isFinal) {
     // Voice edit: pass the text before the selection as Whisper context rather
     // than the vocabulary list — prevents Whisper hallucinating prompt completions.
     const el = $(editTarget.elId);
-    const before = el.value.slice(
-      Math.max(0, editTarget.start - 300), editTarget.start
-    ).trim();
-    formData.append("whisper_prompt", before);
+    // editTarget on report-rendered has no start/end; only the selectedText string.
+    if (typeof editTarget.start === "number" && el && "value" in el) {
+      const before = el.value.slice(
+        Math.max(0, editTarget.start - 300), editTarget.start
+      ).trim();
+      formData.append("whisper_prompt", before);
+    } else {
+      formData.append("whisper_prompt", "");
+    }
+    if (editTarget.selectedText) {
+      formData.append("selected_text", editTarget.selectedText);
+    }
   } else {
     const templateName = $("template-select").value;
     if (templateName) formData.append("template_name", templateName);
@@ -883,6 +941,7 @@ async function submitAudioSegment(chunks, isFinal) {
           $("report-rendered").innerHTML = marked.parse(updated);
           setUI(_inferUIMode());
           setStatus("Voice edit applied.", "success");
+          if (data.suggest_vocab) showVocabSuggest(data.suggest_vocab);
         } else {
           setUI(_inferUIMode());
           setStatus("Could not locate selected text in report — edit manually.", "error");
@@ -904,6 +963,7 @@ async function submitAudioSegment(chunks, isFinal) {
           setUI(_inferUIMode());
           setStatus("Voice edit applied.", "success");
         }
+        if (data.suggest_vocab) showVocabSuggest(data.suggest_vocab);
       }
     } else {
       if (newText) {
@@ -1993,6 +2053,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Voice feedback
   $("btn-refine").addEventListener("click", startFeedback);
   $("btn-refine-stop").addEventListener("click", stopFeedback);
+
+  // Vocabulary suggestion banner
+  if ($("vocab-suggest-accept")) {
+    $("vocab-suggest-accept").addEventListener("click", acceptVocabSuggest);
+    $("vocab-suggest-dismiss").addEventListener("click", hideVocabSuggest);
+  }
 
   // Template editor
   $("btn-template-edit").addEventListener("click", tmplOpen);

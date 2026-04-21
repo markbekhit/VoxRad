@@ -111,6 +111,21 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 .btn-secondary:hover { background: rgba(255,215,0,0.08); }
 .btn-sm        { padding: 5px 10px; font-size: 12px; }
 
+/* ── Vocabulary-correction suggestion banner ── */
+.vocab-suggest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid var(--yellow);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.vocab-suggest-text { flex: 1; }
+.vocab-suggest-text b { color: var(--yellow); }
+
 .worklist-chip { padding: 3px 9px; font-size: 11px; }
 .worklist-chip.active { background: var(--yellow); color: #0E1118; border-color: var(--yellow); }
 

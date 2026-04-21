@@ -641,6 +641,114 @@ def _correct_asr_text(raw: str) -> str:
         return raw
 
 
+# ---------------------------------------------------------------------------
+# Per-user vocabulary — "remember my corrections"
+# ---------------------------------------------------------------------------
+# When the user voice-edits a highlighted word and the replacement sounds
+# like a correction of a misheard word (rather than a content change), we
+# suggest adding the new spelling to their vocab. Accepted terms are then
+# injected into the Whisper ASR prompt on subsequent dictations, so the
+# same mistake is less likely to recur.
+#
+# Phonetic check is intentionally heuristic — the toast is dismissable, the
+# user has the final say.
+
+def _vocab_dir() -> str:
+    return os.path.join(config.save_directory or "/tmp", "vocab")
+
+
+def _vocab_path(user: dict) -> str:
+    os.makedirs(_vocab_dir(), exist_ok=True)
+    uid = user.get("id")
+    # OAuth → per-user file; Basic Auth → one shared file.
+    key = f"user_{uid}" if uid is not None else "shared"
+    return os.path.join(_vocab_dir(), f"{key}.txt")
+
+
+def _load_user_vocab(user: dict) -> list:
+    path = _vocab_path(user)
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip()]
+    except OSError:
+        return []
+
+
+def _add_to_user_vocab(user: dict, term: str) -> bool:
+    term = term.strip()
+    if not term:
+        return False
+    existing = _load_user_vocab(user)
+    if term.lower() in [t.lower() for t in existing]:
+        return False
+    path = _vocab_path(user)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(term + "\n")
+    logger.info("Added vocab term %r for %s", term, _get_username(user))
+    return True
+
+
+def _soundalike(word: str) -> str:
+    """Crude phonetic reduction. Not full metaphone, zero deps.
+
+    Collapses homophonic digraphs, drops interior vowels, removes doubles —
+    enough to make 'supraspinatus'↔'super spin atrice' look close without
+    making 'mild'↔'moderate' look close.
+    """
+    w = re.sub(r"[^a-z]", "", word.lower())
+    if not w:
+        return ""
+    w = w.replace("ph", "f").replace("ck", "k").replace("qu", "kw")
+    w = w.replace("ch", "k").replace("sh", "s")
+    head, tail = w[0], re.sub(r"[aeiouy]", "", w[1:])
+    collapsed = head + tail
+    out = []
+    for ch in collapsed:
+        if not out or out[-1] != ch:
+            out.append(ch)
+    return "".join(out)
+
+
+def _phonetic_similar(old: str, new: str) -> bool:
+    """True when `new` looks like an ASR correction of `old`, not a content edit."""
+    import difflib
+    a = re.sub(r"[^\w\s]", "", old.strip().lower())
+    b = re.sub(r"[^\w\s]", "", new.strip().lower())
+    if not a or not b or a == b:
+        return False
+    if difflib.SequenceMatcher(None, a, b).ratio() >= 0.65:
+        return True
+    sa, sb = _soundalike(a), _soundalike(b)
+    if sa and sb and difflib.SequenceMatcher(None, sa, sb).ratio() >= 0.7:
+        return True
+    return False
+
+
+def _should_suggest_vocab(user: dict, old: str, new: str) -> Optional[dict]:
+    """Return {old, new} if this edit looks like a correction worth remembering.
+
+    Single-word edits only — multi-word diffs are too error-prone to
+    auto-suggest. Skips terms already in the user's vocab.
+    """
+    a = (old or "").strip()
+    b = (new or "").strip()
+    if not a or not b:
+        return None
+    if len(a.split()) != 1 or len(b.split()) != 1:
+        return None
+    a_key = a.lower().rstrip(".,!?;:")
+    b_key = b.lower().rstrip(".,!?;:")
+    if a_key == b_key:
+        return None
+    if not _phonetic_similar(a, b):
+        return None
+    if b_key in {t.lower().rstrip(".,!?;:") for t in _load_user_vocab(user)}:
+        return None
+    return {"old": a.rstrip(".,!?;:"), "new": b.rstrip(".,!?;:")}
+
+
 _MOCK_TRANSCRIPTION = (
     "CT chest with contrast. "
     "The lungs are clear. No focal consolidation, pleural effusion, or pneumothorax. "
@@ -675,6 +783,7 @@ async def transcribe(
     audio: UploadFile = File(...),
     template_name: Optional[str] = Form(None),
     whisper_prompt: Optional[str] = Form(None),
+    selected_text: Optional[str] = Form(None),
     user: dict = Depends(_verify_auth),
 ):
     """Accept a WebM audio blob, transcribe via Whisper-compatible API."""
@@ -710,6 +819,7 @@ async def transcribe(
         # surrounding transcript text, which is what Whisper's prompt parameter
         # is actually designed for.  Using the vocabulary list as the prompt for
         # short voice-edit clips causes Whisper to hallucinate completions of it.
+        user_vocab = _load_user_vocab(user)
         if whisper_prompt is not None:
             asr_prompt = whisper_prompt[:896]
         else:
@@ -721,6 +831,10 @@ async def transcribe(
                 )
                 if match:
                     asr_prompt = match.group(1).strip()[:896]  # Groq hard limit
+            # Append user-learned vocab, truncating to the 896-char Groq limit.
+            if user_vocab:
+                addition = ", " + ", ".join(user_vocab)
+                asr_prompt = (asr_prompt + addition)[:896]
 
         client = OpenAI(
             api_key=config.TRANSCRIPTION_API_KEY,
@@ -753,7 +867,16 @@ async def transcribe(
         _prune_sessions()
         session_id = _create_session(text)
         logger.info("Transcription complete for session %s (%d chars)", session_id, len(text))
-        return {"transcription": text, "session_id": session_id}
+
+        response = {"transcription": text, "session_id": session_id}
+        # Voice-edit correction suggestion: if the replacement sounds like
+        # a fix for a misheard word (not a mind-change), flag it so the
+        # client can offer to remember the spelling.
+        if is_voice_edit and selected_text:
+            suggestion = _should_suggest_vocab(user, selected_text, text)
+            if suggestion:
+                response["suggest_vocab"] = suggestion
+        return response
 
     except HTTPException:
         raise
@@ -763,6 +886,28 @@ async def transcribe(
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+
+class VocabAddRequest(BaseModel):
+    term: str
+
+
+@app.post("/vocab/add")
+def vocab_add(req: VocabAddRequest, user: dict = Depends(_verify_auth)):
+    """Append a term to the signed-in user's custom vocabulary."""
+    term = (req.term or "").strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Empty term.")
+    if len(term) > 64:
+        raise HTTPException(status_code=400, detail="Term too long (max 64 chars).")
+    added = _add_to_user_vocab(user, term)
+    return {"added": added, "term": term}
+
+
+@app.get("/vocab")
+def vocab_list(user: dict = Depends(_verify_auth)):
+    """Return the signed-in user's custom vocabulary."""
+    return {"terms": _load_user_vocab(user)}
 
 
 class FormatRequest(BaseModel):
