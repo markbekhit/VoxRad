@@ -119,8 +119,12 @@ Core subsystems:
 ```bash
 flyctl auth login
 flyctl apps create voxrad-yourname
-flyctl volumes create voxrad_config --size 1 --region syd
-flyctl volumes create voxrad_data   --size 1 --region syd
+
+# One-time: persistent volume for user DB, reports, and HL7/SR outboxes
+flyctl volumes create voxrad_data --size 1 --region syd
+
+# One-time: stable session secret — keeps users logged in across deploys
+flyctl secrets set SESSION_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
 
 flyctl secrets set \
     VOXRAD_WEB_PASSWORD=changeme \
@@ -152,6 +156,8 @@ Key vars:
 | `DEEPGRAM_API_KEY` / `ASSEMBLYAI_API_KEY` | Streaming STT provider keys |
 | `VOXRAD_STREAMING_STT_PROVIDER` | `deepgram` \| `assemblyai` \| unset |
 | `VOXRAD_WORKING_DIR` | Where templates / reports / inbox live |
+| `VOXRAD_DB_PATH` | Absolute path for `users.db` (set to `/data/users.db` on Fly) |
+| `SESSION_SECRET_KEY` | Stable secret for signing session cookies — **must be set** on Fly |
 | `VOXRAD_HL7_ENABLED` / `_OUTBOX` / `_INBOX` | HL7 v2.4 file-drop integration |
 | `VOXRAD_DICOM_SR_ENABLED` / `_OUTBOX` / `_INSTITUTION` | DICOM Basic Text SR export |
 | `VOXRAD_MWL_AGENT_TOKEN` | Shared secret for the MWL bridge agent |

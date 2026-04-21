@@ -8,6 +8,7 @@ primary_region = "syd"
 
 [env]
   VOXRAD_WORKING_DIR = "/data/working"
+  VOXRAD_DB_PATH     = "/data/users.db"
 
 [http_service]
   internal_port = 8765
@@ -22,6 +23,10 @@ primary_region = "syd"
     method = "GET"
     timeout = "10s"
     path = "/health"
+
+[[mounts]]
+  source      = "voxrad_data"
+  destination = "/data"
 
 [[vm]]
   size = "shared-cpu-1x"

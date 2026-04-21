@@ -104,6 +104,9 @@ _STYLE_DEFAULTS: dict = {
 
 
 def _db_path() -> str:
+    if override := os.environ.get("VOXRAD_DB_PATH"):
+        os.makedirs(os.path.dirname(override), exist_ok=True)
+        return override
     if os.name == "nt":
         config_dir = os.path.join(os.environ["APPDATA"], "VOXRAD")
     else:
