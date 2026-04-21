@@ -124,6 +124,13 @@ def load_settings(web_mode: bool = False):
     # MWL bridge agent — env-var only (never written to settings.ini)
     config.mwl_agent_token        = os.environ.get("VOXRAD_MWL_AGENT_TOKEN", config.mwl_agent_token)
 
+    # DICOM SR export — env-var overrides
+    _sr_enabled_env = os.environ.get("VOXRAD_DICOM_SR_ENABLED")
+    if _sr_enabled_env is not None:
+        config.dicom_sr_export_enabled = _sr_enabled_env.strip().lower() in ("1", "true", "yes", "on")
+    config.dicom_sr_outbox_path       = os.environ.get("VOXRAD_DICOM_SR_OUTBOX",    config.dicom_sr_outbox_path)
+    config.dicom_sr_institution_name  = os.environ.get("VOXRAD_DICOM_SR_INSTITUTION", config.dicom_sr_institution_name)
+
     if "STYLE" in config_parser:
         s = config_parser["STYLE"]
         config.style_spelling              = s.get("Spelling", config.style_spelling)

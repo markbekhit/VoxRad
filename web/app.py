@@ -37,6 +37,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from config.config import config
 from config.settings import save_web_settings
+from llm.dicom_sr_export import save_dicom_sr_report
 from llm.fhir_export import save_fhir_report
 from llm.hl7_export import save_hl7_report
 from llm.hl7_import import archive_order, list_inbox
@@ -93,73 +94,6 @@ try:
     ).decode().strip()
 except Exception:
     _STATIC_VERSION = str(int(time.time()))
-
-# ---------------------------------------------------------------------------
-# Static version for cache-busting
-# ---------------------------------------------------------------------------
-
-try:
-    import subprocess as _sp
-    _STATIC_VERSION = _sp.check_output(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=_BASE_DIR,
-        stderr=_sp.DEVNULL,
-    ).decode().strip()
-except Exception:
-    _STATIC_VERSION = str(int(time.time()))
-
-# ---------------------------------------------------------------------------
-# Mock mode — activated by VOXRAD_MOCK_MODE env var
-# ---------------------------------------------------------------------------
-
-_MOCK_MODE = bool(os.environ.get("VOXRAD_MOCK_MODE"))
-
-_MOCK_TRANSCRIPTION = (
-    "There is a 1.2 cm nodule in the right upper lobe. "
-    "No pleural effusion. Heart size is normal. "
-    "Impression: solitary pulmonary nodule, right upper lobe. "
-    "Recommend CT chest with contrast for further evaluation."
-)
-
-_MOCK_REPORT = """## CHEST X-RAY
-
-**Clinical History:** Routine screening.
-
-### Findings
-
-- **Lungs:** 1.2 cm nodule right upper lobe. No consolidation or pleural effusion.
-- **Heart:** Normal size and contour.
-- **Mediastinum:** Unremarkable.
-- **Bones:** No acute osseous abnormality.
-
-### Impression
-
-1. Solitary pulmonary nodule, right upper lobe (1.2 cm). Recommend CT chest with contrast.
-"""
-
-# ---------------------------------------------------------------------------
-# Bundled templates directory (shipped with the app)
-# ---------------------------------------------------------------------------
-
-_BUNDLED_TEMPLATES_DIR = os.path.join(
-    os.path.dirname(_BASE_DIR), "templates"
-)
-
-# ---------------------------------------------------------------------------
-# RadLex-derived ASR vocabulary prompt for Whisper-compatible APIs
-# ---------------------------------------------------------------------------
-
-_RADIOLOGY_PROMPT = (
-    "adenopathy, atelectasis, attenuation, calcification, cardiomegaly, "
-    "consolidation, costophrenic, diaphragm, effusion, emphysema, hepatomegaly, "
-    "hilar, hydronephrosis, hyperechoic, hypoechoic, infiltrate, interstitial, "
-    "mediastinum, nodule, opacity, osseous, parenchyma, pericardial, pleural, "
-    "pneumothorax, splenomegaly, subsegmental, thoracic, vertebral, BIRADS, "
-    "TIRADS, PIRADS, LIRADS, Fleischner, T1, T2, FLAIR, DWI, ADC, SUV, "
-    "Hounsfield, coronal, sagittal, axial, bilateral, ipsilateral, contralateral, "
-    "anterolisthesis, spondylosis, stenosis, foraminal, ligamentum flavum, "
-    "pneumonia, edema, infarct, hemorrhage, aneurysm, dissection, thrombosis"
-)
 
 # ---------------------------------------------------------------------------
 # Authentication — OAuth (primary) or HTTP Basic Auth (fallback)
@@ -803,6 +737,17 @@ def _hl7_inbox_dir() -> Optional[str]:
     return None
 
 
+def _sr_outbox_dir() -> Optional[str]:
+    """Resolve the DICOM SR outbox directory, or None when export is disabled."""
+    if not config.dicom_sr_export_enabled:
+        return None
+    if config.dicom_sr_outbox_path:
+        return config.dicom_sr_outbox_path
+    if config.save_directory:
+        return os.path.join(config.save_directory, "sr_outbox")
+    return None
+
+
 def _patient_context(req: "FormatRequest") -> Optional[dict]:
     """Build a patient context dict from a FormatRequest, returning None if all fields empty."""
     ctx = {k: v for k, v in {
@@ -875,11 +820,31 @@ def format_report(req: FormatRequest, user: dict = Depends(_verify_auth)):
         except Exception as e:
             logger.warning("HL7 save failed: %s", e)
 
+    sr_saved = False
+    _sr_dir = _sr_outbox_dir()
+    if _sr_dir:
+        try:
+            path = save_dicom_sr_report(
+                report_text=report,
+                outbox_path=_sr_dir,
+                patient_context=_patient_context(req),
+                template_name=req.template_name,
+                institution_name=config.dicom_sr_institution_name or "VOXRAD",
+            )
+            sr_saved = path is not None
+        except Exception as e:
+            logger.warning("DICOM SR save failed: %s", e)
+
     logger.info(
-        "Report formatted (%d chars), fhir_saved=%s, hl7_saved=%s",
-        len(report), fhir_saved, hl7_saved,
+        "Report formatted (%d chars), fhir_saved=%s, hl7_saved=%s, sr_saved=%s",
+        len(report), fhir_saved, hl7_saved, sr_saved,
     )
-    return {"report": report, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved}
+    return {
+        "report": report,
+        "fhir_saved": fhir_saved,
+        "hl7_saved": hl7_saved,
+        "sr_saved": sr_saved,
+    }
 
 
 @app.post("/format/stream")
@@ -967,7 +932,22 @@ def format_report_stream(req: FormatRequest, user: dict = Depends(_verify_auth))
             except Exception as e:
                 logger.warning("HL7 save failed during streaming: %s", e)
 
-        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved, "report": corrected_report})}\n\n'
+        sr_saved = False
+        _sr_dir = _sr_outbox_dir()
+        if _sr_dir and corrected_report:
+            try:
+                path = save_dicom_sr_report(
+                    report_text=corrected_report,
+                    outbox_path=_sr_dir,
+                    patient_context=_ctx,
+                    template_name=req.template_name,
+                    institution_name=config.dicom_sr_institution_name or "VOXRAD",
+                )
+                sr_saved = path is not None
+            except Exception as e:
+                logger.warning("DICOM SR save failed during streaming: %s", e)
+
+        yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved, "sr_saved": sr_saved, "report": corrected_report})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 

@@ -27,6 +27,11 @@ class Config:
     hl7_sending_facility = "VOXRAD"
     hl7_receiving_facility = ""       # e.g. "NSWHEALTH", "SECTRA", "KESTRAL"
     hl7_inbox_path = ""               # defaults to {save_directory}/hl7_inbox when empty
+    # DICOM Basic Text SR file-drop export — alternative to HL7 for PACS
+    # that ingest SR directly. Same drop-a-file model as the HL7 outbox.
+    dicom_sr_export_enabled = False
+    dicom_sr_outbox_path = ""         # defaults to {save_directory}/sr_outbox when empty
+    dicom_sr_institution_name = "VOXRAD"
     # MWL (DICOM Modality Worklist) bridge agent
     # The clinic runs a small agent inside their firewall that polls the PACS
     # MWL SCP and POSTs the orders to /api/worklist/push. The token guards that
