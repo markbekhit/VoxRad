@@ -8,10 +8,7 @@ primary_region = "syd"
 
 [env]
   VOXRAD_WORKING_DIR = "/data/working"
-  # VOXRAD_DB_PATH is intentionally unset until the voxrad_data volume is created.
-  # Once `fly volumes create voxrad_data --region syd -a voxrad-v-hkvq` has been run,
-  # uncomment the line below and redeploy to enable persistent user storage.
-  # VOXRAD_DB_PATH = "/data/users.db"
+  VOXRAD_DB_PATH     = "/data/users.db"
 
 [http_service]
   internal_port = 8765
@@ -27,11 +24,9 @@ primary_region = "syd"
     timeout = "10s"
     path = "/health"
 
-# [[mounts]]
-#   source      = "voxrad_data"
-#   destination = "/data"
-# Uncomment the block above after creating the volume:
-#   fly volumes create voxrad_data --region syd -a voxrad-v-hkvq
+[[mounts]]
+  source      = "voxrad_data"
+  destination = "/data"
 
 [[vm]]
   size = "shared-cpu-1x"
