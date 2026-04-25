@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Narrad — Voice-First Radiology Reporting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #07060f;
+      --surface:  #0e0c1a;
+      --card:     #13112a;
+      --border:   rgba(255,255,255,0.06);
+      --purple:   #a78bfa;
+      --violet:   #7c3aed;
+      --pink:     #f472b6;
+      --green:    #34d399;
+      --text:     #f0eeff;
+      --muted:    #8b87aa;
+      --radius:   14px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 52px; height: 66px;
+      background: rgba(7,6,15,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px;
+      background: linear-gradient(100deg, var(--purple), var(--pink));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-pill {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; background: rgba(167,139,250,0.12);
+      border: 1px solid rgba(167,139,250,0.25); color: var(--purple);
+      border-radius: 100px; padding: 3px 10px; margin-left: 10px;
+      vertical-align: middle;
+    }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a { color: var(--muted); font-size: 0.875rem; text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 8px; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: all 0.2s; border: none;
+    }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .btn-purple {
+      background: linear-gradient(135deg, var(--violet), var(--purple));
+      color: #fff;
+    }
+    .btn-purple:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,58,237,0.35); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 110px 52px 80px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+      max-width: 1280px; margin: 0 auto;
+      position: relative;
+    }
+    .hero-glow-l {
+      position: fixed; top: -200px; left: -200px;
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(167,139,250,0.07); border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 0.78rem; font-weight: 600; color: var(--purple);
+      margin-bottom: 28px;
+    }
+    .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .hero h1 {
+      font-size: clamp(2.8rem, 5vw, 4.2rem);
+      font-weight: 900; letter-spacing: -2.5px; line-height: 1.05;
+      margin-bottom: 24px;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(100deg, var(--purple), var(--pink));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub { font-size: 1.1rem; color: var(--muted); line-height: 1.75; margin-bottom: 36px; max-width: 480px; }
+    .btn-lg { padding: 14px 30px; font-size: 1rem; border-radius: 10px; }
+    .hero-micro { font-size: 0.8rem; color: var(--muted); margin-top: 14px; }
+    .hero-micro span { color: var(--green); }
+
+    /* ── VOICE UI VISUAL ── */
+    .voice-ui {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.5),
+                  inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .vu-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .vu-title { font-size: 0.85rem; font-weight: 600; }
+    .vu-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--green); }
+    .vu-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+    /* Waveform circles */
+    .vu-rings {
+      display: flex; justify-content: center; align-items: center;
+      position: relative; height: 120px; margin-bottom: 28px;
+    }
+    .ring {
+      position: absolute; border-radius: 50%; border: 1px solid rgba(167,139,250,0.3);
+      animation: ringpulse 2s ease-out infinite;
+    }
+    .ring-1 { width: 60px; height: 60px; animation-delay: 0s; }
+    .ring-2 { width: 90px; height: 90px; animation-delay: 0.3s; }
+    .ring-3 { width: 120px; height: 120px; animation-delay: 0.6s; }
+    @keyframes ringpulse {
+      0%   { opacity: 0.8; transform: scale(0.8); }
+      100% { opacity: 0;   transform: scale(1.2); }
+    }
+    .vu-mic {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; position: relative; z-index: 1;
+      box-shadow: 0 0 0 4px rgba(124,58,237,0.25), 0 8px 24px rgba(124,58,237,0.4);
+    }
+    .vu-transcript { margin-bottom: 24px; }
+    .vu-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .vu-time { font-size: 0.68rem; color: var(--muted); font-weight: 500; min-width: 32px; }
+    .vu-words { font-size: 0.82rem; color: var(--text); line-height: 1.6; }
+    .vu-words .dim { color: var(--muted); }
+    .vu-cursor { display: inline-block; width: 2px; height: 0.9em; background: var(--purple); vertical-align: middle; animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .vu-report-preview {
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px;
+    }
+    .vu-rp-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--purple); margin-bottom: 10px; }
+    .vu-rp-text { font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
+    .vu-rp-text strong { color: var(--text); }
+
+    /* ── SECTION COMMON ── */
+    .section-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--purple); margin-bottom: 16px; }
+    .section-title { font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -1.5px; line-height: 1.2; margin-bottom: 16px; }
+    .section-sub { font-size: 1rem; color: var(--muted); line-height: 1.75; }
+
+    /* ── DIFFERENCE ── */
+    .diff-section { padding: 100px 52px; background: var(--surface); }
+    .diff-inner { max-width: 1200px; margin: 0 auto; }
+    .diff-header { text-align: center; max-width: 600px; margin: 0 auto 72px; }
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border-radius: var(--radius); overflow: hidden; }
+    .compare-col { background: var(--card); padding: 40px; }
+    .compare-col-head { font-size: 0.8rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px; }
+    .compare-col-head.old { color: var(--muted); }
+    .compare-col-head.new { color: var(--purple); }
+    .compare-item { display: flex; gap: 14px; margin-bottom: 20px; align-items: flex-start; font-size: 0.875rem; }
+    .compare-icon { flex-shrink: 0; margin-top: 1px; }
+    .compare-text { color: var(--muted); line-height: 1.6; }
+    .compare-text.bright { color: var(--text); }
+
+    /* ── FEATURES ── */
+    .features-section { padding: 100px 52px; max-width: 1200px; margin: 0 auto; }
+    .features-header { margin-bottom: 72px; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-radius: var(--radius); overflow: hidden; }
+    .feat-card { background: var(--card); padding: 40px 32px; transition: background 0.2s; }
+    .feat-card:hover { background: #1a1535; }
+    .feat-num { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; color: var(--purple); opacity: 0.6; margin-bottom: 14px; }
+    .feat-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+    .feat-desc { font-size: 0.86rem; color: var(--muted); line-height: 1.7; }
+    .feat-tag {
+      display: inline-block; margin-top: 16px;
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--green);
+      background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15);
+      border-radius: 4px; padding: 3px 10px;
+    }
+
+    /* ── INTEGRATIONS ── */
+    .integrations-section { background: var(--surface); padding: 100px 52px; }
+    .int-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .int-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .int-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      font-size: 0.78rem; font-weight: 600; color: var(--muted);
+      transition: border-color 0.2s;
+    }
+    .int-card:hover { border-color: rgba(167,139,250,0.2); color: var(--text); }
+    .int-card .int-icon { font-size: 1.4rem; }
+
+    /* ── STATS ── */
+    .stats-section { padding: 100px 52px; }
+    .stats-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 64px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .stat-item { padding: 44px 24px; border-right: 1px solid var(--border); }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; background: linear-gradient(100deg, var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 130px 52px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-bg-l {
+      position: absolute; top: 50%; left: 30%; transform: translate(-50%, -50%);
+      width: 600px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-bg-r {
+      position: absolute; top: 50%; right: 20%; transform: translateY(-50%);
+      width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(244,114,182,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -2px; margin-bottom: 20px; position: relative; }
+    .cta-section h2 .gradient { background: linear-gradient(100deg, var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .cta-section p { font-size: 1.1rem; color: var(--muted); max-width: 480px; margin: 0 auto 44px; line-height: 1.7; position: relative; }
+    .cta-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; position: relative; }
+    .cta-fine { font-size: 0.8rem; color: var(--muted); margin-top: 18px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 52px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
+    }
+    .footer-logo { font-size: 1.2rem; font-weight: 900; background: linear-gradient(100deg, var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-links { display: flex; gap: 32px; }
+    .footer-links a { font-size: 0.85rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; gap: 48px; padding: 72px 24px; }
+      .diff-section, .integrations-section, .stats-section, .cta-section { padding: 72px 24px; }
+      .compare, .int-inner { grid-template-columns: 1fr; }
+      .features-section { padding: 72px 24px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-item:nth-child(2) { border-right: none; }
+      .stat-item:nth-child(3) { border-right: 1px solid var(--border); }
+      footer { padding: 36px 24px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero-glow-l"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div>
+      <span class="nav-logo">Narrad</span>
+      <span class="nav-pill">Beta</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Product</a>
+      <a href="#compare">Compare</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#" class="btn btn-purple">Get started free</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="hero-tag">
+        <span class="hero-tag-dot"></span> Voice-first radiology reporting
+      </div>
+      <h1>Your voice.<br />A perfect<br /><span class="gradient">report.</span></h1>
+      <p class="hero-sub">
+        Narrad listens, understands radiology, and writes the report for you —
+        structured, precise, and ready to sign. Just talk.
+      </p>
+      <a href="#" class="btn btn-purple btn-lg">Start narrating free →</a>
+      <div class="hero-micro">
+        <span>No credit card required.</span> 14-day free trial on all plans.
+      </div>
+    </div>
+    <div>
+      <div class="voice-ui">
+        <div class="vu-header">
+          <div class="vu-title">Narrad</div>
+          <div class="vu-status"><span class="vu-dot"></span>Listening</div>
+        </div>
+        <div class="vu-rings">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="vu-mic">🎙️</div>
+        </div>
+        <div class="vu-transcript">
+          <div class="vu-line">
+            <span class="vu-time">0:04</span>
+            <span class="vu-words dim">Ultrasound abdomen for right upper quadrant pain…</span>
+          </div>
+          <div class="vu-line">
+            <span class="vu-time">0:11</span>
+            <span class="vu-words">Liver normal size and echogenicity. <span class="dim">No focal lesion.</span></span>
+          </div>
+          <div class="vu-line">
+            <span class="vu-time">0:18</span>
+            <span class="vu-words">Gallbladder contains a <span class="dim">single 8mm calculus.</span><span class="vu-cursor"></span></span>
+          </div>
+        </div>
+        <div class="vu-report-preview">
+          <div class="vu-rp-label">Report preview</div>
+          <div class="vu-rp-text">
+            <strong>Findings:</strong> Liver normal size and echogenicity with no focal lesion.
+            Gallbladder contains a single calculus measuring 8 mm with no pericholecystic fluid
+            or wall thickening.<br /><br />
+            <strong>Impression:</strong> Cholelithiasis…
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <div class="diff-section" id="compare">
+    <div class="diff-inner">
+      <div class="diff-header">
+        <div class="section-label">Why Narrad</div>
+        <h2 class="section-title">The old way costs you<br />40 minutes a day.</h2>
+        <p class="section-sub">Typing reports is the single largest time sink in radiology. Narrad gives those 40 minutes back.</p>
+      </div>
+      <div class="compare">
+        <div class="compare-col">
+          <div class="compare-col-head old">Before Narrad</div>
+          <div class="compare-item"><span class="compare-icon">⌨️</span><div class="compare-text">Typing every word of every report from scratch</div></div>
+          <div class="compare-item"><span class="compare-icon">🔁</span><div class="compare-text">Copy-pasting standard phrases and headers manually</div></div>
+          <div class="compare-item"><span class="compare-icon">🐌</span><div class="compare-text">3–5 minutes per report minimum, even for normals</div></div>
+          <div class="compare-item"><span class="compare-icon">💭</span><div class="compare-text">Mental load split between image interpretation and writing</div></div>
+          <div class="compare-item"><span class="compare-icon">📝</span><div class="compare-text">Inconsistent style and structure across reports</div></div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-col-head new">With Narrad</div>
+          <div class="compare-item"><span class="compare-icon">🎙️</span><div class="compare-text bright">Speak naturally — Narrad writes the report</div></div>
+          <div class="compare-item"><span class="compare-icon">⚡</span><div class="compare-text bright">Sections, headers, and formatting applied automatically</div></div>
+          <div class="compare-item"><span class="compare-icon">⏱️</span><div class="compare-text bright">Under 60 seconds from dictation to finished report</div></div>
+          <div class="compare-item"><span class="compare-icon">🧠</span><div class="compare-text bright">Full cognitive focus on interpretation — the interesting part</div></div>
+          <div class="compare-item"><span class="compare-icon">✅</span><div class="compare-text bright">Consistent, structured output every time</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features-section" id="features">
+    <div class="features-header">
+      <div class="section-label">Platform</div>
+      <h2 class="section-title">Built around<br />how you think.</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-num">01</div>
+        <div class="feat-title">Radiology-native speech recognition</div>
+        <div class="feat-desc">Narrad understands BIRADS, TIRADS, LIRADS, PIRADS, anatomical terms, and measurement formats without special training or per-user setup.</div>
+        <span class="feat-tag">Real-time</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">02</div>
+        <div class="feat-title">Adaptive vocabulary memory</div>
+        <div class="feat-desc">Correct a transcription once and Narrad remembers. Your preferred spellings, abbreviations, and terms are silently applied in every future dictation.</div>
+        <span class="feat-tag">Learns over time</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">03</div>
+        <div class="feat-title">AI-structured reports</div>
+        <div class="feat-desc">Raw dictation becomes a formatted report instantly — organised into standard sections, with a clean Impression generated from your findings.</div>
+        <span class="feat-tag">AI-powered</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">04</div>
+        <div class="feat-title">Style that learns you</div>
+        <div class="feat-desc">When you repeatedly correct the same kind of output — Roman to Arabic numerals, British to American spelling, impression style — Narrad offers to remember the preference.</div>
+        <span class="feat-tag">Personalisation</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">05</div>
+        <div class="feat-title">40+ report templates</div>
+        <div class="feat-desc">Start from a specialist template — CT Chest, MRI Brain, DEXA, Nuclear Medicine — and dictate into a pre-structured framework.</div>
+        <span class="feat-tag">All subspecialties</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">06</div>
+        <div class="feat-title">Zero-config browser app</div>
+        <div class="feat-desc">No install. No IT. No PACS integration required. Open Narrad in any browser tab alongside your viewer and start reporting in 60 seconds.</div>
+        <span class="feat-tag">Works anywhere</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTEGRATIONS -->
+  <div class="integrations-section" id="integrations">
+    <div class="int-inner">
+      <div>
+        <div class="section-label">Integrations</div>
+        <h2 class="section-title">Works with<br />everything already.</h2>
+        <p class="section-sub" style="margin-bottom:28px;">
+          Narrad is PACS-agnostic and RIS-agnostic. One click copies the finished
+          report to your clipboard — paste it anywhere.
+        </p>
+        <p class="section-sub" style="font-size:0.875rem;">
+          No IT projects. No HL7 pipelines to build. No vendor negotiations.
+          If your PACS has a text field, Narrad works with it.
+        </p>
+      </div>
+      <div class="int-grid">
+        <div class="int-card"><span class="int-icon">🖥️</span>Any PACS</div>
+        <div class="int-card"><span class="int-icon">📋</span>Any RIS</div>
+        <div class="int-card"><span class="int-icon">🌐</span>Any browser</div>
+        <div class="int-card"><span class="int-icon">🎧</span>Any mic</div>
+        <div class="int-card"><span class="int-icon">💻</span>Mac / PC</div>
+        <div class="int-card"><span class="int-icon">🔐</span>HIPAA-ready</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <section class="stats-section">
+    <div class="stats-inner">
+      <div class="section-label">Impact</div>
+      <h2 class="section-title">Numbers that matter<br />to a busy radiologist.</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-num">70%</div>
+          <div class="stat-label">Reduction in report time</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">98.9%</div>
+          <div class="stat-label">Transcription accuracy</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">40+</div>
+          <div class="stat-label">Subspecialty templates</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">60s</div>
+          <div class="stat-label">Average report time</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-bg-l"></div>
+    <div class="cta-bg-r"></div>
+    <h2>Start narrating.<br /><span class="gradient">First 14 days free.</span></h2>
+    <p>Join the next generation of radiologists who report faster, feel less fatigued, and catch more.</p>
+    <div class="cta-actions">
+      <a href="#" class="btn btn-purple btn-lg">Get started free →</a>
+      <a href="#" class="btn btn-ghost btn-lg">Book a demo</a>
+    </div>
+    <div class="cta-fine">No credit card required · HIPAA-ready · Cancel any time</div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Narrad</div>
+    <div class="footer-links">
+      <a href="#">Product</a>
+      <a href="#">Pricing</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="footer-copy">© 2025 Narrad. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>
