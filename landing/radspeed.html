@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RadSpeed — Radiology Dictation at the Speed of Thought</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #050a12;
+      --surface:   #0c1623;
+      --card:      #101e30;
+      --border:    rgba(255,255,255,0.06);
+      --accent:    #00c2ff;
+      --accent2:   #0080e8;
+      --green:     #00e5a0;
+      --text:      #e8edf5;
+      --muted:     #8a9ab5;
+      --radius:    12px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(5,10,18,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      color: var(--muted); font-size: 0.875rem; text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 8px; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: all 0.2s; border: none;
+    }
+    .btn-ghost {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,194,255,0.25); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: 120px 48px 100px;
+      text-align: center;
+    }
+    .hero-glow {
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 600px; border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0,194,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 100px;
+      border: 1px solid rgba(0,194,255,0.25);
+      background: rgba(0,194,255,0.06);
+      font-size: 0.8rem; font-weight: 500; color: var(--accent);
+      margin-bottom: 28px;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800; letter-spacing: -2px; line-height: 1.1;
+      max-width: 900px; margin: 0 auto 24px;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 1.2rem; color: var(--muted); max-width: 580px;
+      margin: 0 auto 40px; line-height: 1.7;
+    }
+    .hero-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .btn-lg { padding: 14px 32px; font-size: 1rem; border-radius: 10px; }
+
+    /* ── STATS STRIP ── */
+    .stats {
+      display: flex; justify-content: center; gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin: 0; padding: 0;
+    }
+    .stat-item {
+      flex: 1; max-width: 240px; padding: 36px 24px;
+      text-align: center; border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-size: 2.4rem; font-weight: 800; letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── SECTION STRUCTURE ── */
+    .section { padding: 96px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800; letter-spacing: -1px; line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 540px; line-height: 1.7; }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2px; background: var(--border); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-top: 64px;
+    }
+    .feature-card {
+      background: var(--card); padding: 36px;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: #14253d; }
+    .feat-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: rgba(0,194,255,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: 20px;
+    }
+    .feat-title { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .feat-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      padding: 96px 48px;
+      background: var(--surface);
+    }
+    .how-inner { max-width: 1200px; margin: 0 auto; }
+    .steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0; margin-top: 64px; position: relative;
+    }
+    .step {
+      padding: 40px 36px; position: relative;
+    }
+    .step::after {
+      content: '→';
+      position: absolute; right: -14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.5rem; color: var(--border);
+    }
+    .step:last-child::after { display: none; }
+    .step-num {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+      color: var(--accent); margin-bottom: 16px;
+    }
+    .step-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .step-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── DEMO VISUAL ── */
+    .demo-section {
+      padding: 96px 48px;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .demo-header { text-align: center; margin-bottom: 64px; }
+    .demo-window {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .demo-titlebar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 20px; background: #0a1524;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .demo-body { display: grid; grid-template-columns: 1fr 1fr; min-height: 340px; }
+    .demo-col {
+      padding: 28px; border-right: 1px solid var(--border);
+    }
+    .demo-col:last-child { border-right: none; }
+    .demo-col-label {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+    }
+    .demo-waveform {
+      display: flex; align-items: flex-end; gap: 3px; height: 60px; margin-bottom: 20px;
+    }
+    .bar {
+      background: linear-gradient(to top, var(--accent2), var(--accent));
+      border-radius: 2px; width: 6px;
+      animation: wave 1.2s ease-in-out infinite;
+    }
+    @keyframes wave {
+      0%, 100% { opacity: 0.4; transform: scaleY(0.4); }
+      50%       { opacity: 1;   transform: scaleY(1); }
+    }
+    .demo-transcript {
+      font-size: 0.85rem; color: var(--text); line-height: 1.7;
+    }
+    .demo-transcript .cursor {
+      display: inline-block; width: 2px; height: 1em;
+      background: var(--accent); vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .report-block { margin-bottom: 16px; }
+    .report-heading {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    }
+    .report-text { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── SOCIAL PROOF ── */
+    .testimonials {
+      padding: 96px 48px; background: var(--surface);
+    }
+    .test-inner { max-width: 1200px; margin: 0 auto; }
+    .test-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px; margin-top: 56px;
+    }
+    .test-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+    }
+    .stars { color: #febc2e; font-size: 0.9rem; margin-bottom: 16px; }
+    .test-quote { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+    .test-author { display: flex; align-items: center; gap: 14px; }
+    .test-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .test-name { font-size: 0.875rem; font-weight: 600; }
+    .test-role { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 120px 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-glow {
+      position: absolute; bottom: -300px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(0,194,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; letter-spacing: -1.5px; margin-bottom: 20px; }
+    .cta-section p { font-size: 1.1rem; color: var(--muted); max-width: 480px; margin: 0 auto 40px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 24px;
+    }
+    .footer-logo { font-size: 1.1rem; font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .footer-links { display: flex; gap: 32px; }
+    .footer-links a { font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 80px 24px 60px; }
+      .stats { flex-wrap: wrap; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); min-width: 50%; }
+      .section, .demo-section { padding: 64px 24px; }
+      .how-section, .testimonials, .cta-section { padding: 64px 24px; }
+      .demo-body { grid-template-columns: 1fr; }
+      .demo-col { border-right: none; border-bottom: 1px solid var(--border); }
+      footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">RadSpeed</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#testimonials">Stories</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#" class="btn btn-primary">Start free trial</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="badge"><span class="badge-dot"></span> AI-powered radiology dictation</div>
+    <h1>Reports at the<br /><span>speed of thought.</span></h1>
+    <p class="hero-sub">
+      Dictate naturally. RadSpeed transcribes, structures, and delivers a
+      complete radiology report in seconds — no templates, no typing, no delay.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn btn-primary btn-lg">Start free trial →</a>
+      <a href="#" class="btn btn-ghost btn-lg">Watch demo</a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-num">4×</div>
+      <div class="stat-label">Faster than typing</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">98.7%</div>
+      <div class="stat-label">Transcription accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;8s</div>
+      <div class="stat-label">Report turnaround</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">40+</div>
+      <div class="stat-label">Report templates</div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything a radiologist needs.<br />Nothing they don't.</h2>
+    <p class="section-sub">Built by radiologists, for radiologists. Every feature earns its place by saving real time in real workflows.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feat-icon">🎙️</div>
+        <div class="feat-title">Medical-grade speech recognition</div>
+        <div class="feat-desc">Trained on radiology vocabulary — BIRADS, TIRADS, PIRADS, LIRADS. Handles accents, background noise, and fast dictation without missing a word.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">⚡</div>
+        <div class="feat-title">Instant structured reports</div>
+        <div class="feat-desc">AI converts raw dictation into a properly formatted report — Findings, Impression, Technique — in the exact structure your department requires.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🧠</div>
+        <div class="feat-title">Learns your vocabulary</div>
+        <div class="feat-desc">When you correct a transcription, RadSpeed remembers. Your custom terms and preferred spellings get smarter with every dictation.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">Template library</div>
+        <div class="feat-desc">Start from 40+ specialty templates — CT chest, MRI brain, ultrasound abdomen, mammography and more. Customise per site, per modality.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🔒</div>
+        <div class="feat-title">HIPAA-ready infrastructure</div>
+        <div class="feat-desc">Audio is processed and discarded. Reports live in your existing system. No PHI stored on RadSpeed servers. Audit log on every action.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🌐</div>
+        <div class="feat-title">Works everywhere</div>
+        <div class="feat-desc">Browser-based. Runs on any workstation, any PACS. No install, no IT ticket. Ready in 60 seconds on any computer with a microphone.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-section" id="how">
+    <div class="how-inner">
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">Three steps to a finished report.</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Dictate</div>
+          <div class="step-desc">Press record and speak naturally. Describe findings as you read the images — no need to say section headings or formatting commands.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Transcribe & structure</div>
+          <div class="step-desc">Real-time speech-to-text captures every word. The AI engine organises findings, adds standard headers, and formats the impression.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Review & copy</div>
+          <div class="step-desc">Scan the report, make any tweaks with your voice, then copy to your RIS with one click. Done. Next case.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEMO WINDOW -->
+  <div class="demo-section">
+    <div class="demo-header">
+      <div class="section-label">Live demo</div>
+      <h2 class="section-title">Watch it happen in real time.</h2>
+    </div>
+    <div class="demo-window">
+      <div class="demo-titlebar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span style="margin-left:12px; font-size:0.8rem; color:var(--muted)">RadSpeed — CT Chest</span>
+        <span style="margin-left:auto; font-size:0.75rem; color:var(--green)">● Recording</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-col">
+          <div class="demo-col-label">Dictation</div>
+          <div class="demo-waveform" id="waveform"></div>
+          <div class="demo-transcript">
+            CT chest with IV contrast performed for evaluation of pulmonary embolism.
+            The lungs are clear bilaterally. No consolidation or pleural effusion.
+            No pulmonary emboli identified. The mediastinum is unremarkable.
+            Impression: no acute cardiopulmonary disease.<span class="cursor"></span>
+          </div>
+        </div>
+        <div class="demo-col">
+          <div class="demo-col-label">Formatted report</div>
+          <div class="report-block">
+            <div class="report-heading">Technique</div>
+            <div class="report-text">CT chest with intravenous contrast.</div>
+          </div>
+          <div class="report-block">
+            <div class="report-heading">Findings</div>
+            <div class="report-text">
+              Lungs clear bilaterally. No consolidation, ground-glass opacity, or pleural effusion.
+              No pulmonary emboli on CT pulmonary angiography sequences.
+              Mediastinum unremarkable.
+            </div>
+          </div>
+          <div class="report-block">
+            <div class="report-heading">Impression</div>
+            <div class="report-text">No acute cardiopulmonary disease. No pulmonary embolism.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="testimonials" id="testimonials">
+    <div class="test-inner">
+      <div class="section-label">Testimonials</div>
+      <h2 class="section-title">Radiologists love the extra hour.</h2>
+
+      <div class="test-grid">
+        <div class="test-card">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">"I'm doing 20% more studies per day and I'm less fatigued by end of shift. The structured output is actually better than what I was typing manually."</div>
+          <div class="test-author">
+            <div class="test-avatar">DM</div>
+            <div>
+              <div class="test-name">Dr. David Marsh</div>
+              <div class="test-role">Body radiologist, tertiary hospital</div>
+            </div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">"The vocabulary learning is the killer feature. I corrected 'Hilus' to 'hilum' once and it never got it wrong again. Feels like it knows my style."</div>
+          <div class="test-author">
+            <div class="test-avatar">PL</div>
+            <div>
+              <div class="test-name">Dr. Priya Lamba</div>
+              <div class="test-role">Chest radiologist, academic centre</div>
+            </div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">"Setup took five minutes. No IT involvement. It just works in the browser. Our RIS team didn't have to do a single thing."</div>
+          <div class="test-author">
+            <div class="test-avatar">AS</div>
+            <div>
+              <div class="test-name">Dr. Anna Schreiber</div>
+              <div class="test-role">Radiology director, regional network</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-glow"></div>
+    <h2>Ready to clear your worklist faster?</h2>
+    <p>Join hundreds of radiologists who report in seconds, not minutes. No credit card required.</p>
+    <a href="#" class="btn btn-primary btn-lg">Start your free 14-day trial →</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">RadSpeed</div>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Security</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="footer-copy">© 2025 RadSpeed. All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Animated waveform bars
+    const wf = document.getElementById('waveform');
+    for (let i = 0; i < 40; i++) {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      const h = Math.random() * 50 + 10;
+      b.style.height = h + 'px';
+      b.style.animationDelay = (i * 0.04) + 's';
+      b.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
+      wf.appendChild(b);
+    }
+  </script>
+</body>
+</html>
