@@ -2155,9 +2155,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Keyboard-edit detection on the transcript textarea.
-  // Snapshot the value on focus; on blur, if text changed and we're not in a
-  // voice-recording session (those edits are already handled by submitAudioSegment),
-  // POST to /api/check-edit-suggestion so vocab/style suggestions can fire.
+  // Snapshot the value on focus; on blur, if text changed, POST to
+  // /api/check-edit-suggestion so vocab/style suggestions can fire.
+  // Also runs during active recording — the backend word-diff isolates
+  // the user's actual replacement from any STT-added words around it.
   {
     const tx = $("transcription");
     let _txSnapshot = "";
@@ -2166,7 +2167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const current = tx.value;
       const snapshot = _txSnapshot;
       _txSnapshot = "";
-      if (state.isRecording || !snapshot || current === snapshot) return;
+      if (!snapshot || current === snapshot) return;
       try {
         const resp = await fetch("/api/check-edit-suggestion", {
           method: "POST",

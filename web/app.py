@@ -1353,11 +1353,22 @@ def api_check_edit_suggestion(req: KeyboardEditRequest, user: dict = Depends(_ve
         new_phrase = " ".join(new_words[j1:j2])
         pre_context = " ".join(old_words[:i1])
 
-        # Vocab: single-word replacements only
-        if not suggest_vocab and i2 - i1 == 1 and j2 - j1 == 1:
-            sv = _should_suggest_vocab(user, old_phrase, new_phrase)
-            if sv:
-                suggest_vocab = sv
+        # Vocab: try the full block first, then leading/trailing word pairs.
+        # The leading-pair check catches "edema" -> "oedema with no consolidation"
+        # where the user's correction is followed by STT extension.
+        if not suggest_vocab:
+            candidates = []
+            if i2 - i1 == 1 and j2 - j1 == 1:
+                candidates.append((old_phrase, new_phrase))
+            else:
+                if i2 - i1 >= 1 and j2 - j1 >= 1:
+                    candidates.append((old_words[i1], new_words[j1]))     # leading pair
+                    candidates.append((old_words[i2 - 1], new_words[j2 - 1]))  # trailing pair
+            for ow, nw in candidates:
+                sv = _should_suggest_vocab(user, ow, nw)
+                if sv:
+                    suggest_vocab = sv
+                    break
 
         # Style drift: works on any phrase length
         if not suggest_setting:
