@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VoxRad · Sign In</title>
+  <title>RadSpeed · Sign In</title>
   <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
   <style>
     body { display:flex; flex-direction:column; min-height:100vh; }
@@ -18,7 +18,15 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.28);
     }
     .login-logo { text-align:center; margin-bottom: 28px; }
-    .login-logo h1 { font-size: 28px; letter-spacing: 4px; color: var(--yellow); }
+    .login-logo h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent), var(--mint));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .login-logo .sub { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
     .login-divider { display:flex; align-items:center; gap:10px; margin:20px 0; }
     .login-divider::before, .login-divider::after {
@@ -43,7 +51,7 @@
       transition: background 0.15s, border-color 0.15s;
       margin-bottom: 10px;
     }
-    .provider-btn:hover { background: var(--surface); border-color: var(--yellow); }
+    .provider-btn:hover { background: var(--surface); border-color: var(--accent); }
     .provider-btn svg { flex-shrink: 0; }
     .login-error {
       background: rgba(239,68,68,0.12);
@@ -67,16 +75,16 @@
 
 <header>
   <div>
-    <h1>VOXRAD</h1>
-    <div class="subtitle">Voice Radiology Dictation</div>
+    <h1>RadSpeed</h1>
+    <div class="subtitle">Reports at the speed of thought</div>
   </div>
 </header>
 
 <main>
   <div class="login-card">
     <div class="login-logo">
-      <h1>VOXRAD</h1>
-      <div class="sub">Voice Radiology Dictation</div>
+      <h1>RadSpeed</h1>
+      <div class="sub">Reports at the speed of thought</div>
     </div>
 
     {% if error %}
@@ -126,7 +134,7 @@
 </main>
 
 <footer>
-  &#9888; VoxRad processes Protected Health Information.
+  &#9888; RadSpeed processes Protected Health Information.
   Ensure your deployment runs behind HTTPS in production.
 </footer>
 

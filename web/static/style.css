@@ -1,17 +1,21 @@
-/* VoxRad Web — dark clinical theme */
+/* RadSpeed Web — dark clinical theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #0E1118;
-  --surface:  #161b27;
-  --border:   #2a3045;
-  --yellow:   #FFD700;
-  --yellow2:  #e6c200;
-  --text:     #e8eaf0;
-  --muted:    #7a8099;
-  --red:      #e05252;
-  --green:    #52c065;
+  --bg:       #050a12;
+  --surface:  #0c1623;
+  --card:     #101e30;
+  --border:   #1c2a3e;
+  --accent:   #00c2ff;
+  --accent2:  #0080e8;
+  --mint:     #00e5a0;
+  --text:     #e8edf5;
+  --muted:    #8a9ab5;
+  --red:      #ef5b5b;
+  --green:    #00e5a0;
   --radius:   8px;
   --shadow:   0 2px 12px rgba(0,0,0,0.4);
 }
@@ -20,9 +24,10 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Layout ── */
@@ -36,7 +41,15 @@ header {
   align-items: center;
   gap: 12px;
 }
-header h1 { font-size: 18px; font-weight: 700; color: var(--yellow); letter-spacing: 1px; }
+header h1 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  background: linear-gradient(90deg, var(--accent), var(--mint));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 header .subtitle { font-size: 12px; color: var(--muted); }
 
 main { flex: 1; padding: 16px 20px; max-width: 900px; margin: 0 auto; width: 100%; }
@@ -82,7 +95,7 @@ select, input[type=text], textarea {
   transition: border-color 0.15s;
 }
 select:focus, input[type=text]:focus, textarea:focus {
-  border-color: var(--yellow);
+  border-color: var(--accent);
 }
 select { cursor: pointer; }
 textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-size: 12px; }
@@ -104,11 +117,12 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-.btn-primary   { background: var(--yellow);  color: #0E1118; }
+.btn-primary   { background: linear-gradient(135deg, var(--accent2), var(--accent)); color: #fff; }
+.btn-primary:hover { box-shadow: 0 4px 16px rgba(0,194,255,0.25); }
 .btn-danger    { background: var(--red);     color: #fff; }
 .btn-ghost     { background: transparent; border: 1px solid var(--border); color: var(--text); }
-.btn-secondary { background: var(--surface); border: 1px solid var(--yellow); color: var(--yellow); }
-.btn-secondary:hover { background: rgba(255,215,0,0.08); }
+.btn-secondary { background: var(--surface); border: 1px solid var(--accent); color: var(--accent); }
+.btn-secondary:hover { background: rgba(0,194,255,0.08); }
 .btn-sm        { padding: 5px 10px; font-size: 12px; }
 
 /* ── Vocabulary-correction suggestion banner ── */
@@ -118,16 +132,16 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
   gap: 10px;
   margin-top: 6px;
   padding: 8px 12px;
-  background: rgba(255, 215, 0, 0.08);
-  border: 1px solid var(--yellow);
+  background: rgba(0, 194, 255, 0.08);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   font-size: 13px;
 }
 .vocab-suggest-text { flex: 1; }
-.vocab-suggest-text b { color: var(--yellow); }
+.vocab-suggest-text b { color: var(--accent); }
 
 .worklist-chip { padding: 3px 9px; font-size: 11px; }
-.worklist-chip.active { background: var(--yellow); color: #0E1118; border-color: var(--yellow); }
+.worklist-chip.active { background: var(--accent); color: #050a12; border-color: var(--accent); }
 
 /* ── Recording section ── */
 .record-row {
@@ -141,7 +155,7 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
   font-size: 18px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: var(--yellow);
+  color: var(--accent);
   min-width: 52px;
 }
 
@@ -169,7 +183,7 @@ textarea { resize: vertical; font-family: "Menlo", "Consolas", monospace; font-s
 }
 #status.error   { border-color: var(--red);   color: var(--red); }
 #status.success { border-color: var(--green);  color: var(--green); }
-#status.active  { border-color: var(--yellow); }
+#status.active  { border-color: var(--accent); }
 
 /* ── Grid for patient context fields ── */
 .fhir-grid {
@@ -230,7 +244,7 @@ details > summary::-webkit-details-marker { display: none; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--yellow);
+  color: var(--accent);
   margin: 14px 0 4px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 3px;
@@ -287,7 +301,7 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* ── Spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
-.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 
 /* ── Streaming live dot (green, shown when streaming STT active) ── */
 .streaming-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; margin-right: 2px; }
@@ -299,9 +313,9 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* ── Provider radio options ── */
 .provider-option { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s; }
-.provider-option:hover { border-color: var(--yellow2); }
-.provider-option.selected { border-color: var(--yellow); background: rgba(255,215,0,0.04); }
-.provider-option input[type=radio] { accent-color: var(--yellow); }
+.provider-option:hover { border-color: var(--accent2); }
+.provider-option.selected { border-color: var(--accent); background: rgba(0,194,255,0.05); }
+.provider-option input[type=radio] { accent-color: var(--accent); }
 .provider-label { flex: 1; }
 .provider-name { font-size: 13px; font-weight: 600; }
 .provider-desc { font-size: 11px; color: var(--muted); }
@@ -381,7 +395,7 @@ details > summary::-webkit-details-marker { display: none; }
   outline: none;
   flex-shrink: 0;
 }
-.tmpl-search:focus { border-bottom-color: var(--yellow); }
+.tmpl-search:focus { border-bottom-color: var(--accent); }
 .tmpl-list {
   flex: 1;
   overflow-y: auto;
@@ -401,15 +415,15 @@ details > summary::-webkit-details-marker { display: none; }
   color: var(--text);
   user-select: none;
 }
-.tmpl-list li:hover { background: rgba(255,215,0,0.05); }
-.tmpl-list li.tmpl-active { border-left-color: var(--yellow); background: rgba(255,215,0,0.07); }
+.tmpl-list li:hover { background: rgba(0,194,255,0.05); }
+.tmpl-list li.tmpl-active { border-left-color: var(--accent); background: rgba(0,194,255,0.07); }
 .tmpl-badge {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  background: rgba(255,215,0,0.14);
-  color: var(--yellow);
+  background: rgba(0,194,255,0.14);
+  color: var(--accent);
   padding: 1px 5px;
   border-radius: 3px;
   flex-shrink: 0;
@@ -460,7 +474,7 @@ details > summary::-webkit-details-marker { display: none; }
 /* Unsaved-change indicator on the title */
 .tmpl-dirty::after {
   content: " ●";
-  color: var(--yellow);
+  color: var(--accent);
   font-size: 10px;
 }
 

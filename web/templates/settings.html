@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VoxRad · Settings</title>
+  <title>RadSpeed · Settings</title>
   <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
 </head>
 <body>
 
 <header>
   <div>
-    <h1>VOXRAD</h1>
+    <h1>RadSpeed</h1>
     <div class="subtitle">Settings</div>
   </div>
   <div class="ml-auto" style="display:flex;align-items:center;gap:12px;">
@@ -207,7 +207,7 @@
     <div class="settings-section">
       <div class="settings-section-title">FHIR Export</div>
       <label class="provider-option" style="cursor:pointer;">
-        <input type="checkbox" id="fhir_export_enabled" style="accent-color:var(--yellow);width:16px;height:16px;" />
+        <input type="checkbox" id="fhir_export_enabled" style="accent-color:var(--accent);width:16px;height:16px;" />
         <div class="provider-label">
           <div class="provider-name">Export FHIR R4 JSON after each report</div>
           <div class="provider-desc">Saves a DiagnosticReport resource to the working directory. Requires FHIR_BASE_URL for RIS lookup.</div>

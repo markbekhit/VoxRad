@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VoxRad</title>
+  <title>RadSpeed</title>
   <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
 </head>
 <body data-ws-token="{{ ws_token }}" data-paste-format="{{ paste_format }}">
 
 <header>
   <div>
-    <h1>VOXRAD</h1>
-    <div class="subtitle">Voice Radiology Dictation &nbsp;·&nbsp; Web Interface</div>
+    <h1>RadSpeed</h1>
+    <div class="subtitle">Reports at the speed of thought</div>
   </div>
   <div class="ml-auto" style="display:flex;align-items:center;gap:10px;">
     <span style="font-size:12px;color:var(--muted);">{{ username }}</span>
@@ -183,7 +183,7 @@
 </main>
 
 <footer>
-  &#9888; VoxRad Web uses HTTP Basic Auth.
+  &#9888; RadSpeed Web uses HTTP Basic Auth.
   Credentials are sent in cleartext over plain HTTP — run behind HTTPS in production.
   Reports contain PHI: treat this server accordingly.
 </footer>
@@ -239,7 +239,7 @@
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">Only letters, numbers, spaces, dots, dashes and underscores. Must end in <code>.txt</code> or <code>.md</code>.</div>
       </div>
 
-      <div style="font-size:12px;color:var(--muted);margin:8px 0 4px;">How should VoxRad handle AI instructions for this template?</div>
+      <div style="font-size:12px;color:var(--muted);margin:8px 0 4px;">How should RadSpeed handle AI instructions for this template?</div>
 
       <label class="provider-option tmpl-upload-option">
         <input type="radio" name="tmpl_upload_mode" value="asis" id="tmpl-upload-mode-asis" checked />
@@ -247,7 +247,7 @@
           <div class="provider-name">Use as-is</div>
           <div class="provider-desc">
             Save the file verbatim. Choose this if your template already contains its own AI instructions,
-            or if it's a plain skeleton &mdash; VoxRad's built-in formatting prompt still applies.
+            or if it's a plain skeleton &mdash; RadSpeed's built-in formatting prompt still applies.
           </div>
         </div>
       </label>
@@ -255,7 +255,7 @@
       <label class="provider-option tmpl-upload-option">
         <input type="radio" name="tmpl_upload_mode" value="wrap" id="tmpl-upload-mode-wrap" />
         <div class="provider-label">
-          <div class="provider-name">Wrap with VoxRad's default instructions</div>
+          <div class="provider-name">Wrap with RadSpeed's default instructions</div>
           <div class="provider-desc">
             Prepend a standard Clinical Details / Comparison / Findings instruction block and
             append an Impression template. You can edit the result before saving.
