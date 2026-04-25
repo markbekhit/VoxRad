@@ -2154,6 +2154,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("style-suggest-dismiss").addEventListener("click", dismissStyleSuggest);
   }
 
+  // Keyboard-edit detection on the transcript textarea.
+  // Snapshot the value on focus; on blur, if text changed and we're not in a
+  // voice-recording session (those edits are already handled by submitAudioSegment),
+  // POST to /api/check-edit-suggestion so vocab/style suggestions can fire.
+  {
+    const tx = $("transcription");
+    let _txSnapshot = "";
+    tx.addEventListener("focus", () => { _txSnapshot = tx.value; });
+    tx.addEventListener("blur", async () => {
+      const current = tx.value;
+      const snapshot = _txSnapshot;
+      _txSnapshot = "";
+      if (state.isRecording || !snapshot || current === snapshot) return;
+      try {
+        const resp = await fetch("/api/check-edit-suggestion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ old_text: snapshot, new_text: current }),
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.suggest_vocab) showVocabSuggest(data.suggest_vocab);
+        if (data.suggest_setting) showStyleSuggest(data.suggest_setting);
+      } catch (_) { /* non-critical */ }
+    });
+  }
+
   // Template editor
   $("btn-template-edit").addEventListener("click", tmplOpen);
   $("tmpl-close").addEventListener("click", tmplClose);

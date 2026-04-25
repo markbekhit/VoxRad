@@ -14,6 +14,7 @@ production. See docs/web-server-setup.md.
 
 import asyncio
 import base64
+import difflib
 import json
 import logging
 import os
@@ -1322,6 +1323,49 @@ def api_style_suggestion_dismiss(req: StyleSuggestionRequest, user: dict = Depen
     """Permanently dismiss a style suggestion without applying it."""
     _save_dismissed(user, req.pattern_key)
     return {"ok": True}
+
+
+class KeyboardEditRequest(BaseModel):
+    old_text: str
+    new_text: str
+
+
+@app.post("/api/check-edit-suggestion")
+def api_check_edit_suggestion(req: KeyboardEditRequest, user: dict = Depends(_verify_auth)):
+    """Check whether a keyboard edit of the transcript warrants a vocab or style suggestion.
+
+    Word-diffs the old and new transcript, then runs the same vocab + style-drift
+    checks as the voice-edit pipeline. Called on textarea blur when text changed.
+    """
+    old_words = req.old_text.split()
+    new_words = req.new_text.split()
+    if old_words == new_words:
+        return {"suggest_vocab": None, "suggest_setting": None}
+
+    matcher = difflib.SequenceMatcher(None, old_words, new_words, autojunk=False)
+    suggest_vocab = None
+    suggest_setting = None
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag != "replace":
+            continue
+        old_phrase = " ".join(old_words[i1:i2])
+        new_phrase = " ".join(new_words[j1:j2])
+        pre_context = " ".join(old_words[:i1])
+
+        # Vocab: single-word replacements only
+        if not suggest_vocab and i2 - i1 == 1 and j2 - j1 == 1:
+            sv = _should_suggest_vocab(user, old_phrase, new_phrase)
+            if sv:
+                suggest_vocab = sv
+
+        # Style drift: works on any phrase length
+        if not suggest_setting:
+            ss = _detect_style_drift(user, old_phrase, new_phrase, pre_context)
+            if ss:
+                suggest_setting = ss
+
+    return {"suggest_vocab": suggest_vocab, "suggest_setting": suggest_setting}
 
 
 class FormatRequest(BaseModel):
