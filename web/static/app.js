@@ -2155,18 +2155,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Keyboard-edit detection on the transcript textarea.
-  // Snapshot the value on focus; on blur, if text changed, POST to
-  // /api/check-edit-suggestion so vocab/style suggestions can fire.
-  // Also runs during active recording — the backend word-diff isolates
-  // the user's actual replacement from any STT-added words around it.
+  // Fires ~1.5 s after the user pauses typing (debounced input event).
+  // Blur acts as a fallback flush so nothing is missed when focus leaves.
+  // The backend word-diff isolates the user's replacement from any
+  // STT-appended words, so this works during active recording too.
   {
     const tx = $("transcription");
     let _txSnapshot = "";
-    tx.addEventListener("focus", () => { _txSnapshot = tx.value; });
-    tx.addEventListener("blur", async () => {
-      const current = tx.value;
-      const snapshot = _txSnapshot;
-      _txSnapshot = "";
+    let _txDebounceTimer = null;
+
+    async function _checkEditSuggestion(snapshot, current) {
       if (!snapshot || current === snapshot) return;
       try {
         const resp = await fetch("/api/check-edit-suggestion", {
@@ -2179,6 +2177,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (data.suggest_vocab) showVocabSuggest(data.suggest_vocab);
         if (data.suggest_setting) showStyleSuggest(data.suggest_setting);
       } catch (_) { /* non-critical */ }
+    }
+
+    tx.addEventListener("focus", () => { _txSnapshot = tx.value; });
+
+    tx.addEventListener("input", () => {
+      clearTimeout(_txDebounceTimer);
+      _txDebounceTimer = setTimeout(async () => {
+        const current = tx.value;
+        const snapshot = _txSnapshot;
+        if (!snapshot || current === snapshot) return;
+        _txSnapshot = current; // slide window so next pause diffs from here
+        await _checkEditSuggestion(snapshot, current);
+      }, 1500);
+    });
+
+    tx.addEventListener("blur", async () => {
+      clearTimeout(_txDebounceTimer);
+      const current = tx.value;
+      const snapshot = _txSnapshot;
+      _txSnapshot = "";
+      await _checkEditSuggestion(snapshot, current);
     });
   }
 
