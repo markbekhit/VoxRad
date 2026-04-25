@@ -2096,6 +2096,10 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
 
         finals: list[str] = []
         stop_event = asyncio.Event()
+        # Tracks the most recent interim, so a stop pressed before the
+        # provider's endpointing window fires (e.g. a short voice-edit like
+        # "oedema") can fall back to committing the last interim as final.
+        last_interim_state = {"text": "", "committed": True}
 
         async def receive_loop():
             """Read from browser: binary frames are audio, text frames are control."""
@@ -2120,11 +2124,13 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
                 stop_event.set()
 
         async def results_loop():
-            """Forward transcript events from provider to browser."""
+            """Forward transcript events from provider to browser.
+
+            Keeps running after stop_event so finals emitted in response to
+            provider.finalize() can still be captured during the drain phase.
+            """
             try:
                 async for event in provider.receive_results():
-                    if stop_event.is_set():
-                        break
                     if not _is_hallucination(event.text):
                         # Strip em dash artifacts (STT inserts — during pauses)
                         clean = re.sub(r'\s*—\s*', ' ', event.text).strip()
@@ -2132,22 +2138,59 @@ async def ws_transcribe(websocket: WebSocket, token: str = ""):
                             continue
                         if event.is_final:
                             finals.append(clean)
-                            await websocket.send_json({"type": "final", "text": clean})
+                            last_interim_state["text"] = ""
+                            last_interim_state["committed"] = True
+                            try:
+                                await websocket.send_json({"type": "final", "text": clean})
+                            except Exception:
+                                pass
                         else:
-                            await websocket.send_json({"type": "interim", "text": clean})
+                            last_interim_state["text"] = clean
+                            last_interim_state["committed"] = False
+                            try:
+                                await websocket.send_json({"type": "interim", "text": clean})
+                            except Exception:
+                                pass
             except Exception as e:
                 logger.warning("Results loop error: %s", e)
-            finally:
-                stop_event.set()
 
         receive_task = asyncio.create_task(receive_loop())
         results_task = asyncio.create_task(results_loop())
 
         await stop_event.wait()
 
+        # Stop accepting more audio from the client first.
         receive_task.cancel()
+        try:
+            await receive_task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+        # Ask the provider to flush any pending speech as a final event,
+        # then give it a brief window to deliver that final before teardown.
+        try:
+            await provider.finalize()
+        except Exception:
+            pass
+        # Drain finals emitted in response to finalize() before teardown.
+        await asyncio.sleep(1.5)
+
         results_task.cancel()
-        await asyncio.gather(receive_task, results_task, return_exceptions=True)
+        try:
+            await results_task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+        # Fallback for the short-utterance edge case: if the provider never
+        # finalised the last interim (e.g. user stopped inside the endpointing
+        # window and finalize didn't take effect), commit the interim text so
+        # the voice edit isn't silently dropped.
+        if last_interim_state["text"] and not last_interim_state["committed"]:
+            logger.info(
+                "[stt] no final received after stop — committing last interim: %r",
+                last_interim_state["text"],
+            )
+            finals.append(last_interim_state["text"])
 
         try:
             await asyncio.wait_for(provider.close(), timeout=4.0)

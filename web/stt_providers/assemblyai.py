@@ -91,6 +91,17 @@ class AssemblyAIProvider(StreamingSTTProvider):
         except Exception as exc:
             logger.warning("[assemblyai] receive_results error: %s", exc)
 
+    async def finalize(self) -> None:
+        """Force AssemblyAI to flush any pending turn as a final event.
+
+        v3 supports ForceEndpoint to end the current turn immediately.
+        """
+        if self._ws and not self._closed:
+            try:
+                await self._ws.send(json.dumps({"type": "ForceEndpoint"}))
+            except Exception:
+                pass
+
     async def close(self) -> None:
         self._closed = True
         if self._ws:

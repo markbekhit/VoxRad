@@ -76,6 +76,18 @@ class DeepgramProvider(StreamingSTTProvider):
         except Exception as exc:
             logger.warning("[deepgram] receive_results error: %s", exc)
 
+    async def finalize(self) -> None:
+        """Force Deepgram to emit a final event for any pending speech.
+
+        Without this, short utterances followed by an immediate stop never
+        clear the 800 ms endpointing window and are dropped.
+        """
+        if self._ws and not self._closed:
+            try:
+                await self._ws.send(json.dumps({"type": "Finalize"}))
+            except Exception:
+                pass
+
     async def close(self) -> None:
         self._closed = True
         if self._ws:

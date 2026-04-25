@@ -28,3 +28,11 @@ class StreamingSTTProvider(ABC):
     @abstractmethod
     async def close(self) -> None:
         """Signal end-of-stream and close the provider connection."""
+
+    async def finalize(self) -> None:
+        """Ask the provider to flush any pending speech as a final event.
+
+        Default is no-op. Providers that support a finalize/force-endpoint
+        control message should override this to send it.
+        """
+        return None
