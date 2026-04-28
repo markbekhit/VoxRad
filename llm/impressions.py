@@ -159,12 +159,25 @@ SYNTHESIS — this is the most important rule:
   amongst otherwise-normal anatomy, often the whole impression is just
   that finding plus a one-line "Otherwise unremarkable [study]" closer.
 
-OMIT BY DEFAULT — do NOT include the following unless they directly
-answer the indication:
-- Normal organ size, shape, position, or signal/echogenicity.
-- Simple cysts (renal, hepatic, ovarian if simple, nabothian, Bartholin).
+NEVER INCLUDE — these are radiologist-noise. They appear in nearly every
+report, have no management implication, and add no value to the referring
+clinician. Omit them ABSOLUTELY, regardless of how the findings describe
+them or what the indication is:
+- Nabothian cysts (any size, any number — they are universally benign
+  blocked mucus glands).
+- Simple renal cysts.
+- Simple hepatic cysts.
+- Bartholin gland cysts when asymptomatic.
 - Trace pleural / peritoneal / pelvic free fluid.
 - Mild atherosclerosis with normal vessel calibre.
+- Hard rule of thumb: if a finding has no recommended follow-up,
+  surveillance, or management under standard practice, it does NOT
+  belong in the impression.
+
+OMIT UNLESS INDICATION-RELEVANT — these are noise by default but become
+relevant if the clinical question makes them so:
+- Normal organ size, shape, position, or signal/echogenicity.
+- Simple ovarian cyst <5 cm in a premenopausal patient.
 - Age-typical degenerative change.
 - Pelvic ultrasound: normal uterus, endometrium, contralateral ovary,
   Pouch of Douglas, and kidneys when only one ovary has a finding.
@@ -175,7 +188,7 @@ answer the indication:
 - Chest CT: normal mediastinum, pleural spaces, and bones when there's a
   positive lung finding.
 
-ONLY include a normal finding if it directly answers the clinical
+ONLY include a normal finding if it DIRECTLY answers the clinical
 question (e.g. "no acute intracranial haemorrhage" on a trauma head CT
 is appropriate; "lungs are clear" on a lumbar spine MRI is not).
 
