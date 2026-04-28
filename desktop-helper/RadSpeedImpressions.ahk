@@ -112,15 +112,16 @@ ExitScript(*) {
 }
 
 OnHotkey(*) {
-    ; Block until the user releases Ctrl + the trigger key. Otherwise the
-    ; subsequent Send calls run with Ctrl still physically held, and AHK's
-    ; SendText collapses each Ctrl+letter into ":" or drops it entirely.
-    ; Wait up to 5 s — well beyond any normal keypress duration.
+    ; Force-release any modifiers held by the hotkey trigger, then wait for
+    ; the user's physical release as well. Without this, every subsequent
+    ; Send runs with Ctrl still considered "down", which Windows turns into
+    ; Ctrl+letter shortcuts (eaten silently) and breaks Ctrl+V.
+    Send "{LCtrl up}{RCtrl up}{Ctrl up}{Shift up}{Alt up}"
     KeyWait "Ctrl",  "T5"
     KeyWait "LCtrl", "T5"
     KeyWait "RCtrl", "T5"
     KeyWait "Shift", "T2"
-    Sleep 80
+    Sleep 100
     GenerateImpression()
 }
 
@@ -179,7 +180,7 @@ NoOp(*) {
 LoadSettings()
 HotKey Settings["Hotkey"], OnHotkey
 
-TrayTip("v4 — Press " HumanHotkey(Settings["Hotkey"]) " to generate. Right-click tray to update.", "RadSpeed", 0x10)
+TrayTip("v5 — Press " HumanHotkey(Settings["Hotkey"]) " to generate. Right-click tray to update.", "RadSpeed", 0x10)
 SetTimer ClearTrayTipNow, -3000
 
 ; ----------------------------------------------------------------------------
@@ -270,46 +271,45 @@ GenerateImpression() {
 PasteImpression(impression, mode) {
     global Settings
 
-    ; Determine cursor placement before paste.
-    ; Send is used for special keys ({Enter}, {End}, {Right}, etc.) and for
-    ; user-supplied JumpKeys (which may contain modifiers). SendText is used
-    ; for literal text ("IMPRESSION:") so it works regardless of keyboard
-    ; layout and is unaffected by sticky-modifier issues.
+    ; Strategy: put the ENTIRE block (heading + impression) onto the
+    ; clipboard and paste once. Avoids per-character Send issues entirely
+    ; — Windows just gets a single paste event with finished text. The
+    ; only thing we still use Send for is moving the cursor before paste.
+    block := ""
     if (mode = "after_selection") {
-        Send "{Right}"
-        Send "{End}"
-        Send "{Enter 2}"
-        SendText "IMPRESSION:"
-        Send "{Enter}"
+        Send "{Right}{End}"
+        block := "`r`n`r`nIMPRESSION:`r`n" . impression
     } else if (mode = "replace_selection") {
-        ; Selection still active from the earlier ^c — pasting will overwrite.
+        ; Selection still active from the earlier ^c — paste will overwrite.
+        block := impression
     } else if (mode = "goto_impression") {
         if (Settings["JumpKeys"] != "") {
             Send Settings["JumpKeys"]
             Sleep 120
+            block := impression
         } else {
-            ; Fallback: behave like after_selection if no JumpKeys configured.
-            Send "{Right}{End}{Enter 2}"
-            SendText "IMPRESSION:"
-            Send "{Enter}"
+            ; Fallback: same as after_selection.
+            Send "{Right}{End}"
+            block := "`r`n`r`nIMPRESSION:`r`n" . impression
         }
     } else if (mode = "at_cursor") {
-        Send "{Enter 2}"
-        SendText "IMPRESSION:"
-        Send "{Enter}"
+        block := "`r`n`r`nIMPRESSION:`r`n" . impression
+    } else {
+        block := impression
     }
 
-    ; Paste the impression via the clipboard. The user's original clipboard
-    ; was already restored by GenerateImpression() before this function ran,
-    ; so we save it again here, swap in the impression, paste, then restore.
     savedClip := A_Clipboard
-    A_Clipboard := impression
+    A_Clipboard := block
     if !ClipWait(0.5) {
         A_Clipboard := savedClip
         throw Error("Clipboard write failed")
     }
-    Send "^v"
-    Sleep 200
+
+    ; Use Shift+Insert for paste — it's the Windows-standard alternative to
+    ; Ctrl+V and crucially doesn't use Ctrl, so it survives the same
+    ; sticky-Ctrl situation that broke Send "^v" in earlier versions.
+    Send "+{Insert}"
+    Sleep 250
     A_Clipboard := savedClip
 }
 
