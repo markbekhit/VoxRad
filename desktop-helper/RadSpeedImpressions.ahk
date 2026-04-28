@@ -33,7 +33,7 @@ LoadSettings() {
         "ApiUrl",          "https://dictation.markbekhit.com/api/impressions/text",
         "WithGuidelines",  "true",
         "PasteMode",       "goto_impression",
-        "JumpKeys",        "",
+        "JumpKeys",        "{Tab}",
         "Modality",        ""
     )
     if !FileExist(SettingsFile) {
@@ -42,7 +42,10 @@ LoadSettings() {
     }
     for key in Settings.Clone() {
         val := IniRead(SettingsFile, "RadSpeed", key, "__missing__")
-        if (val != "__missing__") {
+        ; Empty .ini values fall through to the script default. This lets
+        ; existing users pick up new defaults (like JumpKeys={Tab}) just by
+        ; running "Check for updates" — no manual .ini editing required.
+        if (val != "__missing__" && val != "") {
             Settings[key] := val
         }
     }
@@ -64,11 +67,14 @@ WriteDefaultSettings() {
 ;                     goto_impression  = press JumpKeys first, then paste
 ;
 ; JumpKeys          Keys sent before pasting when PasteMode=goto_impression.
-;                   Examples (depends on your PowerScribe template):
+;                   Default {Tab} works for PowerScribe One — a single Tab
+;                   from the FINDINGS section moves to CONCLUSION.
+;                   Other examples (depends on your template):
 ;                     {F2}            = next required field
 ;                     ^+i             = Ctrl+Shift+I
 ;                     {Tab 3}         = Tab three times
-;                   Leave blank if you only use the other paste modes.
+;                   Leave blank in the .ini to fall through to the script
+;                   default ({Tab}).
 ;
 ; WithGuidelines    true / false — apply Fleischner / BI-RADS / LI-RADS /
 ;                   PI-RADS / TI-RADS recommendations when relevant.
@@ -81,7 +87,7 @@ Hotkey=^i
 ApiUrl=https://dictation.markbekhit.com/api/impressions/text
 WithGuidelines=true
 PasteMode=goto_impression
-JumpKeys=
+JumpKeys={Tab}
 Modality=
     )"
     FileAppend ini, SettingsFile
@@ -180,7 +186,7 @@ NoOp(*) {
 LoadSettings()
 HotKey Settings["Hotkey"], OnHotkey
 
-TrayTip("v5 — Press " HumanHotkey(Settings["Hotkey"]) " to generate. Right-click tray to update.", "RadSpeed", 0x10)
+TrayTip("v6 — Press " HumanHotkey(Settings["Hotkey"]) " to generate. Right-click tray to update.", "RadSpeed", 0x10)
 SetTimer ClearTrayTipNow, -3000
 
 ; ----------------------------------------------------------------------------
@@ -283,13 +289,18 @@ PasteImpression(impression, mode) {
         ; Selection still active from the earlier ^c — paste will overwrite.
         block := impression
     } else if (mode = "goto_impression") {
+        ; Deselect first (cursor moves to end of selection from the earlier
+        ; ^c). Without this, a JumpKeys of {Tab} would replace the
+        ; selected findings with a literal tab in non-form-field apps.
+        Send "{Right}"
+        Sleep 30
         if (Settings["JumpKeys"] != "") {
             Send Settings["JumpKeys"]
-            Sleep 120
+            Sleep 150
             block := impression
         } else {
             ; Fallback: same as after_selection.
-            Send "{Right}{End}"
+            Send "{End}"
             block := "`r`n`r`nIMPRESSION:`r`n" . impression
         }
     } else if (mode = "at_cursor") {
