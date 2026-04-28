@@ -6,11 +6,18 @@ impression, not a full structured report. Designed for the free copy-paste
 funnel tool — no template selection, no patient context, no recommendations
 loop. Style preferences (spelling, units, laterality, impression style) are
 honoured.
+
+When `with_guidelines=True`, the relevant guideline content (Fleischner /
+BI-RADS / LI-RADS / PI-RADS / TI-RADS) is loaded from `guidelines/` and
+injected verbatim into the system prompt, with the model required to cite
+the guideline by name and the rule it applied.
 """
 from __future__ import annotations
 
 import logging
-from typing import Optional
+import os
+import re
+from typing import List, Optional
 
 from openai import OpenAI
 
@@ -18,6 +25,112 @@ from config.config import config
 from llm.format import _build_style_preamble
 
 logger = logging.getLogger(__name__)
+
+
+_GUIDELINES_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "guidelines",
+)
+
+
+# Each entry: (display name, file basename, regex of trigger keywords).
+# Order matters only for de-duplication; all matching guidelines are loaded.
+_GUIDELINE_REGISTRY: List[tuple[str, str, re.Pattern]] = [
+    (
+        "Fleischner Society 2017 (incidental pulmonary nodules)",
+        "Fleischner_Society_2017_guidelines.md",
+        re.compile(
+            r"\b(pulmonary\s+nodule|lung\s+nodule|"
+            r"(?:solid|subsolid|part-?solid|ground[-\s]?glass)\s+nodule|"
+            r"GGN|GGO|nodule[s]?\s+in\s+the\s+(?:right|left)?\s*(?:upper|middle|lower)\s+lobe|"
+            r"spiculated\s+nodule)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "ACR BI-RADS (mammography)",
+        "BIRADS_MAMMOGRAPHY.md",
+        re.compile(
+            r"\b(mammogra(?:m|phy|phic)|breast\s+(?:mass|lesion|calcification|"
+            r"asymmetry|architectural\s+distortion)|microcalcification)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "ACR BI-RADS (ultrasound)",
+        "BIRADS_USG.md",
+        re.compile(
+            r"\b(breast\s+ultrasound|breast\s+US|breast\s+sonograph)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "LI-RADS v2018 (liver, at-risk patients)",
+        "LIRADS_(Liver).md",
+        re.compile(
+            r"\b(LI-?RADS|liver\s+(?:lesion|observation|nodule|mass)|"
+            r"hepatic\s+(?:lesion|observation|nodule|mass)|HCC|"
+            r"hepatocellular)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "PI-RADS v2.1 (prostate mpMRI)",
+        "PIRADS.md",
+        re.compile(
+            r"\b(PI-?RADS|prostate\s+(?:lesion|nodule|mass)|"
+            r"peripheral\s+zone|transition\s+zone|mpMRI|multiparametric\s+MR)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "ACR TI-RADS (thyroid nodules on US)",
+        "TIRADS.md",
+        re.compile(
+            r"\b(TI-?RADS|thyroid\s+(?:nodule|lesion))\b",
+            re.IGNORECASE,
+        ),
+    ),
+]
+
+
+_MAX_GUIDELINE_BYTES = 16000  # cap per request to control prompt size
+
+
+def _load_guideline_file(basename: str) -> Optional[str]:
+    path = os.path.join(_GUIDELINES_DIR, basename)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except OSError as exc:
+        logger.warning("could not read guideline %s: %s", basename, exc)
+        return None
+
+
+def _select_relevant_guidelines(text: str) -> List[tuple[str, str]]:
+    """Return [(display_name, file_content), ...] for guidelines whose trigger
+    pattern matches the supplied text. Total content is capped at
+    _MAX_GUIDELINE_BYTES.
+    """
+    if not text:
+        return []
+    out: List[tuple[str, str]] = []
+    used = 0
+    for name, basename, pattern in _GUIDELINE_REGISTRY:
+        if not pattern.search(text):
+            continue
+        content = _load_guideline_file(basename)
+        if not content:
+            continue
+        if used + len(content) > _MAX_GUIDELINE_BYTES:
+            # Truncate the last guideline rather than dropping it entirely
+            remaining = _MAX_GUIDELINE_BYTES - used
+            if remaining > 500:
+                out.append((name, content[:remaining] + "\n... [truncated]"))
+            break
+        out.append((name, content))
+        used += len(content)
+    return out
 
 
 _IMPRESSION_SYSTEM_PROMPT = """\
@@ -38,43 +151,58 @@ RULES:
    findings, do NOT hallucinate measurements, do NOT extrapolate beyond
    what the findings state.
 4. Keep each point tight: one clear clinical statement, no padding.
-5. If the findings explicitly mention a guideline-relevant feature (e.g.
-   pulmonary nodule with size, BIRADS-relevant breast lesion, LIRADS-relevant
-   liver lesion, PIRADS-relevant prostate lesion, TIRADS-relevant thyroid
-   nodule), include the appropriate category / recommendation only when the
-   findings provide enough detail to support it. If detail is insufficient,
-   say so explicitly rather than guess.
-6. If the findings are entirely normal, say so plainly in one or two lines.
-7. Honour the spelling, numeral, measurement-unit, separator, decimal,
+5. If the findings are entirely normal, say so plainly in one or two lines.
+6. Honour the spelling, numeral, measurement-unit, separator, decimal,
    laterality, negation, and impression-format style preferences supplied in
    the style preamble exactly. The impression-format preference (bulleted,
    numbered, prose) governs the output structure.
-8. Never restate the patient's clinical history; this is the impression, not
+7. Never restate the patient's clinical history; this is the impression, not
    a summary.
-9. If the findings appear non-radiological, irrelevant, or empty, output
+8. If the findings appear non-radiological, irrelevant, or empty, output
    exactly: "Insufficient findings provided to generate an impression."
 """
 
 
-_GUIDELINE_ADDENDUM = """\
+def _build_guideline_block(matched: List[tuple[str, str]]) -> str:
+    """Compose the guideline-aware addendum from the matched guideline files."""
+    if not matched:
+        return (
+            "\n\nGUIDELINE-AWARE RECOMMENDATIONS:\n"
+            "The user requested guideline-aware recommendations, but the "
+            "findings did not match any of the guidelines we provide "
+            "verbatim (Fleischner, BI-RADS, LI-RADS, PI-RADS, TI-RADS). "
+            "Do NOT invent guideline names or thresholds. If a follow-up "
+            "recommendation is appropriate, give general clinical advice "
+            "without claiming to apply a specific guideline.\n"
+        )
 
-GUIDELINE-AWARE RECOMMENDATIONS:
-The user has requested guideline-aware follow-up recommendations. When the
-findings clearly support a guideline application, append a short follow-up
-recommendation in plain prose at the end of the impression. Use the
-guideline only when the findings supply enough detail to apply it correctly.
+    blocks: List[str] = [
+        "\n\nGUIDELINE-AWARE RECOMMENDATIONS — MANDATORY:\n",
+        "The user has requested guideline-aware follow-up recommendations. ",
+        "The following guideline content is supplied verbatim and is the ",
+        "ONLY source you may use to derive recommendations. ",
+        "\n\nWhen any finding matches a guideline rule below:\n",
+        "1. Apply the rule from the supplied content; do NOT rely on memory.\n",
+        "2. Cite the guideline by name in the impression (e.g. \"Per Fleischner ",
+        "Society 2017 guidelines, ...\").\n",
+        "3. State the specific size threshold or feature that triggered the ",
+        "rule (e.g. \"given >8 mm size and high-risk features\").\n",
+        "4. Quote the recommended management options literally from the text ",
+        "(e.g. \"CT at 3 months, PET/CT, or tissue sampling\").\n",
+        "5. If risk status (smoker / at-risk for HCC / etc.) is not stated, ",
+        "give the recommendation for both risk strata or note that risk is ",
+        "not stated.\n",
+        "6. If a finding is potentially guideline-relevant but the findings ",
+        "lack required detail (e.g. nodule mentioned without a size), say ",
+        "exactly what extra detail is needed rather than guessing.\n",
+    ]
 
-- Pulmonary nodules: Fleischner Society 2017 guidelines.
-- Breast lesions: BI-RADS (mammography or ultrasound as appropriate).
-- Liver observations in at-risk patient: LI-RADS (only if at-risk status is
-  stated; do not assume it).
-- Prostate lesions on multiparametric MR: PI-RADS v2.1.
-- Thyroid nodules on ultrasound: ACR TI-RADS.
+    for name, content in matched:
+        blocks.append(f"\n\n--- BEGIN GUIDELINE: {name} ---\n")
+        blocks.append(content.strip())
+        blocks.append(f"\n--- END GUIDELINE: {name} ---\n")
 
-Do NOT apply a guideline if the findings lack the required detail (e.g. no
-size given, no margin description). Instead, recommend the specific extra
-detail needed.
-"""
+    return "".join(blocks)
 
 
 def stream_impression(
@@ -96,7 +224,14 @@ def stream_impression(
 
     system_content = _IMPRESSION_SYSTEM_PROMPT + _build_style_preamble(style)
     if with_guidelines:
-        system_content += _GUIDELINE_ADDENDUM
+        haystack = f"{modality or ''}\n{findings}"
+        matched = _select_relevant_guidelines(haystack)
+        if matched:
+            logger.info(
+                "[impressions] injecting guidelines: %s",
+                ", ".join(name for name, _ in matched),
+            )
+        system_content += _build_guideline_block(matched)
 
     user_content = (
         f"Modality / study: {modality.strip()}\n\n"

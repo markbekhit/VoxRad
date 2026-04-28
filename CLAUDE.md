@@ -25,6 +25,24 @@ VoxRad/
 └── docs/              # Documentation
 ```
 
+## Workflow
+
+This is a **solo project**. Work directly on `main` — do not create feature
+branches, do not work in worktrees, do not open PRs unless the owner
+explicitly asks for one.
+
+- Pushing to `main` auto-deploys to `dictation.markbekhit.com` via fly.io
+  (see CI/CD below). Always pull main before starting work
+  (`git pull origin main`) so you see the actual current state of the
+  codebase. The repo is large and active; assumptions about what's shipped
+  based on stale branches will be wrong.
+- **Always sanity-check what's actually on `main` before planning new
+  features.** A lot of integration work (HL7 ORU/ORM, DICOM SR, MWL bridge,
+  FHIR R4) is already shipped. Don't propose building things that exist —
+  read `docs/ROADMAP.md` first, then verify against the code.
+- The active product roadmap is `docs/ROADMAP.md`. Update it whenever you
+  ship a phase or change strategy.
+
 ## Deployment & infrastructure
 
 The owner is **not a developer** and does not use the terminal. All infrastructure operations are Claude's responsibility — never ask the owner to run terminal commands.
