@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RadSpeed Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <div class="title">RadSpeed</div>
+        <div class="subtitle">Windows desktop companion · v0.1.0</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Server</h2>
+      <label for="api-base">RadSpeed cloud URL</label>
+      <input id="api-base" type="text" placeholder="https://dictation.markbekhit.com" />
+      <div class="row">
+        <button id="btn-test" class="btn btn-ghost">Test connection</button>
+        <span id="test-status" class="muted"></span>
+      </div>
+
+      <details>
+        <summary>Bearer token (optional)</summary>
+        <p class="muted small">For authenticated deployments. Leave blank when using the public Impressions endpoint.</p>
+        <input id="bearer-token" type="password" placeholder="••••" />
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Hotkey &amp; behaviour</h2>
+      <label for="hotkey">Global hotkey</label>
+      <input id="hotkey" type="text" placeholder="ctrl+i" />
+      <p class="muted small">Examples: <code>ctrl+i</code>, <code>ctrl+shift+i</code>, <code>alt+f9</code></p>
+
+      <label class="checkbox-row">
+        <input id="use-guidelines" type="checkbox" />
+        Apply guideline reasoning (Fleischner, BIRADS, LIRADS, PIRADS, TIRADS)
+      </label>
+
+      <label for="paste-mode">Paste behaviour</label>
+      <select id="paste-mode">
+        <option value="goto_impression">Jump to IMPRESSION section, then paste</option>
+        <option value="after_selection">Paste at cursor after the selection</option>
+      </select>
+
+      <div id="jump-keys-wrap">
+        <label for="jump-keys">Jump keys (PowerScribe One = <code>tab</code>)</label>
+        <input id="jump-keys" type="text" placeholder="tab" />
+        <p class="muted small">Space-separated keystrokes used to navigate from FINDINGS to IMPRESSION. Supported tokens: <code>tab</code>, <code>enter</code>, <code>down</code>, <code>up</code>, <code>home</code>, <code>end</code>, <code>pgdn</code>, <code>pgup</code>.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Quick actions</h2>
+      <div class="row">
+        <button id="btn-trigger" class="btn btn-secondary">Run impression on current selection</button>
+      </div>
+      <p class="muted small">Tip: select your findings text in PowerScribe One first, then press the hotkey or click here.</p>
+    </section>
+
+    <div class="footer-bar">
+      <span id="save-status" class="muted small"></span>
+      <div class="grow"></div>
+      <button id="btn-cancel" class="btn btn-ghost">Hide</button>
+      <button id="btn-save" class="btn btn-primary">Save</button>
+    </div>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

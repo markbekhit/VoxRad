@@ -1,0 +1,43 @@
+[package]
+name = "radspeed"
+version = "0.1.0"
+description = "RadSpeed Windows desktop companion"
+authors = ["Mark Bekhit"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "radspeed_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2.0"
+tauri-plugin-process = "2.0"
+tauri-plugin-opener = "2.0"
+tauri-plugin-dialog = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+enigo = "0.3"
+arboard = "3"
+log = "0.4"
+env_logger = "0.11"
+once_cell = "1"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+incremental = false
+opt-level = "s"
+strip = true

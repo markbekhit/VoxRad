@@ -1,0 +1,11 @@
+{
+  "name": "radspeed-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "RadSpeed Windows desktop companion",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  }
+}

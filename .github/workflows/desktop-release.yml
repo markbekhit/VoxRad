@@ -1,0 +1,89 @@
+name: Desktop release (Windows)
+
+# Builds the RadSpeed Windows desktop companion (Tauri) and uploads the
+# NSIS .exe and MSI installers to a GitHub Release.
+#
+# Triggers:
+#   - push of a tag matching `desktop-v*` (e.g. desktop-v0.1.0)
+#   - manual via workflow_dispatch
+#
+# This workflow does NOT code-sign the installer. Windows SmartScreen will
+# show "Unknown publisher" until you add a signing certificate. See
+# desktop/README.md for the signing-cert setup steps.
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release as (e.g. desktop-v0.1.0). Leave blank to build artifacts only."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Build (release)
+        run: |
+          cd src-tauri
+          cargo build --release
+        shell: pwsh
+
+      - name: Bundle (NSIS + MSI)
+        run: |
+          cd src-tauri
+          cargo install tauri-cli --version "^2" --locked --quiet
+          cargo tauri build
+        shell: pwsh
+        env:
+          # Empty signing key tells the bundler not to sign the auto-update
+          # manifest. Auto-update is disabled until proper keys are configured.
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+
+      - name: Collect installers
+        id: collect
+        shell: pwsh
+        run: |
+          $bundle = "src-tauri/target/release/bundle"
+          $out = "release-artifacts"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Get-ChildItem -Recurse -Path $bundle -Include *.exe,*.msi |
+            ForEach-Object { Copy-Item $_.FullName $out }
+          Get-ChildItem $out
+
+      - name: Upload artifacts (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: radspeed-windows
+          path: desktop/release-artifacts/*
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: desktop/release-artifacts/*
+          fail_on_unmatched_files: true
