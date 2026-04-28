@@ -154,14 +154,35 @@ SYNTHESIS — this is the most important rule:
   Wrong: "L3-4 disc bulge, L4-5 disc bulge, L5-S1 disc bulge."
   Right: "Multilevel degenerative disc disease at L3-S1, most prominent
   at L4-5."
-- OMIT incidental findings of no clinical significance — simple cysts,
-  trace effusion, mild atherosclerosis with normal calibre, age-typical
-  degenerative change unless the indication makes them relevant.
-- ONLY include normal findings if they directly answer the clinical
-  question (e.g. "no acute intracranial haemorrhage" on a trauma head CT
-  is appropriate; "lungs are clear" on a lumbar spine MRI is not).
 - LEAD with the clinically most significant finding, regardless of
-  anatomical order in the findings.
+  anatomical order in the findings. If there is ONE significant finding
+  amongst otherwise-normal anatomy, often the whole impression is just
+  that finding plus a one-line "Otherwise unremarkable [study]" closer.
+
+OMIT BY DEFAULT — do NOT include the following unless they directly
+answer the indication:
+- Normal organ size, shape, position, or signal/echogenicity.
+- Simple cysts (renal, hepatic, ovarian if simple, nabothian, Bartholin).
+- Trace pleural / peritoneal / pelvic free fluid.
+- Mild atherosclerosis with normal vessel calibre.
+- Age-typical degenerative change.
+- Pelvic ultrasound: normal uterus, endometrium, contralateral ovary,
+  Pouch of Douglas, and kidneys when only one ovary has a finding.
+- Spine: normal vertebral bodies, marrow, conus, and discs above the
+  abnormal levels.
+- Head CT: normal grey-white differentiation, ventricles, sulci, sinuses
+  unless the indication is trauma / stroke / mass effect.
+- Chest CT: normal mediastinum, pleural spaces, and bones when there's a
+  positive lung finding.
+
+ONLY include a normal finding if it directly answers the clinical
+question (e.g. "no acute intracranial haemorrhage" on a trauma head CT
+is appropriate; "lungs are clear" on a lumbar spine MRI is not).
+
+When the study is normal except for one or two findings, prefer this
+shape:
+  "<the finding(s) in one or two lines>.
+   Otherwise unremarkable <study type>."
 
 ABSOLUTE RULES:
 1. Output ONLY the impression text. Do NOT output a heading, do NOT
@@ -201,6 +222,31 @@ RIGHT (synthesised, action-focused):
 - L4-5 4 mm posterior disc protrusion contacting the descending right L5
   nerve root — likely cause of any right L5 radiculopathy.
 - No central canal stenosis, cord compression, or cauda equina abnormality."
+
+WORKED EXAMPLE (pelvic ultrasound — one finding, everything else normal):
+
+Findings: "Uterus anteverted, 79 x 40 x 56 mm. Myometrium homogeneous.
+Cervix shows simple nabothian cysts, largest 6 mm. Endometrium 3 mm,
+well-defined. Right ovary 22 x 27 x 24 mm with a 46 x 30 x 38 mm simple
+cyst. Left ovary 13 x 20 x 13 mm, normal. No free fluid in the Pouch of
+Douglas. Right kidney 100 mm, normal cortical thickness, no calculi or
+hydronephrosis. Left kidney 102 mm, normal."
+
+WRONG (lists every paragraph as its own impression point):
+"- Normal uterine size and morphology with a well-defined endometrium.
+- Simple nabothian cysts in the cervix, largest 6 mm.
+- Right ovary demonstrates a simple cyst measuring 46 x 30 x 38 mm; left
+  ovary appears normal.
+- No free fluid in the Pouch of Douglas; both kidneys are normal."
+
+RIGHT (one finding, then an "otherwise unremarkable" closer):
+"- Right ovarian simple cyst measuring 46 x 30 x 38 mm.
+- Otherwise unremarkable pelvic ultrasound."
+
+Note how nabothian cysts, normal uterus, normal contralateral ovary,
+absent free fluid, and normal kidneys are ALL omitted — they do not
+answer any clinical question and a normal-anatomy phrase like
+"otherwise unremarkable" covers them implicitly.
 """
 
 
