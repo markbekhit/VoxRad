@@ -7,7 +7,8 @@
 ; Setup:
 ;   1. Install AutoHotkey v2 from https://www.autohotkey.com/
 ;   2. Double-click this file (RadSpeedImpressions.ahk) to run.
-;   3. Look for the 'R' icon in the system tray.
+;   3. Look for the green 'H' AutoHotkey icon in the system tray (it's
+;      AHK's default icon — hovering shows "RadSpeed Impressions").
 ;   4. (Optional) Right-click the tray icon → "Edit settings" to change the
 ;      hotkey or configure a "jump to IMPRESSION" key sequence.
 ;
@@ -87,27 +88,59 @@ Modality=
 }
 
 ; ----------------------------------------------------------------------------
+; Helpers used as callbacks — defined as named functions to avoid any AHK v2
+; parser ambiguity around fat-arrow + comma in SetTimer / Menu.Add calls.
+; ----------------------------------------------------------------------------
+ClearTrayTipNow(*) {
+    TrayTip()
+}
+
+OpenSettings(*) {
+    Run('"' SettingsFile '"')
+}
+
+ReloadScript(*) {
+    Reload()
+}
+
+OpenWebTool(*) {
+    Run("https://dictation.markbekhit.com/impressions")
+}
+
+ExitScript(*) {
+    ExitApp()
+}
+
+OnHotkey(*) {
+    GenerateImpression()
+}
+
+; ----------------------------------------------------------------------------
 ; Tray menu
 ; ----------------------------------------------------------------------------
 A_IconTip := "RadSpeed Impressions"
 A_TrayMenu.Delete()
-A_TrayMenu.Add("RadSpeed Impressions", (*) => 0)
+A_TrayMenu.Add("RadSpeed Impressions", NoOp)
 A_TrayMenu.Disable("RadSpeed Impressions")
 A_TrayMenu.Add()
-A_TrayMenu.Add("Edit settings",  (*) => Run('"' SettingsFile '"'))
-A_TrayMenu.Add("Reload",         (*) => Reload())
-A_TrayMenu.Add("Open RadSpeed web", (*) => Run("https://dictation.markbekhit.com/impressions"))
+A_TrayMenu.Add("Edit settings",     OpenSettings)
+A_TrayMenu.Add("Reload",            ReloadScript)
+A_TrayMenu.Add("Open RadSpeed web", OpenWebTool)
 A_TrayMenu.Add()
-A_TrayMenu.Add("Exit",           (*) => ExitApp())
+A_TrayMenu.Add("Exit",              ExitScript)
+
+NoOp(*) {
+    return
+}
 
 ; ----------------------------------------------------------------------------
 ; Boot
 ; ----------------------------------------------------------------------------
 LoadSettings()
-HotKey Settings["Hotkey"], (*) => GenerateImpression()
+HotKey Settings["Hotkey"], OnHotkey
 
-TrayTip("Loaded. Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
-SetTimer((*) => TrayTip(), -3000)
+TrayTip("v2 — Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
+SetTimer ClearTrayTipNow, -3000
 
 ; ----------------------------------------------------------------------------
 ; Main flow
@@ -128,7 +161,7 @@ GenerateImpression() {
         if !ClipWait(0.6) {
             A_Clipboard := savedClip
             TrayTip("Select the findings text first, then press the hotkey.", "RadSpeed", 0x2)
-            SetTimer((*) => TrayTip(), -3000)
+            SetTimer ClearTrayTipNow, -3000
             return
         }
         findings := A_Clipboard
@@ -142,7 +175,7 @@ GenerateImpression() {
         if !ClipWait(0.6) {
             A_Clipboard := savedClip
             TrayTip("Could not read findings. Try selecting them first.", "RadSpeed", 0x2)
-            SetTimer((*) => TrayTip(), -3000)
+            SetTimer ClearTrayTipNow, -3000
             return
         }
         findings := A_Clipboard
@@ -154,12 +187,12 @@ GenerateImpression() {
     findings := Trim(findings)
     if (StrLen(findings) < 5) {
         TrayTip("Findings too short. Select more text and try again.", "RadSpeed", 0x2)
-        SetTimer((*) => TrayTip(), -3000)
+        SetTimer ClearTrayTipNow, -3000
         return
     }
     if (StrLen(findings) > 8000) {
         TrayTip("Findings too long (>8000 chars). Trim and retry.", "RadSpeed", 0x2)
-        SetTimer((*) => TrayTip(), -3000)
+        SetTimer ClearTrayTipNow, -3000
         return
     }
 
@@ -174,7 +207,7 @@ GenerateImpression() {
     } catch as e {
         TrayTip()
         TrayTip("Error: " e.Message, "RadSpeed", 0x3)
-        SetTimer((*) => TrayTip(), -4000)
+        SetTimer ClearTrayTipNow, -4000
         return
     }
 
@@ -182,7 +215,7 @@ GenerateImpression() {
     if (impression = "") {
         TrayTip()
         TrayTip("Empty response from server.", "RadSpeed", 0x3)
-        SetTimer((*) => TrayTip(), -3000)
+        SetTimer ClearTrayTipNow, -3000
         return
     }
 
@@ -190,7 +223,7 @@ GenerateImpression() {
 
     TrayTip()
     TrayTip("Done.", "RadSpeed", 0x10)
-    SetTimer((*) => TrayTip(), -1500)
+    SetTimer ClearTrayTipNow, -1500
 }
 
 PasteImpression(impression, mode) {

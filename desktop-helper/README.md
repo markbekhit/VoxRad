@@ -8,7 +8,7 @@ in the IMPRESSION section of the report.
 
 1. Install **AutoHotkey v2** (free): https://www.autohotkey.com/
 2. Download `RadSpeedImpressions.ahk` from this folder.
-3. Double-click the `.ahk` file to run it. Look for the **R** icon in the
+3. Double-click the `.ahk` file to run it. Look for the green **H** icon (AutoHotkey's default — hovering shows "RadSpeed Impressions") in the
    system tray.
 4. Optional: drop a shortcut to the `.ahk` file in your Windows Startup
    folder so the helper launches with Windows.
