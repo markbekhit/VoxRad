@@ -106,8 +106,8 @@ A_TrayMenu.Add("Exit",           (*) => ExitApp())
 LoadSettings()
 HotKey Settings["Hotkey"], (*) => GenerateImpression()
 
-TrayTip "RadSpeed", "Loaded. Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", 0x10
-SetTimer (*) => TrayTip(), -3000
+TrayTip("Loaded. Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
+SetTimer((*) => TrayTip(), -3000)
 
 ; ----------------------------------------------------------------------------
 ; Main flow
@@ -127,8 +127,8 @@ GenerateImpression() {
         Send "^c"
         if !ClipWait(0.6) {
             A_Clipboard := savedClip
-            TrayTip "RadSpeed", "Select the findings text first, then press the hotkey.", 0x2
-            SetTimer (*) => TrayTip(), -3000
+            TrayTip("Select the findings text first, then press the hotkey.", "RadSpeed", 0x2)
+            SetTimer((*) => TrayTip(), -3000)
             return
         }
         findings := A_Clipboard
@@ -141,8 +141,8 @@ GenerateImpression() {
         Send "^c"
         if !ClipWait(0.6) {
             A_Clipboard := savedClip
-            TrayTip "RadSpeed", "Could not read findings. Try selecting them first.", 0x2
-            SetTimer (*) => TrayTip(), -3000
+            TrayTip("Could not read findings. Try selecting them first.", "RadSpeed", 0x2)
+            SetTimer((*) => TrayTip(), -3000)
             return
         }
         findings := A_Clipboard
@@ -153,17 +153,17 @@ GenerateImpression() {
 
     findings := Trim(findings)
     if (StrLen(findings) < 5) {
-        TrayTip "RadSpeed", "Findings too short. Select more text and try again.", 0x2
-        SetTimer (*) => TrayTip(), -3000
+        TrayTip("Findings too short. Select more text and try again.", "RadSpeed", 0x2)
+        SetTimer((*) => TrayTip(), -3000)
         return
     }
     if (StrLen(findings) > 8000) {
-        TrayTip "RadSpeed", "Findings too long (>8000 chars). Trim and retry.", 0x2
-        SetTimer (*) => TrayTip(), -3000
+        TrayTip("Findings too long (>8000 chars). Trim and retry.", "RadSpeed", 0x2)
+        SetTimer((*) => TrayTip(), -3000)
         return
     }
 
-    TrayTip "RadSpeed", "Generating impression...", 0x10
+    TrayTip("Generating impression...", "RadSpeed", 0x10)
 
     impression := ""
     try {
@@ -172,22 +172,25 @@ GenerateImpression() {
             BuildRequestBody(findings, Settings["Modality"], Settings["WithGuidelines"])
         )
     } catch as e {
-        TrayTip(), TrayTip "RadSpeed", "Error: " e.Message, 0x3
-        SetTimer (*) => TrayTip(), -4000
+        TrayTip()
+        TrayTip("Error: " e.Message, "RadSpeed", 0x3)
+        SetTimer((*) => TrayTip(), -4000)
         return
     }
 
     impression := Trim(impression, " `r`n`t")
     if (impression = "") {
-        TrayTip(), TrayTip "RadSpeed", "Empty response from server.", 0x3
-        SetTimer (*) => TrayTip(), -3000
+        TrayTip()
+        TrayTip("Empty response from server.", "RadSpeed", 0x3)
+        SetTimer((*) => TrayTip(), -3000)
         return
     }
 
     PasteImpression(impression, pasteMode)
 
-    TrayTip(), TrayTip "RadSpeed", "Done.", 0x10
-    SetTimer (*) => TrayTip(), -1500
+    TrayTip()
+    TrayTip("Done.", "RadSpeed", 0x10)
+    SetTimer((*) => TrayTip(), -1500)
 }
 
 PasteImpression(impression, mode) {
