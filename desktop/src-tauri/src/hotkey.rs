@@ -77,6 +77,75 @@ fn parse_code(token: &str) -> Result<Code, String> {
     Err(format!("unknown key token: {token}"))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_simple_letter_hotkey() {
+        let s = parse("ctrl+i").expect("ctrl+i must parse");
+        assert_eq!(s, Shortcut::new(Some(Modifiers::CONTROL), Code::KeyI));
+    }
+
+    #[test]
+    fn parses_multi_modifier_hotkey() {
+        let s = parse("ctrl+shift+f1").expect("ctrl+shift+f1 must parse");
+        assert_eq!(
+            s,
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F1)
+        );
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let a = parse("CTRL+I").expect("uppercase parse");
+        let b = parse("ctrl+i").expect("lowercase parse");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn ignores_whitespace() {
+        let a = parse("  ctrl + i  ").expect("padded parse");
+        let b = parse("ctrl+i").expect("unpadded parse");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn parses_alt_and_super_aliases() {
+        let s = parse("alt+win+a").expect("alt+win+a must parse");
+        assert_eq!(
+            s,
+            Shortcut::new(Some(Modifiers::ALT | Modifiers::META), Code::KeyA)
+        );
+    }
+
+    #[test]
+    fn parses_digit_and_function_keys() {
+        assert!(parse("ctrl+0").is_ok());
+        assert!(parse("ctrl+9").is_ok());
+        assert!(parse("f12").is_ok());
+        assert!(parse("ctrl+f5").is_ok());
+    }
+
+    #[test]
+    fn rejects_empty() {
+        assert!(parse("").is_err());
+        assert!(parse("   ").is_err());
+    }
+
+    #[test]
+    fn rejects_modifier_only() {
+        assert!(parse("ctrl").is_err());
+        assert!(parse("ctrl+shift").is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_key() {
+        assert!(parse("ctrl+plonk").is_err());
+        assert!(parse("ctrl+f99").is_err());
+    }
+}
+
 /// Spawn the impressions round-trip on a Tokio task. The hotkey handler must
 /// return immediately, so we offload the HTTP call + clipboard work.
 pub fn run_impressions_flow(app: AppHandle) {

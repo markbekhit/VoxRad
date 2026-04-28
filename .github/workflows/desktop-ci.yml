@@ -1,0 +1,102 @@
+name: Desktop CI (Windows)
+
+# Build + lint + test the RadSpeed Tauri desktop app on every push to main
+# and PR that touches desktop/. Catches Rust compile errors, clippy warnings,
+# missing deps, broken Tauri capabilities, and bundler regressions before
+# they reach a tagged release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - ".github/workflows/desktop-ci.yml"
+  pull_request:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/desktop-ci.yml"
+
+# Cancel older runs on the same branch when a new push lands.
+concurrency:
+  group: desktop-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop/src-tauri
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: cargo check
+        run: cargo check --all-targets
+        shell: pwsh
+
+      - name: cargo clippy (warnings, non-blocking)
+        run: cargo clippy --all-targets
+        shell: pwsh
+        continue-on-error: true
+
+      - name: cargo test
+        run: cargo test --lib
+        shell: pwsh
+
+  bundle:
+    # Only run the (slow) bundler step when something likely affects bundling.
+    runs-on: windows-latest
+    needs: check
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Build (release)
+        run: |
+          cd src-tauri
+          cargo build --release
+        shell: pwsh
+
+      - name: Bundle (NSIS + MSI)
+        run: |
+          cd src-tauri
+          cargo install tauri-cli --version "^2" --locked --quiet
+          cargo tauri build
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+
+      - name: Upload bundler output (debug aid)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radspeed-windows-ci
+          path: |
+            desktop/src-tauri/target/release/bundle/**/*.exe
+            desktop/src-tauri/target/release/bundle/**/*.msi
+          if-no-files-found: warn
+          retention-days: 7

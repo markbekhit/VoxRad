@@ -113,3 +113,60 @@ pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     std::fs::write(&path, text).map_err(|e| format!("write failed: {e}"))?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_are_safe() {
+        let s = Settings::default();
+        assert_eq!(s.api_base, "https://dictation.markbekhit.com");
+        assert_eq!(s.hotkey, "ctrl+i");
+        assert!(s.use_guidelines);
+        assert_eq!(s.paste_mode, "goto_impression");
+        assert_eq!(s.jump_keys, "tab");
+        assert!(s.bearer_token.is_empty());
+    }
+
+    #[test]
+    fn json_round_trip_preserves_fields() {
+        let s = Settings {
+            api_base: "https://example.com".to_string(),
+            hotkey: "ctrl+shift+f5".to_string(),
+            use_guidelines: false,
+            paste_mode: "after_selection".to_string(),
+            jump_keys: "tab tab".to_string(),
+            bearer_token: "secret".to_string(),
+        };
+        let json = serde_json::to_string(&s).expect("serialize");
+        let back: Settings = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back.api_base, s.api_base);
+        assert_eq!(back.hotkey, s.hotkey);
+        assert_eq!(back.use_guidelines, s.use_guidelines);
+        assert_eq!(back.paste_mode, s.paste_mode);
+        assert_eq!(back.jump_keys, s.jump_keys);
+        assert_eq!(back.bearer_token, s.bearer_token);
+    }
+
+    #[test]
+    fn missing_fields_get_defaults() {
+        // A user that hand-edited config.json and removed fields shouldn't
+        // crash the app — serde defaults cover the gaps.
+        let partial = r#"{"api_base":"https://x.test"}"#;
+        let s: Settings = serde_json::from_str(partial).expect("parse partial");
+        assert_eq!(s.api_base, "https://x.test");
+        assert_eq!(s.hotkey, "ctrl+i");
+        assert_eq!(s.paste_mode, "goto_impression");
+        assert!(s.use_guidelines);
+    }
+
+    #[test]
+    fn unknown_fields_are_tolerated() {
+        // Forward-compat: a future config.json with extra fields shouldn't
+        // break older builds.
+        let extra = r#"{"api_base":"https://x.test","future_field":42}"#;
+        let s: Settings = serde_json::from_str(extra).expect("parse with extras");
+        assert_eq!(s.api_base, "https://x.test");
+    }
+}
