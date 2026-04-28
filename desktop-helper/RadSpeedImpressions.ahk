@@ -112,7 +112,46 @@ ExitScript(*) {
 }
 
 OnHotkey(*) {
+    ; Block until the user releases Ctrl + the trigger key. Otherwise the
+    ; subsequent Send calls run with Ctrl still physically held, and AHK's
+    ; SendText collapses each Ctrl+letter into ":" or drops it entirely.
+    ; Wait up to 5 s — well beyond any normal keypress duration.
+    KeyWait "Ctrl",  "T5"
+    KeyWait "LCtrl", "T5"
+    KeyWait "RCtrl", "T5"
+    KeyWait "Shift", "T2"
+    Sleep 80
     GenerateImpression()
+}
+
+UpdateScript(*) {
+    bust := A_Now
+    url := "https://raw.githubusercontent.com/markbekhit/voxrad/main/desktop-helper/RadSpeedImpressions.ahk?bust=" bust
+    tmp := A_ScriptFullPath ".new"
+    TrayTip("Downloading latest...", "RadSpeed", 0x10)
+    try {
+        Download(url, tmp)
+    } catch as e {
+        TrayTip("Update failed: " e.Message, "RadSpeed", 0x3)
+        SetTimer ClearTrayTipNow, -4000
+        return
+    }
+    if !FileExist(tmp) || FileGetSize(tmp) < 500 {
+        try FileDelete(tmp)
+        TrayTip("Update failed: empty or short download.", "RadSpeed", 0x3)
+        SetTimer ClearTrayTipNow, -4000
+        return
+    }
+    try {
+        FileMove(tmp, A_ScriptFullPath, 1)
+    } catch as e {
+        TrayTip("Update failed swapping file: " e.Message ". Try running as admin.", "RadSpeed", 0x3)
+        SetTimer ClearTrayTipNow, -5000
+        return
+    }
+    TrayTip("Updated. Reloading...", "RadSpeed", 0x10)
+    Sleep 600
+    Reload()
 }
 
 ; ----------------------------------------------------------------------------
@@ -123,6 +162,7 @@ A_TrayMenu.Delete()
 A_TrayMenu.Add("RadSpeed Impressions", NoOp)
 A_TrayMenu.Disable("RadSpeed Impressions")
 A_TrayMenu.Add()
+A_TrayMenu.Add("Check for updates", UpdateScript)
 A_TrayMenu.Add("Edit settings",     OpenSettings)
 A_TrayMenu.Add("Reload",            ReloadScript)
 A_TrayMenu.Add("Open RadSpeed web", OpenWebTool)
@@ -139,7 +179,7 @@ NoOp(*) {
 LoadSettings()
 HotKey Settings["Hotkey"], OnHotkey
 
-TrayTip("v3 — Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
+TrayTip("v4 — Press " HumanHotkey(Settings["Hotkey"]) " to generate. Right-click tray to update.", "RadSpeed", 0x10)
 SetTimer ClearTrayTipNow, -3000
 
 ; ----------------------------------------------------------------------------
@@ -148,13 +188,7 @@ SetTimer ClearTrayTipNow, -3000
 GenerateImpression() {
     global Settings
 
-    ; The hotkey is Ctrl-based, so Ctrl is still considered "physically held"
-    ; until the user releases it. Subsequent Send calls with modifiers
-    ; (Shift for capitals, Ctrl for ^v) will misbehave if we proceed before
-    ; the user lets go. Wait up to 1 second.
-    KeyWait "Ctrl", "T1"
-    KeyWait "Shift", "T1"
-
+    ; OnHotkey() has already waited for the trigger keys to be released.
     pasteMode := Settings["PasteMode"]
     needsSelection := pasteMode != "at_cursor"
 

@@ -28,6 +28,16 @@ In PowerScribe One:
 A tray notification confirms each step. Errors (no selection, server down,
 rate limit hit) appear as toast notifications.
 
+## Updating
+
+Right-click the tray icon → **Check for updates**. The helper downloads the
+latest script directly from GitHub, replaces itself, and reloads — no
+manual download required after the first install.
+
+If "Check for updates" fails with a permission error, the helper is in a
+folder Windows protects — move the `.ahk` file to your Documents folder
+or run AutoHotkey as administrator.
+
 ## Configuration
 
 Right-click the tray icon → **Edit settings** to open
