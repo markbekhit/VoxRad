@@ -4,8 +4,9 @@ name: Desktop release (Windows)
 # NSIS .exe and MSI installers to a GitHub Release.
 #
 # Triggers:
-#   - push of a tag matching `desktop-v*` (e.g. desktop-v0.1.0)
-#   - manual via workflow_dispatch
+#   - push to main that changes desktop/.trigger-release (Claude pushes this
+#     file with the version string to cut a release, e.g. "0.2.0")
+#   - manual via workflow_dispatch (enter version in the input field)
 #
 # This workflow does NOT code-sign the installer. Windows SmartScreen will
 # show "Unknown publisher" until you add a signing certificate. See
@@ -13,12 +14,14 @@ name: Desktop release (Windows)
 
 on:
   push:
-    tags:
-      - "desktop-v*"
+    branches:
+      - main
+    paths:
+      - "desktop/.trigger-release"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Tag to release as (e.g. desktop-v0.1.0). Leave blank to build artifacts only."
+      version:
+        description: "Version to release as (e.g. 0.2.0). Leave blank to build artifacts only."
         required: false
         default: ""
 
@@ -33,6 +36,19 @@ jobs:
         working-directory: desktop
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ inputs.version }}" -ne "") {
+            $v = "${{ inputs.version }}"
+          } else {
+            $v = (Get-Content .trigger-release -Raw).Trim()
+          }
+          echo "VERSION=$v" >> $env:GITHUB_OUTPUT
+          echo "TAG=desktop-v$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Building version: $v"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -61,7 +77,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
       - name: Collect installers
-        id: collect
         shell: pwsh
         run: |
           $bundle = "src-tauri/target/release/bundle"
@@ -79,11 +94,11 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+        if: steps.ver.outputs.VERSION != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.TAG }}
+          name: ${{ steps.ver.outputs.TAG }}
           generate_release_notes: true
           files: desktop/release-artifacts/*
           fail_on_unmatched_files: true

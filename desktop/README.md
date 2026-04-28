@@ -96,16 +96,17 @@ desktop/
 
 ## Releasing a new version
 
-### Bump the version
+Releases are triggered by updating `desktop/.trigger-release` with the new version string and pushing to main. Claude handles this automatically.
 
-Edit `src-tauri/tauri.conf.json` → `version` field, and `src-tauri/Cargo.toml` → `[package] version`.
+### Steps
 
-### Push a tag
+1. Bump the version in `src-tauri/tauri.conf.json` → `version` and `src-tauri/Cargo.toml` → `[package] version`.
+2. Update `desktop/.trigger-release` to the same version string (e.g. `0.2.0`).
+3. Push to main.
 
-```bash
-git tag desktop-v0.2.0
-git push origin desktop-v0.2.0
-```
+GitHub Actions detects the change to `.trigger-release`, reads the version from it, builds the installers, and publishes a `desktop-v0.2.0` GitHub Release automatically.
+
+You can also trigger a build manually from **Actions → Desktop release → Run workflow** and enter the version in the input field.
 
 GitHub Actions (`.github/workflows/desktop-release.yml`) will:
 1. Build the Rust release binary on `windows-latest`
