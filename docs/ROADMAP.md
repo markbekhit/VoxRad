@@ -1,6 +1,6 @@
 # RadSpeed Roadmap
 
-Updated: 2026-04-28
+Updated: 2026-04-29
 
 This document is the canonical product roadmap for RadSpeed. It is intended to
 survive context resets — refer back to this file when picking up work
@@ -95,6 +95,28 @@ deployment and partner sign-on, not new code.
 - **`POST /api/impressions/stream`** — public SSE endpoint backing the page.
 - **`llm/impressions.py`** — purpose-built impression-only system prompt.
 
+### Clinical governance (Phase 1, just shipped)
+
+- **`web/audit.py`** — `reports` and `audit_log` tables in `users.db`.
+  Tamper-evident hash chain catches prev_hash, row_hash, and metadata-vs-
+  payload-hash mismatches.
+- **Sign-off** — `POST /api/reports/sign-off` locks a report as `final`,
+  runs the HL7/SR/FHIR export pipeline, audits each step. UI: green
+  "Sign off" button per case.
+- **Amendments** — `POST /api/reports/amend` creates a versioned successor
+  with a required reason; prior version is preserved.
+- **Audit trail UI** — "Audit" button opens a per-accession modal listing
+  every version and every event.
+- **Status badge** — Draft → Preliminary → Final → Amended.
+
+### NLP QA layer (Phase 2, just shipped)
+
+- **`web/qa.py`** — deterministic laterality / gender / unit-drift /
+  modality-anatomy checks. Flag-only, never rewrites.
+- **`POST /api/qa-check`** — runs all checks, returns a flat list of
+  severity-tagged flags.
+- UI: "QA Check" button → flag panel above the report; per-flag dismiss.
+
 ### Deployment
 
 - **Fly.io** — auto-deploy on push to `main` via GitHub Actions; persistent
@@ -126,39 +148,53 @@ which falls back gracefully to the `after_selection` behaviour.
 
 Next iteration would be a Tauri-packaged signed binary (Phase 3 territory).
 
-### Phase 1 (next, ~1 quarter): Audit log + sign-off + amendments
+### Phase 1 (just landed): Audit log + sign-off + amendments
 
-The PACS/RIS integration is shipped. The next enterprise-credible gap is
-medico-legal audit posture, which AU/NZ practices will ask about even
-without HIPAA driving it.
+**Done.** Medico-legal posture for AU/NZ practices.
 
-- Audit log table (SQLite extension): every dictation, edit, format,
-  sign-off, amendment, archive event. Tamper-evident hash chain. Per-user
-  retention policy.
-- Explicit sign-off step (radiologist locks the report; any further edit
-  creates an amendment). Store amendment history.
-- View / export audit trail per case for medico-legal queries.
+- `web/audit.py` — `reports` and `audit_log` tables in `users.db`, both
+  living on the persistent `/data` volume on Fly.
+- Tamper-evident hash chain on `audit_log`. `verify_chain()` catches
+  prev_hash mismatches, row_hash mismatches, AND payload-vs-metadata
+  mismatches (so retroactive metadata edits without bumping the hash also
+  fail verification).
+- Explicit sign-off step — `POST /api/reports/sign-off` locks the report
+  as `final`, runs the HL7 / SR / FHIR export pipeline against the
+  signed text, and writes a `sign_off` audit event (plus per-export
+  events). Sign-off requires OAuth (Basic Auth has no `users.id` to FK
+  on, so it returns 403).
+- Amendment flow — `POST /api/reports/amend` creates a versioned `amended`
+  successor pointing at the prior report, with a required reason. The
+  prior version is preserved.
+- Audit-trail view — `GET /api/audit-log?accession=...` and
+  `GET /api/reports?accession=...`. UI: an "Audit" button per case opens
+  a modal listing every version + every event for that accession.
+- UI status badge cycles **Draft → Preliminary → Final → Amended**.
 
-### Phase 2 (Q3-Q4): NLP QA layer (Scriptor-style differentiator)
+### Phase 2 (just landed): NLP QA layer
 
-Catch laterality / gender / anatomy / unit-drift errors before sign-off.
+**Done.** PowerScribe One ships its own QA pass, so this is parity rather
+than a moat — but it's table stakes for users on Dragon, M-Modal, browser-
+only setups, and useful belt-and-braces verification anywhere.
 
-- Deterministic pre-pass:
-  - Laterality cross-check vs ImagingStudy bodySite (we already have the
-    accession lookup).
-  - Gender mismatch (e.g. "uterus" in a male patient — patient data is
-    available from FHIR / HL7).
-  - Modality / anatomy mismatch (e.g. "cardiac chambers normal" on a knee MR).
-  - Unit drift (mixing mm and cm in same lesion).
-- LLM cross-check pass with a tightly scoped system prompt — flag-only,
-  never silently rewrite.
-- Inline highlights in the report editor; user explicitly accepts/dismisses.
-- This is **the** technical moat — only Scriptor markets it among the four
-  competitors.
+- `web/qa.py` — deterministic checks only (no LLM call):
+  - **Laterality** vs ordered side ("left" / "right" / "bilateral").
+  - **Gender mismatch** — female-only anatomy (uterus / ovary / cervix) in
+    a male patient, and vice versa.
+  - **Modality / anatomy mismatch** — flags anatomy from a different region
+    than the ordered body part (e.g. "cardiac chambers" on a knee MR).
+  - **Unit drift** — a single measurement that mixes mm and cm.
+- `POST /api/qa-check` — flag-only, never rewrites the report.
+- UI: "QA Check" button → flag panel above the report. Each flag is
+  dismissible; severity-coloured (error / warning / info).
+- An LLM cross-check pass for things regex can't see (e.g. a lesion that
+  legitimately spans both sides) is a future iteration if users ask for it.
 
-### Phase 3 (Q4-2027 Q1): Windows desktop overlay
+### Phase 3 (next, Q3-2026): Windows desktop overlay
 
-Reach the AU/NZ PowerScribe **desktop** install base, not just web.
+Reach the AU/NZ PowerScribe **desktop** install base, not just web. The
+AHK helper proved demand; the native companion makes it shippable to a
+practice rather than a tinkerer.
 
 - Native Windows companion (likely Tauri or Electron + native Win32 / UI
   Automation bindings).
@@ -169,7 +205,9 @@ Reach the AU/NZ PowerScribe **desktop** install base, not just web.
 - Pricing: per-radiologist subscription. Ride on top of practice's existing
   PowerScribe contract.
 
-### Phase 4 (2027 H1): Critical findings tracking (Rad AI Continuity copy)
+### Phase 4 (Q4-2026 / 2027 H1): Critical findings tracking
+
+Rad AI Continuity parity for the AU/NZ market.
 
 - Flag reports with significant incidentals (deterministic + LLM hybrid).
 - Persist follow-up table keyed by patient + finding.
@@ -181,8 +219,9 @@ Reach the AU/NZ PowerScribe **desktop** install base, not just web.
 - Convert bundled BIRADS / LIRADS / PIRADS / TIRADS / Fleischner guidelines
   from reference markdown into form-style entry blocks.
 - Each block emits a guideline-correct report fragment.
-- Currently the guidelines ship as files but are not actively applied — this
-  closes that loop.
+- Currently the guidelines ship as files and are loaded into the impressions
+  generator's system prompt; this phase makes them interactive in the main
+  workstation.
 
 ## Explicitly NOT doing (and why)
 
@@ -206,4 +245,9 @@ Reach the AU/NZ PowerScribe **desktop** install base, not just web.
 - The PACS/RIS/EHR integration framework is ALREADY SHIPPED on main (HL7
   ORU/ORM, DICOM SR, MWL bridge, FHIR R4). Don't re-plan it as a future
   feature — it's deployment-and-partners work, not new code.
+- Audit log + sign-off + amendments are shipped (Phase 1). Don't re-plan.
+- NLP QA layer is shipped (Phase 2, deterministic only). Don't re-plan
+  unless extending with an LLM cross-check pass — note that PowerScribe One
+  has its own QA out of the box, so extension here is parity-driven, not
+  competitive-moat work.
 - The user prefers concise updates and direct technical communication.

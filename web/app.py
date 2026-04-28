@@ -61,6 +61,17 @@ from web.auth_oauth import (
     set_session_user,
     clear_session,
 )
+from web.audit import (
+    get_report,
+    init_audit_db,
+    list_audit_events,
+    list_reports_for_accession,
+    list_reports_for_user,
+    log_event,
+    save_report_version,
+    verify_chain,
+)
+from web.qa import run_qa_checks
 from web.stt_providers import get_streaming_provider
 
 logger = logging.getLogger(__name__)
@@ -74,8 +85,9 @@ app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY(), max_age=8
 # auto_error=False so we can return a redirect (not a 401) when OAuth is active
 security = HTTPBasic(auto_error=False)
 
-# Initialise user database on startup (noop if already created)
+# Initialise user + audit databases on startup (noop if already created)
 init_db()
+init_audit_db()
 
 _BASE_DIR = os.path.dirname(__file__)
 app.mount(
@@ -517,6 +529,7 @@ def auth_google_callback(request: Request, code: str = "", state: str = "", erro
         return RedirectResponse("/login?error=no_email")
     db_user = get_or_create_user(info["email"], info["name"], "google")
     set_session_user(request, db_user)
+    log_event(user_id=db_user.get("id"), event_type="login", metadata={"provider": "google"})
     return RedirectResponse("/")
 
 
@@ -545,6 +558,7 @@ def auth_microsoft_callback(request: Request, code: str = "", state: str = "", e
         return RedirectResponse("/login?error=no_email")
     db_user = get_or_create_user(info["email"], info["name"], "microsoft")
     set_session_user(request, db_user)
+    log_event(user_id=db_user.get("id"), event_type="login", metadata={"provider": "microsoft"})
     return RedirectResponse("/")
 
 
@@ -1685,6 +1699,18 @@ def format_report(req: FormatRequest, user: dict = Depends(_verify_auth)):
         "Report formatted (%d chars), fhir_saved=%s, hl7_saved=%s, sr_saved=%s",
         len(report), fhir_saved, hl7_saved, sr_saved,
     )
+    log_event(
+        user_id=user.get("id"),
+        event_type="format",
+        accession=req.accession or None,
+        metadata={
+            "template": req.template_name,
+            "chars": len(report),
+            "fhir_saved": fhir_saved,
+            "hl7_saved": hl7_saved,
+            "sr_saved": sr_saved,
+        },
+    )
     return {
         "report": report,
         "fhir_saved": fhir_saved,
@@ -1796,6 +1822,19 @@ def format_report_stream(req: FormatRequest, user: dict = Depends(_verify_auth))
             except Exception as e:
                 logger.warning("DICOM SR save failed during streaming: %s", e)
 
+        log_event(
+            user_id=user.get("id"),
+            event_type="format",
+            accession=req.accession or None,
+            metadata={
+                "template": req.template_name,
+                "chars": len(corrected_report),
+                "fhir_saved": fhir_saved,
+                "hl7_saved": hl7_saved,
+                "sr_saved": sr_saved,
+                "stream": True,
+            },
+        )
         yield f'data: {json.dumps({"done": True, "fhir_saved": fhir_saved, "hl7_saved": hl7_saved, "sr_saved": sr_saved, "report": corrected_report})}\n\n'
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
@@ -1834,6 +1873,356 @@ def format_feedback(req: FeedbackRequest, user: dict = Depends(_verify_auth)):
         raise HTTPException(status_code=503, detail=f"Report refinement failed: {e}")
 
     return {"report": corrected}
+
+
+# ---------------------------------------------------------------------------
+# Phase 1: Sign-off, amendments, audit log
+# ---------------------------------------------------------------------------
+
+class SignOffRequest(BaseModel):
+    report_text: str
+    template_name: Optional[str] = None
+    patient_name: Optional[str] = None
+    patient_dob: Optional[str] = None
+    patient_id: Optional[str] = None
+    accession: Optional[str] = None
+    modality: Optional[str] = None
+    body_part: Optional[str] = None
+    referring_physician: Optional[str] = None
+    radiologist: Optional[str] = None
+
+
+class AmendmentRequest(BaseModel):
+    prior_report_id: int
+    report_text: str
+    amendment_reason: str
+
+
+def _exports_for_signed_report(
+    *,
+    report_text: str,
+    template_name: Optional[str],
+    patient_context: Optional[dict],
+    user: dict,
+    user_id_for_audit: Optional[int],
+    accession: Optional[str],
+    report_id: int,
+    is_amendment: bool,
+) -> dict:
+    """Run the HL7 / DICOM SR / FHIR export pipeline and audit each result."""
+    exports = {"hl7_saved": False, "sr_saved": False, "fhir_saved": False}
+
+    if _user_fhir_enabled(user):
+        try:
+            path = save_fhir_report(
+                report_text=report_text,
+                template_name=template_name,
+                patient_id=(patient_context or {}).get("patient_id"),
+                accession=accession,
+                radiologist=(patient_context or {}).get("radiologist"),
+            )
+            exports["fhir_saved"] = path is not None
+            log_event(
+                user_id=user_id_for_audit,
+                event_type="export_fhir",
+                accession=accession,
+                report_id=report_id,
+                metadata={"path": path, "amendment": is_amendment},
+            )
+        except Exception as e:
+            logger.warning("FHIR export at sign-off failed: %s", e)
+
+    _hl7_dir = _hl7_outbox_dir()
+    if _hl7_dir:
+        try:
+            path = save_hl7_report(
+                report_text=report_text,
+                outbox_path=_hl7_dir,
+                patient_context=patient_context,
+                template_name=template_name,
+                sending_facility=config.hl7_sending_facility or "VOXRAD",
+                receiving_facility=config.hl7_receiving_facility or "",
+            )
+            exports["hl7_saved"] = path is not None
+            log_event(
+                user_id=user_id_for_audit,
+                event_type="export_hl7",
+                accession=accession,
+                report_id=report_id,
+                metadata={"path": path, "amendment": is_amendment},
+            )
+        except Exception as e:
+            logger.warning("HL7 export at sign-off failed: %s", e)
+
+    _sr_dir = _sr_outbox_dir()
+    if _sr_dir:
+        try:
+            path = save_dicom_sr_report(
+                report_text=report_text,
+                outbox_path=_sr_dir,
+                patient_context=patient_context,
+                template_name=template_name,
+                institution_name=config.dicom_sr_institution_name or "VOXRAD",
+            )
+            exports["sr_saved"] = path is not None
+            log_event(
+                user_id=user_id_for_audit,
+                event_type="export_sr",
+                accession=accession,
+                report_id=report_id,
+                metadata={"path": path, "amendment": is_amendment},
+            )
+        except Exception as e:
+            logger.warning("DICOM SR export at sign-off failed: %s", e)
+
+    return exports
+
+
+@app.post("/api/reports/sign-off")
+def api_sign_off(req: SignOffRequest, user: dict = Depends(_verify_auth)):
+    """Lock a report as FINAL.
+
+    Persists the signed version, runs the HL7 / SR / FHIR export pipeline,
+    and writes audit events for each step. The user-supplied report text is
+    treated as the canonical FINAL — no further LLM processing is applied.
+    """
+    if not req.report_text or not req.report_text.strip():
+        raise HTTPException(status_code=400, detail="report_text is required")
+
+    user_id = user.get("id") if user.get("id") is not None else None
+    if user_id is None:
+        # In Basic Auth mode there is no users.id row to FK to. Sign-off
+        # requires per-user accountability, so insist on OAuth here.
+        raise HTTPException(
+            status_code=403,
+            detail="Sign-off requires an authenticated user (OAuth login).",
+        )
+
+    saved = save_report_version(
+        user_id=user_id,
+        report_text=req.report_text,
+        status="final",
+        accession=req.accession or None,
+        patient_id=req.patient_id or None,
+        patient_name=req.patient_name or None,
+        patient_dob=req.patient_dob or None,
+        modality=req.modality or None,
+        body_part=req.body_part or None,
+        referring=req.referring_physician or None,
+        radiologist=req.radiologist or None,
+        template_name=req.template_name or None,
+    )
+
+    log_event(
+        user_id=user_id,
+        event_type="sign_off",
+        accession=req.accession or None,
+        report_id=saved["id"],
+        metadata={
+            "version": saved["version"],
+            "report_hash": saved["report_hash"],
+            "template": req.template_name,
+            "chars": len(req.report_text),
+        },
+    )
+
+    patient_context = {
+        k: v for k, v in {
+            "patient_name": req.patient_name,
+            "patient_dob": req.patient_dob,
+            "patient_id": req.patient_id,
+            "accession": req.accession,
+            "modality": req.modality,
+            "body_part": req.body_part,
+            "referring_physician": req.referring_physician,
+            "radiologist": req.radiologist,
+        }.items() if v
+    } or None
+
+    exports = _exports_for_signed_report(
+        report_text=req.report_text,
+        template_name=req.template_name,
+        patient_context=patient_context,
+        user=user,
+        user_id_for_audit=user_id,
+        accession=req.accession or None,
+        report_id=saved["id"],
+        is_amendment=False,
+    )
+
+    return {"report": saved, **exports}
+
+
+@app.post("/api/reports/amend")
+def api_amend(req: AmendmentRequest, user: dict = Depends(_verify_auth)):
+    """Create an amendment (versioned successor) of a previously signed report."""
+    if not req.report_text or not req.report_text.strip():
+        raise HTTPException(status_code=400, detail="report_text is required")
+    if not req.amendment_reason or not req.amendment_reason.strip():
+        raise HTTPException(status_code=400, detail="amendment_reason is required")
+
+    user_id = user.get("id") if user.get("id") is not None else None
+    if user_id is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Amendments require an authenticated user (OAuth login).",
+        )
+
+    prior = get_report(req.prior_report_id)
+    if not prior:
+        raise HTTPException(status_code=404, detail="Prior report not found")
+    if prior["status"] not in ("final", "amended"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only signed reports (final / amended) can be amended.",
+        )
+
+    saved = save_report_version(
+        user_id=user_id,
+        report_text=req.report_text,
+        status="amended",
+        accession=prior["accession"],
+        patient_id=prior["patient_id"],
+        patient_name=prior["patient_name"],
+        patient_dob=prior["patient_dob"],
+        modality=prior["modality"],
+        body_part=prior["body_part"],
+        referring=prior["referring"],
+        radiologist=prior["radiologist"],
+        template_name=prior["template_name"],
+        prior_version_id=prior["id"],
+        amendment_reason=req.amendment_reason,
+    )
+
+    log_event(
+        user_id=user_id,
+        event_type="amend",
+        accession=prior["accession"],
+        report_id=saved["id"],
+        metadata={
+            "prior_report_id": prior["id"],
+            "prior_version": prior["version"],
+            "version": saved["version"],
+            "report_hash": saved["report_hash"],
+            "reason": req.amendment_reason,
+            "chars": len(req.report_text),
+        },
+    )
+
+    patient_context = {
+        k: v for k, v in {
+            "patient_name": prior["patient_name"],
+            "patient_dob": prior["patient_dob"],
+            "patient_id": prior["patient_id"],
+            "accession": prior["accession"],
+            "modality": prior["modality"],
+            "body_part": prior["body_part"],
+            "referring_physician": prior["referring"],
+            "radiologist": prior["radiologist"],
+        }.items() if v
+    } or None
+
+    exports = _exports_for_signed_report(
+        report_text=req.report_text,
+        template_name=prior["template_name"],
+        patient_context=patient_context,
+        user=user,
+        user_id_for_audit=user_id,
+        accession=prior["accession"],
+        report_id=saved["id"],
+        is_amendment=True,
+    )
+
+    return {"report": saved, **exports}
+
+
+@app.get("/api/reports")
+def api_list_reports(
+    accession: Optional[str] = None,
+    user: dict = Depends(_verify_auth),
+):
+    """List versions for an accession, or recent reports for the current user."""
+    if accession:
+        return {"reports": list_reports_for_accession(accession)}
+    user_id = user.get("id")
+    if user_id is None:
+        return {"reports": []}
+    return {"reports": list_reports_for_user(user_id, limit=100)}
+
+
+@app.get("/api/reports/{report_id}")
+def api_get_report(report_id: int, user: dict = Depends(_verify_auth)):
+    rep = get_report(report_id)
+    if not rep:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return rep
+
+
+@app.get("/api/audit-log")
+def api_audit_log(
+    accession: Optional[str] = None,
+    report_id: Optional[int] = None,
+    limit: int = 200,
+    user: dict = Depends(_verify_auth),
+):
+    """Return audit-log entries. Filter by accession or report_id when given."""
+    user_id = user.get("id")
+    # In Basic Auth mode (id None) we still allow filtering by accession,
+    # but block unrestricted "all events" reads.
+    if accession is None and report_id is None and user_id is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Specify accession or report_id when not signed in via OAuth.",
+        )
+    return {
+        "events": list_audit_events(
+            user_id=None,  # cross-user view by case is the medico-legal default
+            accession=accession,
+            report_id=report_id,
+            limit=min(int(limit), 1000),
+        )
+    }
+
+
+@app.get("/api/audit-log/verify")
+def api_audit_verify(user: dict = Depends(_verify_auth)):
+    return verify_chain()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: NLP QA layer
+# ---------------------------------------------------------------------------
+
+class QACheckRequest(BaseModel):
+    report_text: str
+    accession: Optional[str] = None
+    patient_gender: Optional[str] = None  # "M" / "F" / "male" / "female"
+    body_part: Optional[str] = None
+    ordered_side: Optional[str] = None    # "left" / "right" / "bilateral"
+
+
+@app.post("/api/qa-check")
+def api_qa_check(req: QACheckRequest, user: dict = Depends(_verify_auth)):
+    """Run deterministic NLP QA checks against a report. Flag-only — no rewrite."""
+    if not req.report_text or not req.report_text.strip():
+        return {"flags": []}
+    flags = run_qa_checks(
+        report_text=req.report_text,
+        patient_gender=req.patient_gender,
+        ordered_side=req.ordered_side,
+        body_part=req.body_part,
+    )
+    log_event(
+        user_id=user.get("id"),
+        event_type="qa_check",
+        accession=req.accession,
+        metadata={
+            "flag_count": len(flags),
+            "flag_types": sorted({f.get("type", "?") for f in flags}),
+            "chars": len(req.report_text),
+        },
+    )
+    return {"flags": flags}
 
 
 # ---------------------------------------------------------------------------

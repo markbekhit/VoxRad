@@ -160,11 +160,18 @@
   <!-- ── Report ── -->
   <div class="card">
     <div class="report-card-header">
-      <div class="card-title" style="margin-bottom:0;">Structured Report</div>
-      <div class="row" style="gap:6px;">
+      <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="card-title" style="margin-bottom:0;">Structured Report</div>
+        <span id="report-status-badge" class="status-badge status-draft" title="Report status">Draft</span>
+      </div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <button id="btn-qa" class="btn btn-ghost btn-sm" disabled title="Run NLP QA checks (laterality, gender, units, anatomy)">&#128269; QA Check</button>
         <button id="btn-refine" class="btn btn-ghost btn-sm" disabled title="Select a passage then dictate a correction, or just dictate overall feedback">&#127908; Refine</button>
         <button id="btn-edit-toggle" class="btn btn-ghost btn-sm" disabled>&#9998; Edit</button>
         <button id="btn-copy" class="btn btn-ghost btn-sm" disabled title="Copy report to clipboard (Ctrl/Cmd+Shift+C)">&#128203; Copy</button>
+        <button id="btn-sign-off" class="btn btn-success btn-sm" disabled title="Lock the report as final and trigger HL7/SR/FHIR export">&#9989; Sign off</button>
+        <button id="btn-amend" class="btn btn-ghost btn-sm" style="display:none;" title="Create a versioned amendment to a previously signed report">&#9998; Amend</button>
+        <button id="btn-audit" class="btn btn-ghost btn-sm" disabled title="Show the audit trail for the current accession">&#128214; Audit</button>
         <button id="btn-next-case" class="btn btn-primary btn-sm" title="Clear report and patient context, ready for the next case (Alt+N)">&#10227; Next Case</button>
       </div>
     </div>
@@ -174,6 +181,8 @@
       <span id="feedback-status" style="flex:1;">Listening for feedback…</span>
       <button id="btn-refine-stop" class="btn btn-danger btn-sm" style="flex-shrink:0;">&#9632; Stop</button>
     </div>
+    <!-- QA flag panel -->
+    <div id="qa-panel" class="qa-panel" style="display:none;"></div>
     <!-- Rendered markdown view (default) -->
     <div id="report-rendered" class="report-rendered"></div>
     <!-- Raw edit textarea (shown when editing) -->
@@ -183,6 +192,38 @@
   </div>
 
 </main>
+
+<!-- ── Audit / Amendment Modal ── -->
+<div id="audit-modal" class="tmpl-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Audit & Amendments">
+  <div class="tmpl-modal" style="max-width:780px;">
+    <div class="tmpl-header">
+      <h2 id="audit-modal-title" style="margin:0;font-size:1.1em;">Audit Trail</h2>
+      <button id="audit-modal-close" class="btn btn-ghost btn-sm">&times;</button>
+    </div>
+    <div id="audit-modal-body" class="tmpl-body" style="padding:16px;max-height:60vh;overflow:auto;"></div>
+  </div>
+</div>
+
+<!-- ── Amendment Reason Modal ── -->
+<div id="amend-modal" class="tmpl-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Amend Report">
+  <div class="tmpl-modal" style="max-width:560px;">
+    <div class="tmpl-header">
+      <h2 style="margin:0;font-size:1.1em;">Amend signed report</h2>
+      <button id="amend-modal-close" class="btn btn-ghost btn-sm">&times;</button>
+    </div>
+    <div class="tmpl-body" style="padding:16px;">
+      <p style="margin:0 0 8px 0;color:var(--muted);font-size:0.9em;">
+        Amendments are versioned. The prior signed report is preserved.
+      </p>
+      <label for="amend-reason" style="display:block;margin-bottom:6px;font-size:0.9em;">Reason for amendment <span style="color:var(--danger);">*</span></label>
+      <textarea id="amend-reason" rows="3" placeholder="e.g. Added trace pleural effusion noted on second review" style="width:100%;"></textarea>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px;">
+        <button id="amend-cancel" class="btn btn-ghost btn-sm">Cancel</button>
+        <button id="amend-confirm" class="btn btn-success btn-sm">Save amendment</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <footer>
   &#9888; RadSpeed Web uses HTTP Basic Auth.

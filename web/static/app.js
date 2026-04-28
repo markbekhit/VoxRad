@@ -200,6 +200,12 @@ function setUI(mode) {
   $("btn-copy").disabled        = mode !== "done";
   $("btn-edit-toggle").disabled = mode !== "done";
   $("btn-refine").disabled      = mode !== "done" || fbState.isRecording;
+  // Phase 1 / 2 buttons — gated on having a report to act on.
+  const hasReport = mode === "done" && !!($("report-raw")?.value || "").trim();
+  const btnQa = $("btn-qa");        if (btnQa) btnQa.disabled = !hasReport;
+  const btnSign = $("btn-sign-off"); if (btnSign) btnSign.disabled = !hasReport || _signedReportId !== null;
+  const btnAudit = $("btn-audit");  if (btnAudit) btnAudit.disabled = !($("accession")?.value || "").trim();
+  const btnAmend = $("btn-amend");  if (btnAmend) btnAmend.style.display = _signedReportId !== null ? "" : "none";
   const refineHint = $("report-refine-hint");
   if (refineHint) refineHint.style.display = mode === "done" ? "" : "none";
 
@@ -1323,6 +1329,10 @@ async function formatReport() {
           // Snapshot the LLM output so copyReport() can diff for style-drift detection.
           state.reportLlmOutput = $("report-raw").value;
           const fhirNote = msg.fhir_saved ? " · FHIR R4 JSON saved." : "";
+          // Phase 1: report is now preliminary until the user explicitly signs off.
+          _signedReportId = null;
+          if (typeof _setReportStatus === "function") _setReportStatus("preliminary");
+          if (typeof _clearQaPanel === "function") _clearQaPanel();
           setUI("done");
           setStatus("Report ready." + fhirNote, "success");
           $("report-rendered").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1502,12 +1512,300 @@ function nextCase({ keepRadiologist = true } = {}) {
   state.voiceEditTarget = null;
   if (fbState) fbState.selectedText = "";
 
+  // Phase 1: clear sign-off state and QA flags
+  _signedReportId = null;
+  _setReportStatus("draft");
+  _clearQaPanel();
+
   setUI("idle");
   setStatus("Ready for next case.", "active");
 
   // Focus the transcription textarea so the user can start immediately
   const t = $("transcription");
   if (t) t.focus();
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1: sign-off, amendments, audit
+// ---------------------------------------------------------------------------
+let _signedReportId = null;
+
+function _setReportStatus(status) {
+  const badge = $("report-status-badge");
+  if (!badge) return;
+  badge.classList.remove("status-draft", "status-preliminary", "status-final", "status-amended");
+  badge.classList.add("status-" + status);
+  badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function _patientPayload() {
+  return {
+    patient_name:        $("patient-name")?.value.trim()        || null,
+    patient_dob:         $("patient-dob")?.value.trim()         || null,
+    patient_id:          $("patient-id")?.value.trim()          || null,
+    accession:           $("accession")?.value.trim()            || null,
+    modality:            $("modality")?.value.trim()             || null,
+    body_part:           $("body-part")?.value.trim()            || null,
+    referring_physician: $("referring-physician")?.value.trim()  || null,
+    radiologist:         $("radiologist")?.value.trim()          || null,
+  };
+}
+
+async function signOffReport() {
+  const text = ($("report-raw")?.value || "").trim();
+  if (!text) {
+    setStatus("Nothing to sign off.", "error");
+    return;
+  }
+  if (!confirm("Sign off this report as FINAL? Further edits will create a versioned amendment.")) return;
+
+  const body = {
+    report_text: text,
+    template_name: $("template-select")?.value || null,
+    ..._patientPayload(),
+  };
+
+  try {
+    setStatus("Signing off…", "active");
+    const resp = await fetch("/api/reports/sign-off", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    const data = await resp.json();
+    _signedReportId = data.report?.id || null;
+    _setReportStatus("final");
+    const exports = [
+      data.hl7_saved ? "HL7" : null,
+      data.sr_saved ? "DICOM SR" : null,
+      data.fhir_saved ? "FHIR" : null,
+    ].filter(Boolean).join(", ");
+    setStatus(
+      `Signed off (v${data.report?.version || 1})${exports ? " · exported: " + exports : ""}.`,
+      "success"
+    );
+    setUI("done");
+  } catch (err) {
+    setStatus(`Sign-off failed: ${err.message}`, "error");
+  }
+}
+
+function openAmendModal() {
+  if (_signedReportId === null) {
+    setStatus("Nothing to amend — sign the report off first.", "error");
+    return;
+  }
+  $("amend-reason").value = "";
+  $("amend-modal").style.display = "flex";
+  setTimeout(() => $("amend-reason").focus(), 0);
+}
+
+function closeAmendModal() {
+  $("amend-modal").style.display = "none";
+}
+
+async function confirmAmend() {
+  const reason = ($("amend-reason")?.value || "").trim();
+  const text = ($("report-raw")?.value || "").trim();
+  if (!reason) {
+    $("amend-reason").focus();
+    return;
+  }
+  if (!text) {
+    setStatus("Nothing to amend.", "error");
+    return;
+  }
+  try {
+    setStatus("Saving amendment…", "active");
+    const resp = await fetch("/api/reports/amend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prior_report_id: _signedReportId,
+        report_text: text,
+        amendment_reason: reason,
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    const data = await resp.json();
+    _signedReportId = data.report?.id || _signedReportId;
+    _setReportStatus("amended");
+    closeAmendModal();
+    setStatus(`Amendment saved (v${data.report?.version || "?"}).`, "success");
+  } catch (err) {
+    setStatus(`Amendment failed: ${err.message}`, "error");
+  }
+}
+
+async function openAuditModal() {
+  const accession = ($("accession")?.value || "").trim();
+  if (!accession) {
+    setStatus("Enter an accession number to view its audit trail.", "error");
+    return;
+  }
+
+  $("audit-modal-title").textContent = `Audit Trail — ${accession}`;
+  const body = $("audit-modal-body");
+  body.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading…</div>';
+  $("audit-modal").style.display = "flex";
+
+  try {
+    const [reportsResp, eventsResp] = await Promise.all([
+      fetch(`/api/reports?accession=${encodeURIComponent(accession)}`),
+      fetch(`/api/audit-log?accession=${encodeURIComponent(accession)}&limit=200`),
+    ]);
+    const reportsData = reportsResp.ok ? await reportsResp.json() : { reports: [] };
+    const eventsData = eventsResp.ok ? await eventsResp.json() : { events: [] };
+    body.innerHTML = _renderAuditTrail(reportsData.reports || [], eventsData.events || []);
+  } catch (err) {
+    body.innerHTML = `<div style="color:var(--red);font-size:13px;">Failed to load: ${err.message}</div>`;
+  }
+}
+
+function _renderAuditTrail(reports, events) {
+  const _esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  let html = "";
+
+  html += '<div class="audit-section-title">Report versions</div>';
+  if (!reports.length) {
+    html += '<div style="color:var(--muted);font-size:13px;">No signed versions yet.</div>';
+  } else {
+    for (const r of reports) {
+      const status = (r.status || "").toLowerCase();
+      html += `<div class="report-version">`
+        + `<div class="report-version-header">`
+        + `<span class="status-badge status-${_esc(status)}">${_esc(status || "?")}</span>`
+        + ` <strong>v${_esc(r.version)}</strong>`
+        + ` <span style="color:var(--muted);font-size:11px;">${_esc(r.signed_at || r.created_at || "")}</span>`
+        + ` <span style="color:var(--muted);font-size:11px;margin-left:auto;">hash ${_esc((r.report_hash || "").slice(0, 12))}…</span>`
+        + `</div>`;
+      if (r.amendment_reason) {
+        html += `<div class="report-version-reason">Reason: ${_esc(r.amendment_reason)}</div>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  html += '<div class="audit-section-title">Audit events</div>';
+  if (!events.length) {
+    html += '<div style="color:var(--muted);font-size:13px;">No events recorded.</div>';
+  } else {
+    for (const e of events) {
+      const meta = e.metadata ? JSON.stringify(e.metadata, null, 2) : "";
+      html += `<div class="audit-event">`
+        + `<div class="audit-event-header">`
+        + `<span class="audit-event-type">${_esc(e.event_type)}</span>`
+        + `<span class="audit-event-time">${_esc(e.created_at || "")}</span>`
+        + (e.report_id ? `<span style="color:var(--muted);font-size:11px;">report #${_esc(e.report_id)}</span>` : "")
+        + `</div>`;
+      if (meta) {
+        html += `<div class="audit-event-meta">${_esc(meta)}</div>`;
+      }
+      html += `</div>`;
+    }
+  }
+  return html;
+}
+
+function closeAuditModal() {
+  $("audit-modal").style.display = "none";
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: NLP QA layer
+// ---------------------------------------------------------------------------
+function _clearQaPanel() {
+  const p = $("qa-panel");
+  if (!p) return;
+  p.style.display = "none";
+  p.innerHTML = "";
+}
+
+function _renderQaPanel(flags) {
+  const p = $("qa-panel");
+  if (!p) return;
+  const _esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const icon = { error: "✕", warning: "!", info: "i" };
+
+  let html = '<div class="qa-panel-header">';
+  if (!flags.length) {
+    html += '<span>QA</span></div><div class="qa-empty">✓ No flags raised. Always confirm clinically before signing off.</div>';
+    p.innerHTML = html;
+    p.style.display = "";
+    return;
+  }
+  html += `<span>QA — ${flags.length} flag${flags.length === 1 ? "" : "s"}</span></div>`;
+  for (const f of flags) {
+    const sev = f.severity || "info";
+    html += `<div class="qa-flag qa-flag-${_esc(sev)}">`
+      + `<span class="qa-flag-icon ${_esc(sev)}">${icon[sev] || "i"}</span>`
+      + `<div class="qa-flag-body">`
+      + `<div class="qa-flag-message">${_esc(f.message)}</div>`
+      + (f.location ? `<code class="qa-flag-location">${_esc(f.location)}</code>` : "")
+      + `</div>`
+      + `<button class="qa-flag-dismiss" title="Dismiss">×</button>`
+      + `</div>`;
+  }
+  p.innerHTML = html;
+  p.style.display = "";
+
+  // Wire dismiss buttons
+  p.querySelectorAll(".qa-flag-dismiss").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const flag = e.currentTarget.closest(".qa-flag");
+      if (flag) flag.remove();
+      const remaining = p.querySelectorAll(".qa-flag");
+      const header = p.querySelector(".qa-panel-header span");
+      if (header) header.textContent = `QA — ${remaining.length} flag${remaining.length === 1 ? "" : "s"}`;
+      if (!remaining.length) _clearQaPanel();
+    });
+  });
+}
+
+async function runQaCheck() {
+  const text = ($("report-raw")?.value || "").trim();
+  if (!text) {
+    setStatus("Nothing to check.", "error");
+    return;
+  }
+  // Best-effort: send the patient context we have. The server only uses what's
+  // populated; gender / ordered side aren't currently wired in the UI but the
+  // body_part field is the most common deterministic check.
+  const body = {
+    report_text: text,
+    accession: $("accession")?.value.trim() || null,
+    body_part: $("body-part")?.value.trim() || null,
+  };
+  try {
+    setStatus("Running QA checks…", "active");
+    const resp = await fetch("/api/qa-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    const data = await resp.json();
+    _renderQaPanel(data.flags || []);
+    if ((data.flags || []).length === 0) {
+      setStatus("QA: no flags raised.", "success");
+    } else {
+      setStatus(`QA: ${data.flags.length} flag${data.flags.length === 1 ? "" : "s"} raised.`, "active");
+    }
+  } catch (err) {
+    setStatus(`QA check failed: ${err.message}`, "error");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2120,6 +2418,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btn-edit-toggle").addEventListener("click", toggleReportEdit);
   $("btn-lookup").addEventListener("click", lookupPatient);
   if ($("btn-next-case")) $("btn-next-case").addEventListener("click", () => nextCase());
+
+  // Phase 1 / 2: sign-off, amendments, audit, QA
+  if ($("btn-qa")) $("btn-qa").addEventListener("click", runQaCheck);
+  if ($("btn-sign-off")) $("btn-sign-off").addEventListener("click", signOffReport);
+  if ($("btn-amend")) $("btn-amend").addEventListener("click", openAmendModal);
+  if ($("btn-audit")) $("btn-audit").addEventListener("click", openAuditModal);
+  if ($("audit-modal-close")) $("audit-modal-close").addEventListener("click", closeAuditModal);
+  if ($("audit-modal")) $("audit-modal").addEventListener("click", (e) => {
+    if (e.target === $("audit-modal")) closeAuditModal();
+  });
+  if ($("amend-modal-close")) $("amend-modal-close").addEventListener("click", closeAmendModal);
+  if ($("amend-cancel")) $("amend-cancel").addEventListener("click", closeAmendModal);
+  if ($("amend-confirm")) $("amend-confirm").addEventListener("click", confirmAmend);
+  if ($("amend-modal")) $("amend-modal").addEventListener("click", (e) => {
+    if (e.target === $("amend-modal")) closeAmendModal();
+  });
+  // Re-evaluate Audit button enabled state when accession changes
+  if ($("accession")) $("accession").addEventListener("input", () => {
+    const btn = $("btn-audit");
+    if (btn) btn.disabled = !($("accession").value || "").trim();
+  });
 
   // HL7 worklist
   if ($("worklist-select")) {
