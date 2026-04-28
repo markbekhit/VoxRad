@@ -1,90 +1,175 @@
-```markdown
-# BIRADS Guidelines for Breast Ultrasound (USG) - Structured Recommendations for LLMs
+# ACR BI-RADS Breast Ultrasound — 5th Edition
 
-## 1. **BIRADS Categories & Definitions (USG-Specific)**
-| BIRADS | Definition | Management |
-|--------|------------|------------|
-| **0**  | Incomplete: Need additional imaging (e.g., mammogram, MRI) | Recommend further imaging. |
-| **1**  | Negative: No findings (rarely used in USG; use BIRADS 2 instead). | Routine screening. |
-| **2**  | Benign: Simple cyst, intramammary node, stable solid mass. | Routine follow-up. |
-| **3**  | Probably Benign: ≤2% malignancy risk. Solid mass with benign features. | Short-term follow-up (6 months). |
-| **4**  | Suspicious: 3–94% malignancy risk. Subdivided as 4A (low), 4B (moderate), 4C (high). | Biopsy recommended. |
-| **5**  | Highly Suggestive of Malignancy: ≥95% risk. | Biopsy and treatment planning. |
-| **6**  | Known Biopsy-Proven Malignancy. | Treatment ongoing. |
+BI-RADS for breast ultrasound classifies focal lesions and drives a
+specific management action. The category determines the recommendation;
+never give vague phrasing like "consider follow-up" or "may need biopsy."
 
----
+## Cyst Classification (US-specific)
 
-## 2. **Sonographic Feature Analysis**
-Guide the LLM to assess these features from the report and map to BIRADS:
+Cysts are graded distinctly from solid masses:
 
-### A. **Shape**
-- **Oval/Round**: Favors BIRADS 3/2 (if cystic).
-- **Irregular**: Raises suspicion (BIRADS 4/5).
+- **Simple cyst**: Anechoic, circumscribed, posterior enhancement, thin
+  imperceptible wall. Always **BI-RADS 2** regardless of size.
+- **Complicated cyst**: Hypoechoic, homogeneous low-level internal
+  echoes, no internal vascularity, no solid component, posterior
+  enhancement. **BI-RADS 2** if classic; **BI-RADS 3** if any atypical
+  feature.
+- **Clustered microcysts**: Cluster of tiny anechoic foci, individual
+  cysts < 2-3 mm, no discrete solid component. **BI-RADS 2**.
+- **Complex cystic and solid mass**: Mixed cystic and solid components,
+  thick wall (> 0.5 mm), thick septations (> 0.5 mm), or a mural
+  nodule. **BI-RADS 4** at minimum — biopsy required.
 
-### B. **Orientation**
-- **Parallel** (wider than tall): Benign (BIRADS 2/3).
-- **Non-Parallel** (taller than wide): Suspicious (BIRADS 4/5).
+## Solid Mass Feature Analysis
 
-### C. **Margin**
-- **Circumscribed**: Smooth, well-defined (BIRADS 2/3).
-- **Indistinct**, **Angular**, **Microlobulated**, or **Spiculated**: Suspicious (BIRADS 4/5).
+The category is driven by the worst feature; one suspicious feature is
+sufficient to upgrade.
 
-### D. **Lesion Boundary**
-- **Abrupt Interface**: Benign (BIRADS 2/3).
-- **Echogenic Halo**: Suspicious (BIRADS 4/5).
+### Shape
+- Oval / round → benign-favouring.
+- Irregular → suspicious.
 
-### E. **Echo Pattern**
-- **Anechoic (Cyst)**: BIRADS 2.
-- **Hyperechoic (Lipoma)**: BIRADS 2.
-- **Hypoechoic (Solid)**: Requires further analysis (check margins/orientation).
-- **Complex Cystic/Solid**: BIRADS 4.
+### Orientation
+- Parallel (wider than tall) → benign-favouring.
+- Non-parallel (taller than wide) → suspicious.
 
-### F. **Posterior Features**
-- **Enhancement**: Benign (BIRADS 2/3).
-- **Shadowing**: Suspicious (BIRADS 4/5).
-- **Mixed Pattern**: Assess other features.
+### Margin
+- Circumscribed → benign-favouring.
+- Indistinct, angular, microlobulated, spiculated → suspicious.
+  Spiculated is the strongest single suspicious feature.
 
-### G. **Calcifications**
-- **Macrocalcifications (in cysts)**: BIRADS 2.
-- **Microcalcifications (in solid mass)**: BIRADS 4/5.
+### Echo pattern
+- Anechoic, hyperechoic, complex cystic-and-solid, hypoechoic, isoechoic,
+  heterogeneous. Anechoic with classic cyst features = simple cyst (Cat
+  2). Hypoechoic with suspicious shape/margin = solid mass requiring
+  full feature analysis.
 
-### H. **Vascularity**
-- **Absent/Peripheral**: BIRADS 2/3.
-- **Internal Vascularity**: BIRADS 4/5.
+### Posterior features
+- Posterior enhancement → benign-favouring (cyst).
+- Posterior shadowing → suspicious for malignancy when associated with
+  a solid mass.
+- Combined or no posterior features — assess other criteria.
 
-### I. **Associated Features**
-- **Duct Extension**, **Skin Thickening**, or **Architectural Distortion**: BIRADS 4/5.
+### Calcifications in a mass
+- Microcalcifications inside a solid hypoechoic mass → suspicious.
 
----
+### Vascularity
+- Absent or peripheral → benign-favouring.
+- Internal vascularity → suspicious.
 
-## 3. **Decision Logic for LLMs**
-Use this flowchart to assign BIRADS based on findings:
-1. **Cystic Lesion** (anechoic, circumscribed, posterior enhancement) → **BIRADS 2**.
-2. **Solid Mass**:
-   - **All Benign Features** (oval, parallel, circumscribed, no vascularity) → **BIRADS 3**.
-   - **1 Suspicious Feature** (e.g., angular margin) → **BIRADS 4A**.
-   - **≥2 Suspicious Features** (irregular, non-parallel, spiculated) → **BIRADS 4B/4C**.
-   - **Highly Suspicious** (spiculated + shadowing + internal vascularity) → **BIRADS 5**.
-3. **Multiple Bilateral Masses** with benign features → **BIRADS 2**.
-4. **Intraductal Mass** or **Calcifications in Solid Mass** → **BIRADS 4**.
+### Associated features
+- Architectural distortion, duct extension, skin thickening, oedema,
+  abnormal axillary nodes — all push toward higher suspicion.
 
----
+## Categories and Management Actions
 
-## 4. **Examples for LLM Training**
-### Case 1:
-- **Findings**: 8mm oval, parallel, circumscribed, hypoechoic mass with posterior enhancement.
-- **LLM Interpretation**: BIRADS 3 (probably benign; short-term follow-up).
+### Category 1 — Negative
+- **Findings**: No focal abnormality.
+- **Action**: Continue screening per the patient's pathway. Cat 1 is
+  rarely used alone in US — most exams default to Cat 2 if benign
+  findings are documented.
 
-### Case 2:
-- **Findings**: 15mm irregular, non-parallel mass with spiculated margins and shadowing.
-- **LLM Interpretation**: BIRADS 5 (highly suggestive of malignancy; biopsy urgently).
+### Category 2 — Benign
+- **Findings**: Simple cyst, classic complicated cyst, clustered
+  microcysts, intramammary lymph node, lipoma, hamartoma, post-surgical
+  scar, oil cyst, classic fibroadenoma in a known patient, fat necrosis
+  with characteristic appearance.
+- **Action**: Routine screening at the standard interval. Document the
+  benign diagnosis explicitly so the referrer does not over-investigate.
 
----
+### Category 3 — Probably benign (≤ 2 % malignancy risk)
+- **Findings**: Solid mass with all benign features (oval, parallel,
+  circumscribed, hypoechoic, no vascularity), or complicated cyst with
+  one atypical feature, or focal asymmetry that appears benign.
+- **Action — full short-interval pathway**:
+  1. Targeted unilateral US (± mammogram) at **6 months**.
+  2. If stable, bilateral US at **12 months** from baseline.
+  3. If stable, bilateral US at **24 months** from baseline.
+  4. After 2-3 years of stability, downgrade to BI-RADS 2.
+- Do not assign Cat 3 to a palpable mass without diagnostic mammographic
+  correlation.
 
-## 5. **Recommendations Structure**
-Instruct the LLM to format recommendations to present in one sentence for each lesion. Do not mention headings presented in {}:
-1. {Lesion location} e.g. Right upper outer quadrant at 11 o'clock position.{**BIRADS Category**}(e.g., **BIRADS 4A**,  Clarify uncertainty as BIRADS 0 if required) due to presence of {**Rationale** Concise feature summary} e.g., irregular shape, non-parallel orientation. {**Action**: Follow BIRADS management table} (e.g., "Biopsy recommended").
+### Category 4 — Suspicious (4A / 4B / 4C subdivisions)
+- **4A**: Low suspicion (> 2 % to ≤ 10 %). E.g. solid mass with one
+  suspicious feature (single indistinct margin segment, mild
+  hypoechogenicity, no other suspicious features), or complex cystic
+  and solid mass with thin septations.
+- **4B**: Moderate suspicion (> 10 % to ≤ 50 %). E.g. solid mass with
+  two suspicious features.
+- **4C**: High suspicion (> 50 % to < 95 %). E.g. solid mass with
+  multiple suspicious features but lacking the full BI-RADS 5
+  appearance.
+- **Action**: Image-guided core needle biopsy (US-guided is the
+  default). After biopsy, follow radiology-pathology concordance.
 
----
-**Key LLM Directive**: You have to always provide BIRADS Category to each lesion. Always prioritize the most suspicious feature to assign the highest possible BIRADS category. If conflicting features exist, default to higher suspicion (e.g., circumscribed but irregular → BIRADS 4).
-```
+### Category 5 — Highly suggestive of malignancy (≥ 95 %)
+- **Findings**: Solid mass with multiple suspicious features — typically
+  irregular shape + non-parallel orientation + spiculated margin + marked
+  posterior shadowing ± internal vascularity ± skin thickening.
+- **Action**: Image-guided core biopsy as the next step, followed by
+  surgical / oncology referral with pre-treatment staging. Axillary US
+  is part of pre-treatment workup.
+
+### Category 6 — Known biopsy-proven malignancy
+- **Findings**: US for treatment planning or response assessment.
+- **Action**: Per oncology pathway.
+
+### Category 0 — Incomplete (rarely used in US)
+- Use Cat 0 if US is technically inadequate or further imaging
+  (mammography, MRI) is required to make a final assessment. Once
+  complete, assign 1-5.
+
+## Reporting Format per Lesion
+
+For each non-Cat 1/2 lesion, state:
+1. Location (clock position + cm from nipple, breast side).
+2. Size (three dimensions).
+3. Echo pattern, shape, orientation, margin, posterior features,
+   vascularity, associated features.
+4. BI-RADS category (with subcategory for Cat 4).
+5. Specific recommended action (with full pathway for Cat 3).
+
+## Worked Examples
+
+**Example 1**: 8 mm anechoic, circumscribed, oval lesion at 11 o'clock
+in the right breast, 4 cm from the nipple, with posterior acoustic
+enhancement. No internal echoes, thin imperceptible wall.
+→ Simple cyst = **Cat 2**.
+→ **Action**: Routine screening. State the benign diagnosis explicitly.
+
+**Example 2**: 9 mm solid mass at 2 o'clock in the left breast, 5 cm
+from the nipple. Oval, parallel, circumscribed, hypoechoic, posterior
+enhancement, no vascularity. No prior imaging.
+→ All benign features but solid and previously undocumented = **Cat 3**.
+→ **Action**: Targeted left US ± mammogram at 6 months, then bilateral
+US at 12 months and 24 months from baseline. Downgrade to Cat 2 after
+2-3 years of stability.
+
+**Example 3**: 14 mm hypoechoic mass at 10 o'clock in the right breast,
+3 cm from nipple. Irregular shape, non-parallel orientation, indistinct
+margins, posterior shadowing, internal vascularity. Skin tethering.
+→ Multiple high-suspicion features + skin involvement = **Cat 5**.
+→ **Action**: US-guided core biopsy. Axillary US for nodal staging.
+Surgical / oncology referral.
+
+**Example 4**: 18 mm complex cystic and solid mass at 9 o'clock in the
+left breast, with a 4 mm mural nodule and internal vascularity.
+→ Complex cystic and solid with mural nodule = **Cat 4** at minimum,
+likely 4B.
+→ **Action**: US-guided core biopsy of the solid component / mural
+nodule.
+
+## Output Requirements for Impressions
+
+When applying BI-RADS to ultrasound:
+1. Assign exactly one final BI-RADS category per lesion.
+2. State the specific action — screening interval (with interval named),
+   short-interval pathway (with full 6/12/24-month sequence for Cat 3),
+   US-guided core biopsy, or oncology referral. Never use "follow-up
+   recommended" without specifying the interval and pathway.
+3. For Cat 4, name the subcategory (4A / 4B / 4C) if assessable.
+4. For palpable lesions, state mammographic correlation status — Cat 3
+   is generally not appropriate without diagnostic mammographic
+   correlation.
+5. State the rationale (the worst suspicious feature) so the referrer
+   understands why the category was assigned.

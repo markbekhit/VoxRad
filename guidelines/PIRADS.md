@@ -1,79 +1,143 @@
-# Prostate Imaging Reporting and Data System (PI-RADS) v2.1 Guidelines
+# PI-RADS v2.1 — Prostate Imaging Reporting and Data System
 
-The Prostate Imaging Reporting and Data System (PI-RADS) v2.1 provides a standardized framework for evaluating and reporting prostate MRI findings. This system aids in assessing the risk of clinically significant prostate cancer and guides subsequent management decisions. Below is a structured approach to assist a Large Language Model (LLM) in generating appropriate recommendations based on MRI prostate radiology findings.
+PI-RADS v2.1 stratifies prostate MRI lesions by likelihood of clinically
+significant prostate cancer (csPCa, defined as Gleason ≥ 3+4). It is
+applied to multiparametric MRI (T2W + DWI + DCE) of the prostate in
+biopsy-naïve patients or those on active surveillance.
 
-## PI-RADS Assessment Categories
+## Categories
 
-PI-RADS assigns lesions a score from 1 to 5, reflecting the likelihood of clinically significant prostate cancer:
+- **PI-RADS 1**: Very low — clinically significant cancer is highly
+  unlikely.
+- **PI-RADS 2**: Low — clinically significant cancer is unlikely.
+- **PI-RADS 3**: Intermediate — clinically significant cancer is
+  equivocal.
+- **PI-RADS 4**: High — clinically significant cancer is likely.
+- **PI-RADS 5**: Very high — clinically significant cancer is highly
+  likely.
 
-- **PI-RADS 1**: Very low likelihood of clinically significant cancer.
-- **PI-RADS 2**: Low likelihood of clinically significant cancer.
-- **PI-RADS 3**: Intermediate likelihood of clinically significant cancer.
-- **PI-RADS 4**: High likelihood of clinically significant cancer.
-- **PI-RADS 5**: Very high likelihood of clinically significant cancer.
+## Scoring by Zone
 
-## Imaging Sequences and Dominant Techniques
+Each lesion's category is determined by the dominant sequence for its
+zone, then modified by secondary sequences.
 
-The prostate is divided into two primary zones, each evaluated using specific MRI sequences:
+### Peripheral Zone (PZ) — DWI is dominant
 
-1. **Peripheral Zone (PZ)**:
-   - **Dominant Sequence**: Diffusion-Weighted Imaging (DWI).
-   - **Assessment**:
-     - **DWI Score**:
-       - 1: No abnormality.
-       - 2: Indistinct, low-signal-intensity area.
-       - 3: Focal, mildly/moderately hypointense.
-       - 4: Focal, markedly hypointense.
-       - 5: Same as 4, but ≥1.5 cm or definite extraprostatic extension/invasive behavior.
-     - **Dynamic Contrast-Enhanced (DCE) Imaging**:
-       - Utilized when DWI yields a PI-RADS 3 score. Positive DCE (focal early enhancement) can upgrade the lesion to PI-RADS 4.
+DWI score (high b-value + ADC):
+- **DWI 1**: Normal (no restriction).
+- **DWI 2**: Linear, wedge-shaped low ADC; not focal.
+- **DWI 3**: Focal, mildly/moderately hypointense on ADC; not markedly
+  hyperintense on high-b DWI.
+- **DWI 4**: Focal, markedly hypointense on ADC AND markedly
+  hyperintense on high-b DWI; < 1.5 cm.
+- **DWI 5**: Same features as DWI 4 but ≥ 1.5 cm OR definite
+  extraprostatic extension/invasive behaviour.
 
-2. **Transition Zone (TZ)**:
-   - **Dominant Sequence**: T2-Weighted Imaging (T2WI).
-   - **Assessment**:
-     - **T2WI Score**:
-       - 1: Homogeneous, intermediate signal.
-       - 2: Circumscribed hypointense or heterogeneous encapsulated nodule.
-       - 3: Heterogeneous signal with obscured margins.
-       - 4: Lenticular or non-circumscribed, hypointense.
-       - 5: Same as 4, but ≥1.5 cm or definite extraprostatic extension/invasive behavior.
-     - **DWI**:
-       - Used to modify T2WI scores, especially when T2WI is indeterminate.
+DCE modifier for PZ lesions:
+- DCE positive (focal early enhancement corresponding to a DWI 3 lesion)
+  upgrades PI-RADS 3 → PI-RADS 4.
+- DCE negative leaves the score unchanged.
 
-## Generating Recommendations
+### Transition Zone (TZ) — T2W is dominant
 
-When interpreting MRI prostate findings, the LLM should:
+T2W score:
+- **T2W 1**: Normal heterogeneous TZ signal.
+- **T2W 2**: Circumscribed hypointense or heterogeneous encapsulated
+  nodule (BPH).
+- **T2W 3**: Heterogeneous signal with obscured margins.
+- **T2W 4**: Lenticular or non-circumscribed, homogeneous, moderately
+  hypointense; < 1.5 cm.
+- **T2W 5**: Same features as T2W 4 but ≥ 1.5 cm OR definite
+  extraprostatic extension/invasive behaviour.
 
-1. **Identify Lesion Characteristics**:
-   - Determine the location (PZ or TZ), size, and specific imaging features of each lesion.
+DWI modifier for TZ lesions:
+- DWI ≥ 4 upgrades T2W 3 → PI-RADS 4.
 
-2. **Assign PI-RADS Score**:
-   - Use the dominant imaging sequence for the lesion's zone to assign an initial score.
-   - Incorporate findings from secondary sequences (e.g., DCE for PZ lesions) to adjust the score as necessary.
+## Management Recommendations
 
-3. **Provide Management Recommendations**:
-   - **PI-RADS 1-2**: Clinically significant cancer is unlikely; routine screening may continue based on clinical context.
-   - **PI-RADS 3**: Indeterminate; consider clinical factors, and possibly recommend follow-up imaging or biopsy.
-   - **PI-RADS 4-5**: High likelihood of clinically significant cancer; recommend targeted biopsy and further evaluation.
+PI-RADS does not prescribe management on imaging alone — the urologist
+combines PI-RADS with PSA, PSA density (PSAD), age, family history, and
+biopsy history. The recommendations below reflect current EAU /
+NCCN guidance.
 
-**Example Application**:
+### PI-RADS 1
+- **Action**: csPCa is highly unlikely on MRI. No targeted biopsy
+  indicated based on imaging alone. Manage per clinical context (PSA
+  trajectory, DRE).
 
-*Findings*:
-- **Lesion 1**: Located in the Peripheral Zone, measures 1.2 cm, focal markedly hypointense on DWI, positive focal early enhancement on DCE.
-- **Lesion 2**: Located in the Transition Zone, measures 0.8 cm, heterogeneous signal with obscured margins on T2WI, DWI shows focal markedly hypointense area.
+### PI-RADS 2
+- **Action**: csPCa is unlikely. No targeted biopsy indicated based on
+  imaging alone. Continue clinical surveillance per urology pathway.
 
-*Assessment*:
-- **Lesion 1**:
-  - DWI Score: 4 (focal, markedly hypointense).
-  - DCE: Positive (focal early enhancement).
-  - **PI-RADS Assessment**: 4 (high likelihood of clinically significant cancer).
-- **Lesion 2**:
-  - T2WI Score: 3 (heterogeneous signal with obscured margins).
-  - DWI Score: 4 (focal, markedly hypointense).
-  - **PI-RADS Assessment**: 4 (high likelihood of clinically significant cancer).
+### PI-RADS 3
+- **Action**: Equivocal. Recommend MR-targeted biopsy if PSA density
+  ≥ 0.15 ng/mL/cc, family history of prostate cancer, or other elevated
+  clinical risk. Otherwise consider repeat MRI in 6-12 months or
+  systematic biopsy per urology pathway.
+- This is the most clinically nuanced category — the imaging alone does
+  not dictate management; clinical context drives the decision.
 
-*Recommendations*:
-- **Lesion 1**: Recommend targeted biopsy due to high likelihood of clinically significant cancer.
-- **Lesion 2**: Recommend targeted biopsy due to high likelihood of clinically significant cancer.
+### PI-RADS 4
+- **Action**: MR-targeted biopsy recommended (typically combined with
+  systematic biopsy on the same session).
 
-By following this structured approach, the LLM can generate appropriate management recommendations based on the PI-RADS v2.1 guidelines. 
+### PI-RADS 5
+- **Action**: MR-targeted biopsy recommended (typically combined with
+  systematic biopsy). Staging considerations (extraprostatic extension,
+  seminal vesicle invasion, lymphadenopathy) should be reported and
+  factor into surgical / radiation planning.
+
+## Reporting Requirements
+
+Per PI-RADS v2.1, every dominant lesion should be reported with:
+1. **Location** (sector / zone — peripheral vs transition, side, level).
+2. **Size** (longest diameter on the dominant sequence).
+3. **PI-RADS category** (1-5).
+4. **Extraprostatic extension** assessment for PI-RADS 4-5 lesions.
+5. **Seminal vesicle invasion** if present.
+6. **Lymphadenopathy** if present (≥ 8 mm short-axis suggests
+   pathological nodes; report any suspicious node regardless of size).
+
+Up to four highest-category lesions should be characterised; the
+**index lesion** is the highest-category, then the largest if tied.
+
+## Worked Examples
+
+**Example 1**: 1.2 cm focal lesion in the right peripheral zone, mid
+gland. Markedly hypointense on ADC, markedly hyperintense on high-b DWI.
+DCE shows focal early enhancement.
+→ DWI score 4 (focal, markedly hypointense, < 1.5 cm) = PI-RADS 4.
+DCE positive does not upgrade further. Final: **PI-RADS 4**.
+→ **MR-targeted biopsy recommended.**
+
+**Example 2**: 2.0 cm peripheral zone lesion with markedly hypointense
+ADC and markedly hyperintense high-b DWI.
+→ DWI score 5 (≥ 1.5 cm) = **PI-RADS 5**.
+→ **MR-targeted biopsy recommended; assess for extraprostatic extension
+and seminal vesicle invasion.**
+
+**Example 3**: 8 mm transition zone lesion with heterogeneous signal and
+obscured margins on T2W. DWI score 3 (focal mildly hypointense on ADC).
+→ T2W 3 + DWI 3 = **PI-RADS 3**.
+→ **Equivocal. Recommend MR-targeted biopsy if PSA density ≥ 0.15
+ng/mL/cc or other elevated clinical risk; otherwise repeat MRI in 6-12
+months or proceed per urology pathway.**
+
+**Example 4**: 14 mm peripheral zone lesion with definite extraprostatic
+extension into the right neurovascular bundle.
+→ Definite EPE = **PI-RADS 5** regardless of measurement.
+→ **MR-targeted biopsy. Document EPE and laterality of NVB involvement
+for surgical planning.**
+
+## Output Requirements for Impressions
+
+When applying PI-RADS:
+1. State the lesion location, size, and PI-RADS category.
+2. Name the specific management action — MR-targeted biopsy, MRI in
+   6-12 months, or "no targeted biopsy indicated based on imaging
+   alone." Do NOT use vague phrases like "consider biopsy" or "further
+   evaluation."
+3. For PI-RADS 3, name the PSA-density threshold and clinical-risk
+   factors that would tip toward biopsy.
+4. For PI-RADS 4-5, comment on extraprostatic extension and seminal
+   vesicle invasion if assessable.
