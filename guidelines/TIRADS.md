@@ -1,49 +1,98 @@
-## TIRADS Guidelines for Thyroid Ultrasound: Recommendations Framework
+# ACR TI-RADS 2017 — Thyroid Imaging Reporting and Data System
 
-This document outlines how to derive recommendations based on findings from thyroid ultrasound reports using the TIRADS (Thyroid Imaging Reporting and Data System) guidelines. The recommendations will be structured according to the findings/impressions categorized by TIRADS.
+The ACR TI-RADS is a point-based system for stratifying thyroid nodules
+on ultrasound and recommending FNA or follow-up based on the resulting
+TR category AND the nodule's largest diameter. The size threshold is
+critical — a TR4 nodule below 1.0 cm needs no follow-up, while the same
+TR4 nodule at 1.5 cm or above requires FNA.
 
-### 1. Understanding TIRADS Categories
+## TR Categories (from point totals)
 
-TIRADS categorizes thyroid nodules based on ultrasound characteristics, which aids in assessing the risk of malignancy. The categories are typically defined as follows:
+Points are summed across five feature categories on ultrasound:
+composition, echogenicity, shape, margin, and echogenic foci. Totals map
+to the following categories:
 
-- **TIRADS 1**: Benign - No further action required.
-- **TIRADS 2**: Not suspicious - Follow-up as per clinical judgment.
-- **TIRADS 3**: Mildly suspicious - Consider follow-up imaging.
-- **TIRADS 4**: Moderately suspicious - Fine Needle Aspiration (FNA) recommended.
-- **TIRADS 5**: Highly suspicious - FNA or surgical intervention recommended.
+- **TR1 (0 points): Benign**
+- **TR2 (2 points): Not suspicious**
+- **TR3 (3 points): Mildly suspicious**
+- **TR4 (4 to 6 points): Moderately suspicious**
+- **TR5 (7 or more points): Highly suspicious**
 
-### 2. Recommendations Based on Findings
+## Management Recommendations — by TR category AND largest diameter
 
-The following structured approach is designed to help a language model (LLM) generate recommendations based on specific findings in ultrasound reports:
+The recommendation depends on BOTH the TR category AND the nodule's
+largest diameter (in any plane). Always state the specific action
+(FNA, follow-up at specified intervals, or no action). Never say "warrants
+further evaluation" or "may need follow-up" — name the action explicitly.
 
-#### **A. Findings Indicating TIRADS Categories**
+### TR1 (Benign)
+- Any size: No FNA, no follow-up.
 
-1. **TIRADS 1 Findings**
-   - Characteristics: Cystic nodules without solid components.
-   - **Recommendation**: No action required; routine follow-up unless clinical symptoms arise.
+### TR2 (Not suspicious)
+- Any size: No FNA, no follow-up.
 
-2. **TIRADS 2 Findings**
-   - Characteristics: Solid nodules with benign features (e.g., isoechoic).
-   - **Recommendation**: Clinical correlation; consider follow-up imaging in 12-24 months if indicated.
+### TR3 (Mildly suspicious)
+- Largest diameter **≥ 2.5 cm**: FNA recommended.
+- Largest diameter **≥ 1.5 cm but < 2.5 cm**: Follow-up ultrasound at 1, 3, and 5 years.
+- Largest diameter **< 1.5 cm**: No FNA, no follow-up.
 
-3. **TIRADS 3 Findings**
-   - Characteristics: Solid nodules with some suspicious features (e.g., microcalcifications).
-   - **Recommendation**: Follow-up imaging in 6-12 months; consider FNA if there are changes.
+### TR4 (Moderately suspicious)
+- Largest diameter **≥ 1.5 cm**: FNA recommended.
+- Largest diameter **≥ 1.0 cm but < 1.5 cm**: Follow-up ultrasound at 1, 2, 3, and 5 years.
+- Largest diameter **< 1.0 cm**: No FNA, no follow-up.
 
-4. **TIRADS 4 Findings**
-   - Characteristics: Solid nodules with moderate suspicion (e.g., irregular margins, taller than wide).
-   - **Recommendation**: Perform FNA to evaluate for malignancy; discuss results with a specialist.
+### TR5 (Highly suspicious)
+- Largest diameter **≥ 1.0 cm**: FNA recommended.
+- Largest diameter **≥ 0.5 cm but < 1.0 cm**: Annual follow-up ultrasound for 5 years.
+- Largest diameter **< 0.5 cm**: No FNA, no follow-up.
 
-5. **TIRADS 5 Findings**
-   - Characteristics: Solid nodules with high suspicion (e.g., marked hypoechogenicity, microcalcifications).
-   - **Recommendation**: Urgent FNA or surgical evaluation recommended; refer to an endocrinologist or surgeon for management.
+## Multinodular Glands
 
-### 3. Additional Considerations
+When more than one nodule is reported:
+- FNA the nodule(s) with the **highest TR category**, NOT necessarily the
+  largest nodule.
+- If multiple nodules share the highest TR category, FNA the **two
+  largest** among them.
+- Maximum **two nodules** biopsied per session (ACR recommendation).
+- Non-biopsied nodules are still measured and followed according to their
+  own TR / size rules.
+- A small TR5 nodule that meets the FNA threshold takes priority over a
+  much larger TR3 nodule that does not.
 
-- **Patient History**: Always consider the patient's clinical history, including family history of thyroid cancer and previous thyroid conditions.
-- **Nodule Size**: Larger nodules (>1 cm) with suspicious features should be prioritized for FNA regardless of TIRADS classification.
-- **Follow-Up Protocols**: Establish a follow-up protocol based on initial findings and patient risk factors.
+## Worked Examples
 
-### 4. Conclusion
+**Example 1**: Solid nodule in the right mid lobe, 11 x 3 x 6 mm,
+classified TR4. Largest diameter 1.1 cm.
+→ TR4, ≥ 1.0 cm but < 1.5 cm.
+→ **Follow-up ultrasound at 1, 2, 3, and 5 years.** Does NOT meet the
+TR4 FNA threshold of ≥ 1.5 cm.
 
-This structured approach allows healthcare professionals to generate clear and actionable recommendations based on TIRADS classifications derived from ultrasound findings. By adhering to these guidelines, the management of thyroid nodules can be standardized, improving patient outcomes and minimizing unnecessary procedures.
+**Example 2**: Solid nodule in the right lower lobe, 16 x 11 x 15 mm,
+classified TR3. Largest diameter 1.6 cm.
+→ TR3, ≥ 1.5 cm but < 2.5 cm.
+→ **Follow-up ultrasound at 1, 3, and 5 years.** Does NOT meet the TR3
+FNA threshold of ≥ 2.5 cm.
+
+**Example 3**: Solid nodule with marked hypoechogenicity and
+microcalcifications, 12 mm, classified TR5.
+→ TR5, ≥ 1.0 cm.
+→ **FNA recommended.**
+
+**Example 4**: Cluster of TR3 nodules all under 1.5 cm with one TR5
+nodule at 8 mm.
+→ The TR5 nodule is in the 5-9 mm follow-up band, so annual ultrasound
+for 5 years. The TR3 nodules under 1.5 cm need no FNA or follow-up.
+
+## Output Requirements for Impressions
+
+When applying TI-RADS:
+1. State the TR category and largest diameter for each significant nodule.
+2. State the specific management action — FNA, follow-up at specific
+   intervals (e.g. "1, 2, 3, and 5 years"), or no action — never vague
+   phrases like "warrants further evaluation" or "consider follow-up."
+3. If a nodule's largest diameter is below the FNA threshold but above
+   the follow-up threshold, recommend follow-up at the specific
+   intervals for that TR category, not FNA.
+4. Do NOT recommend FNA for any nodule below its TR category's FNA size
+   threshold, regardless of how many other nodules are present or how
+   suspicious-sounding the descriptor is.
