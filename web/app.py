@@ -28,7 +28,7 @@ from typing import Optional
 
 from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -357,6 +357,58 @@ def api_impressions_stream(req: ImpressionsRequest, request: Request):
     return StreamingResponse(
         _generate(),
         media_type="text/event-stream",
+        headers={"X-RadSpeed-Remaining": str(remaining)},
+    )
+
+
+@app.post("/api/impressions/text", response_class=PlainTextResponse)
+def api_impressions_text(req: ImpressionsRequest, request: Request):
+    """Non-streaming impression generation — returns plain text.
+
+    Designed for the Windows desktop helper (AutoHotkey / Tauri) where a
+    single HTTP POST with a plain-text body is much simpler than parsing
+    SSE. Same validation and rate limiting as the streaming endpoint.
+    """
+    findings = (req.findings or "").strip()
+    if not findings:
+        raise HTTPException(status_code=400, detail="Findings are required.")
+    if len(findings) > 8000:
+        raise HTTPException(
+            status_code=413,
+            detail="Findings too long. Please trim to under 8000 characters.",
+        )
+
+    ip = _impressions_client_ip(request)
+    allowed, remaining = _impressions_rate_check(ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Hourly limit of {_IMPRESSIONS_RATE_LIMIT} impressions reached. "
+                "Try again later or sign in to RadSpeed for unlimited use."
+            ),
+        )
+
+    if not config.TEXT_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Text model is not configured on this server.",
+        )
+
+    try:
+        chunks = list(stream_impression(
+            findings=findings,
+            modality=req.modality,
+            style=req.style,
+            with_guidelines=bool(req.with_guidelines),
+        ))
+    except Exception as e:
+        logger.error("Impressions text generation error: %s", e, exc_info=True)
+        raise HTTPException(status_code=502, detail=f"Generation failed: {e}")
+
+    text = "".join(chunks).strip()
+    return PlainTextResponse(
+        text,
         headers={"X-RadSpeed-Remaining": str(remaining)},
     )
 

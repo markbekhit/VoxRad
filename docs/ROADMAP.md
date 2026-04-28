@@ -110,6 +110,22 @@ deployment and partner sign-on, not new code.
 acquisition mechanism in the segment. Validates demand and warms users up
 for the full RadSpeed dictation workstation.
 
+### Phase 0.5 (just landed): Windows desktop helper for the Impressions tool
+
+**Done.** AutoHotkey v2 script in `desktop-helper/RadSpeedImpressions.ahk`.
+Removes the copy/paste round-trip from the web tool — radiologist selects
+findings in PowerScribe One (or any Windows app), presses **Ctrl+I**, and
+the impression appears in the IMPRESSION section of the report. Backed by
+the existing public `POST /api/impressions/text` endpoint.
+
+Configurable: hotkey, paste mode (goto_impression / after_selection /
+replace_selection / at_cursor), and a `JumpKeys` field for the keystrokes
+that navigate from FINDINGS to IMPRESSION in the user's specific
+PowerScribe template. Default is `goto_impression` with empty JumpKeys,
+which falls back gracefully to the `after_selection` behaviour.
+
+Next iteration would be a Tauri-packaged signed binary (Phase 3 territory).
+
 ### Phase 1 (next, ~1 quarter): Audit log + sign-off + amendments
 
 The PACS/RIS integration is shipped. The next enterprise-credible gap is
