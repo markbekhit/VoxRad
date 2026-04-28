@@ -43,6 +43,7 @@ from llm.fhir_export import save_fhir_report
 from llm.hl7_export import save_hl7_report
 from llm.hl7_import import archive_order, list_inbox
 from llm.format import apply_report_feedback, capitalize_after_colon, format_text, stream_format_text
+from llm.impressions import stream_impression
 from web.auth_oauth import (
     exchange_google_code,
     exchange_microsoft_code,
@@ -245,6 +246,119 @@ def health():
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return RedirectResponse("/static/favicon.svg", status_code=308)
+
+
+# ---------------------------------------------------------------------------
+# Public Impressions wedge tool — free, no auth, IP rate-limited.
+# ---------------------------------------------------------------------------
+
+# Simple in-memory sliding-window rate limiter keyed by client IP.
+# Process-local; sufficient for the single-instance free tier. Replace with
+# Redis or a CDN/edge limiter when we scale beyond one app server.
+_IMPRESSIONS_RATE_LIMIT = int(os.environ.get("RADSPEED_IMPRESSIONS_HOURLY_LIMIT", "20"))
+_IMPRESSIONS_WINDOW_SEC = 3600
+_impressions_hits: dict[str, list[float]] = {}
+_impressions_lock = threading.Lock()
+
+
+def _impressions_client_ip(request: Request) -> str:
+    # Honour X-Forwarded-For when set (we expect to run behind a reverse proxy).
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _impressions_rate_check(ip: str) -> tuple[bool, int]:
+    """Return (allowed, remaining). Mutates the hit log on allow."""
+    now = time.time()
+    cutoff = now - _IMPRESSIONS_WINDOW_SEC
+    with _impressions_lock:
+        hits = _impressions_hits.get(ip, [])
+        hits = [t for t in hits if t > cutoff]
+        if len(hits) >= _IMPRESSIONS_RATE_LIMIT:
+            _impressions_hits[ip] = hits
+            return False, 0
+        hits.append(now)
+        _impressions_hits[ip] = hits
+        return True, _IMPRESSIONS_RATE_LIMIT - len(hits)
+
+
+@app.get("/impressions", include_in_schema=False)
+def impressions_page(request: Request):
+    return _jinja.TemplateResponse(
+        request,
+        "impressions.html",
+        {
+            "request": request,
+            "static_version": _STATIC_VERSION,
+        },
+    )
+
+
+class ImpressionsRequest(BaseModel):
+    findings: str
+    modality: Optional[str] = None
+    with_guidelines: bool = False
+    style: Optional[dict] = None
+
+
+@app.post("/api/impressions/stream")
+def api_impressions_stream(req: ImpressionsRequest, request: Request):
+    """Stream a guideline-aware radiology impression from the supplied findings.
+
+    Public endpoint (no auth) — rate-limited per client IP.
+    SSE frames:
+      data: {"token": "..."}     — text chunk
+      data: {"done": true}       — completion
+      data: {"error": "..."}     — error
+    """
+    findings = (req.findings or "").strip()
+    if not findings:
+        raise HTTPException(status_code=400, detail="Findings are required.")
+    if len(findings) > 8000:
+        raise HTTPException(
+            status_code=413,
+            detail="Findings too long. Please trim to under 8000 characters.",
+        )
+
+    ip = _impressions_client_ip(request)
+    allowed, remaining = _impressions_rate_check(ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Hourly limit of {_IMPRESSIONS_RATE_LIMIT} impressions reached. "
+                "Try again later or sign in to RadSpeed for unlimited use."
+            ),
+        )
+
+    if not config.TEXT_API_KEY:
+        def _err():
+            yield 'data: {"error": "Text model is not configured on this server."}\n\n'
+        return StreamingResponse(_err(), media_type="text/event-stream")
+
+    def _generate():
+        try:
+            for chunk in stream_impression(
+                findings=findings,
+                modality=req.modality,
+                style=req.style,
+                with_guidelines=bool(req.with_guidelines),
+            ):
+                if chunk:
+                    yield f'data: {json.dumps({"token": chunk})}\n\n'
+        except Exception as e:
+            logger.error("Impressions stream error: %s", e, exc_info=True)
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+            return
+        yield 'data: {"done": true}\n\n'
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={"X-RadSpeed-Remaining": str(remaining)},
+    )
 
 
 # ---------------------------------------------------------------------------
