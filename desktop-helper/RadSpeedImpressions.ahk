@@ -139,7 +139,7 @@ NoOp(*) {
 LoadSettings()
 HotKey Settings["Hotkey"], OnHotkey
 
-TrayTip("v2 — Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
+TrayTip("v3 — Press " HumanHotkey(Settings["Hotkey"]) " to generate an impression.", "RadSpeed", 0x10)
 SetTimer ClearTrayTipNow, -3000
 
 ; ----------------------------------------------------------------------------
@@ -147,6 +147,13 @@ SetTimer ClearTrayTipNow, -3000
 ; ----------------------------------------------------------------------------
 GenerateImpression() {
     global Settings
+
+    ; The hotkey is Ctrl-based, so Ctrl is still considered "physically held"
+    ; until the user releases it. Subsequent Send calls with modifiers
+    ; (Shift for capitals, Ctrl for ^v) will misbehave if we proceed before
+    ; the user lets go. Wait up to 1 second.
+    KeyWait "Ctrl", "T1"
+    KeyWait "Shift", "T1"
 
     pasteMode := Settings["PasteMode"]
     needsSelection := pasteMode != "at_cursor"
@@ -230,12 +237,16 @@ PasteImpression(impression, mode) {
     global Settings
 
     ; Determine cursor placement before paste.
+    ; Send is used for special keys ({Enter}, {End}, {Right}, etc.) and for
+    ; user-supplied JumpKeys (which may contain modifiers). SendText is used
+    ; for literal text ("IMPRESSION:") so it works regardless of keyboard
+    ; layout and is unaffected by sticky-modifier issues.
     if (mode = "after_selection") {
-        ; Move to the end of the current selection without losing it, then
-        ; insert a blank line and an "IMPRESSION:" heading.
         Send "{Right}"
         Send "{End}"
-        Send "{Enter 2}IMPRESSION:{Enter}"
+        Send "{Enter 2}"
+        SendText "IMPRESSION:"
+        Send "{Enter}"
     } else if (mode = "replace_selection") {
         ; Selection still active from the earlier ^c — pasting will overwrite.
     } else if (mode = "goto_impression") {
@@ -244,13 +255,19 @@ PasteImpression(impression, mode) {
             Sleep 120
         } else {
             ; Fallback: behave like after_selection if no JumpKeys configured.
-            Send "{Right}{End}{Enter 2}IMPRESSION:{Enter}"
+            Send "{Right}{End}{Enter 2}"
+            SendText "IMPRESSION:"
+            Send "{Enter}"
         }
     } else if (mode = "at_cursor") {
-        ; Cursor already at end of doc from the read step — leave it.
-        Send "{Enter 2}IMPRESSION:{Enter}"
+        Send "{Enter 2}"
+        SendText "IMPRESSION:"
+        Send "{Enter}"
     }
 
+    ; Paste the impression via the clipboard. The user's original clipboard
+    ; was already restored by GenerateImpression() before this function ran,
+    ; so we save it again here, swap in the impression, paste, then restore.
     savedClip := A_Clipboard
     A_Clipboard := impression
     if !ClipWait(0.5) {
@@ -258,7 +275,7 @@ PasteImpression(impression, mode) {
         throw Error("Clipboard write failed")
     }
     Send "^v"
-    Sleep 120
+    Sleep 200
     A_Clipboard := savedClip
 }
 
