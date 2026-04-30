@@ -105,7 +105,10 @@ jobs:
 
           # Read signature file (the .nsis.zip.sig content is the raw sig string)
           $sigFile = Get-ChildItem $out -Filter "*.nsis.zip.sig" | Select-Object -First 1
-          if (-not $sigFile) { throw "No .nsis.zip.sig found — signing keys may not be configured." }
+          if (-not $sigFile) {
+            Write-Warning "No .nsis.zip.sig found — TAURI_SIGNING_PRIVATE_KEY secret is missing or empty. The installer will be uploaded but update.json will not be generated. Add the secret and re-run to enable auto-updates."
+            exit 0
+          }
           $signature = (Get-Content $sigFile.FullName -Raw).Trim()
 
           # Build download URL for the updater bundle
