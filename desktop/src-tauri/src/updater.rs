@@ -6,7 +6,6 @@
 //! the user clicks "Check for updates" in the tray menu.
 
 use tauri::AppHandle;
-use tauri_plugin_process::AppHandleExt;
 use tauri_plugin_updater::UpdaterExt;
 
 use crate::tray;
@@ -49,7 +48,9 @@ async fn check_and_apply(app: AppHandle) -> Result<(), Box<dyn std::error::Error
                 )
                 .await?;
 
-            app.restart();
+            // The NSIS update bundle relaunches the app itself;
+            // we just need to exit the old process.
+            app.exit(0);
         }
     }
 
