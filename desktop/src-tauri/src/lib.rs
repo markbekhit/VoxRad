@@ -9,6 +9,7 @@ mod hotkey;
 mod keyboard;
 mod settings;
 mod tray;
+pub(crate) mod updater;
 
 use serde::Deserialize;
 use tauri::{AppHandle, Manager};
@@ -81,6 +82,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             cmd_get_settings,
             cmd_save_settings,
@@ -122,6 +124,14 @@ pub fn run() {
                     let _ = window.set_focus();
                 }
             }
+
+            // Background update check after 10 s — lets the tray settle first
+            // and avoids a restart in the first seconds of the app's life.
+            let app_for_update = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                updater::run(app_for_update);
+            });
 
             Ok(())
         })

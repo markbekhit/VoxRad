@@ -1,16 +1,18 @@
 name: Desktop release (Windows)
 
 # Builds the RadSpeed Windows desktop companion (Tauri) and uploads the
-# NSIS .exe and MSI installers to a GitHub Release.
+# NSIS .exe, MSI, and auto-update bundle (.nsis.zip) to a GitHub Release.
+# Also generates update.json so installed copies auto-update to this version.
 #
 # Triggers:
-#   - push to main that changes desktop/.trigger-release (Claude pushes this
-#     file with the version string to cut a release, e.g. "0.2.0")
+#   - push to main that changes desktop/.trigger-release (Claude pushes
+#     this file with the version string, e.g. "0.2.0", to cut a release)
 #   - manual via workflow_dispatch (enter version in the input field)
 #
-# This workflow does NOT code-sign the installer. Windows SmartScreen will
-# show "Unknown publisher" until you add a signing certificate. See
-# desktop/README.md for the signing-cert setup steps.
+# Required GitHub secrets:
+#   TAURI_SIGNING_PRIVATE_KEY  — base64-encoded Ed25519 private key
+#                                (generated once via `cargo tauri signer generate`)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — empty string (key has no password)
 
 on:
   push:
@@ -64,27 +66,68 @@ jobs:
           cargo build --release
         shell: pwsh
 
-      - name: Bundle (NSIS + MSI)
+      - name: Bundle (NSIS + MSI + update bundle)
         run: |
           cd src-tauri
           cargo install tauri-cli --version "^2" --locked --quiet
           cargo tauri build
         shell: pwsh
         env:
-          # Empty signing key tells the bundler not to sign the auto-update
-          # manifest. Auto-update is disabled until proper keys are configured.
-          TAURI_SIGNING_PRIVATE_KEY: ""
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Collect installers
+      - name: Collect installers and update bundle
+        id: collect
         shell: pwsh
         run: |
           $bundle = "src-tauri/target/release/bundle"
           $out = "release-artifacts"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          # Full installers (for fresh installs)
           Get-ChildItem -Recurse -Path $bundle -Include *.exe,*.msi |
             ForEach-Object { Copy-Item $_.FullName $out }
+
+          # Update bundle + signature (for auto-updates from installed copies)
+          Get-ChildItem -Recurse -Path $bundle -Include *.nsis.zip,*.nsis.zip.sig |
+            ForEach-Object { Copy-Item $_.FullName $out }
+
+          Write-Host "Collected:"
           Get-ChildItem $out
+
+      - name: Generate update.json
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.VERSION }}"
+          $tag     = "${{ steps.ver.outputs.TAG }}"
+          $out     = "release-artifacts"
+          $repo    = "markbekhit/VoxRad"
+
+          # Read signature file (the .nsis.zip.sig content is the raw sig string)
+          $sigFile = Get-ChildItem $out -Filter "*.nsis.zip.sig" | Select-Object -First 1
+          if (-not $sigFile) { throw "No .nsis.zip.sig found — signing keys may not be configured." }
+          $signature = (Get-Content $sigFile.FullName -Raw).Trim()
+
+          # Build download URL for the updater bundle
+          $zipFile = Get-ChildItem $out -Filter "*.nsis.zip" | Select-Object -First 1
+          $zipName = $zipFile.Name
+          $url = "https://github.com/$repo/releases/download/$tag/$zipName"
+
+          $manifest = [ordered]@{
+            version  = $version
+            notes    = "See release notes: https://github.com/$repo/releases/tag/$tag"
+            pub_date = (Get-Date -UTC -Format "yyyy-MM-ddTHH:mm:ssZ")
+            platforms = [ordered]@{
+              "windows-x86_64" = [ordered]@{
+                signature = $signature
+                url       = $url
+              }
+            }
+          }
+
+          $manifest | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 "$out/update.json"
+          Write-Host "update.json:"
+          Get-Content "$out/update.json"
 
       - name: Upload artifacts (always)
         uses: actions/upload-artifact@v4

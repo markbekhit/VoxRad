@@ -57,8 +57,7 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
             }
         }
         ID_CHECK_UPDATES => {
-            // Phase 3.1: wire to tauri-plugin-updater once signing keys are configured.
-            set_status(app, "Updates: configure signing keys (see README).");
+            crate::updater::run(app.clone());
         }
         ID_QUIT => {
             app.exit(0);
