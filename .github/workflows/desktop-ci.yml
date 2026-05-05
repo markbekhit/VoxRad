@@ -87,7 +87,9 @@ jobs:
           cargo tauri build
         shell: pwsh
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ""
+          # createUpdaterArtifacts requires a real key; CI uses the same
+          # release secret since it just needs to verify the build pipeline.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
       - name: Upload bundler output (debug aid)
