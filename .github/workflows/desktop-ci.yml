@@ -80,30 +80,31 @@ jobs:
           cargo build --release
         shell: pwsh
 
-      - name: Write signing key to file
-        id: signing
-        shell: pwsh
-        run: |
-          # Same passwordless minisign key as in desktop-release.yml.
-          # Embedded inline because this repo is private; this keeps CI
-          # exercising the full updater-bundle path so regressions are
-          # caught before they reach a tagged release.
-          $keyB64 = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUUFBRUl5QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXJVUXp2SWdtWEtReUd3N3N5M2pSSVZOeVM5Q3VHRDdPNHpyZnA5S2QzM01Rb2F1SHFyNmlyZXBYekdEUWMrZ3ZoZ2JLdGNlV2hwV0tTa0h6dVo0aktkUmZFdkJDWGJKSUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE9Cg=="
-          $keyText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($keyB64))
-          $keyPath = Join-Path $env:RUNNER_TEMP "tauri_signing.key"
-          [System.IO.File]::WriteAllText($keyPath, $keyText.Replace("`r`n", "`n"))
-          "KEY_PATH=$keyPath" | Out-File -Append $env:GITHUB_OUTPUT
-          Write-Host "Signing key written to $keyPath"
-
-      - name: Bundle (NSIS + MSI)
+      - name: Bundle (NSIS + MSI + update bundle)
         run: |
           cd src-tauri
           cargo install tauri-cli --version "^2" --locked --quiet
           cargo tauri build
         shell: pwsh
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ steps.signing.outputs.KEY_PATH }}
+          # Same Tauri-format passwordless signing key as desktop-release.yml.
+          # Embedded inline because this is a private repo. Keeps CI
+          # exercising the full updater-bundle path so signing regressions
+          # are caught before a tagged release.
+          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+
+      - name: Verify updater bundle was produced (CI)
+        shell: pwsh
+        run: |
+          $bundle = "src-tauri/target/release/bundle"
+          $sig = Get-ChildItem -Recurse -Path $bundle -Filter "*.nsis.zip.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $zip = Get-ChildItem -Recurse -Path $bundle -Filter "*.nsis.zip"     -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $sig -or -not $zip) {
+            if (Test-Path $bundle) { Get-ChildItem -Recurse $bundle | Select-Object FullName, Length | Format-Table -AutoSize -Wrap }
+            throw "Updater artifacts missing in CI bundle. Signing is broken."
+          }
+          Write-Host "Updater bundle OK: $($zip.Name), sig: $($sig.Name)"
 
       - name: Upload bundler output (debug aid)
         if: always()

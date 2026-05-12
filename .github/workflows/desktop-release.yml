@@ -9,13 +9,15 @@ name: Desktop release (Windows)
 #     this file with the version string, e.g. "0.2.0", to cut a release)
 #   - manual via workflow_dispatch (enter version in the input field)
 #
-# Signing key: embedded inline below as base64 (this is a private repo).
-# The matching pubkey lives in desktop/src-tauri/tauri.conf.json. Generated
-# once with `minisign -G -W` (passwordless Ed25519). Rotating it means:
-# regenerate both halves, replace pubkey in tauri.conf.json, replace the
-# base64 string below, bump version, and ship one manual installer to
-# existing users (they pick up the new pubkey at install time, then all
-# future updates are silent).
+# Signing key: embedded inline in the Bundle step's env block (this is
+# a private repo). The matching pubkey lives in desktop/src-tauri/
+# tauri.conf.json. Generated once with `cargo tauri signer generate
+# --ci -p ""` — note that this is the rsign-format key Tauri requires
+# (scrypt KDF with empty password), NOT a minisign --no-password key,
+# which Tauri rejects. Rotating: regenerate, replace pubkey in
+# tauri.conf.json with new tauri.key.pub contents, replace
+# TAURI_SIGNING_PRIVATE_KEY string in the Bundle step with new
+# tauri.key contents, bump version, ship one manual install.
 
 on:
   push:
@@ -69,22 +71,6 @@ jobs:
           cargo build --release
         shell: pwsh
 
-      - name: Write signing key to file
-        id: signing
-        shell: pwsh
-        run: |
-          # Passwordless minisign Ed25519 key matched to the pubkey in
-          # tauri.conf.json. Embedded directly because GitHub Secrets
-          # repeatedly failed silently (unset/empty value → bundler
-          # skipped updater artifacts → no auto-update). This file is in
-          # a private repo so the key is only visible to collaborators.
-          $keyB64 = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUUFBRUl5QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXJVUXp2SWdtWEtReUd3N3N5M2pSSVZOeVM5Q3VHRDdPNHpyZnA5S2QzM01Rb2F1SHFyNmlyZXBYekdEUWMrZ3ZoZ2JLdGNlV2hwV0tTa0h6dVo0aktkUmZFdkJDWGJKSUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE9Cg=="
-          $keyText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($keyB64))
-          $keyPath = Join-Path $env:RUNNER_TEMP "tauri_signing.key"
-          [System.IO.File]::WriteAllText($keyPath, $keyText.Replace("`r`n", "`n"))
-          "KEY_PATH=$keyPath" | Out-File -Append $env:GITHUB_OUTPUT
-          Write-Host "Signing key written to $keyPath ($($keyText.Length) chars)"
-
       - name: Bundle (NSIS + MSI + update bundle)
         run: |
           cd src-tauri
@@ -92,7 +78,15 @@ jobs:
           cargo tauri build
         shell: pwsh
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ steps.signing.outputs.KEY_PATH }}
+          # Tauri-generated passwordless key (rsign format with scrypt
+          # KDF + empty password — Tauri requires this format; truly
+          # passwordless minisign keys are NOT accepted). Embedded
+          # inline because this is a private repo. The matching pubkey
+          # is in tauri.conf.json. To rotate: regenerate with
+          # `cargo tauri signer generate --ci -p ""`, replace this
+          # string with the contents of the new tauri.key file, replace
+          # tauri.conf.json pubkey with contents of tauri.key.pub.
+          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
       - name: Verify updater bundle was produced
@@ -108,32 +102,6 @@ jobs:
           }
           Write-Host "Updater bundle: $($zip.FullName)"
           Write-Host "Signature:      $($sig.FullName)"
-
-      - name: Diagnose bundle output
-        if: always()
-        shell: pwsh
-        run: |
-          $keyPath = "${{ steps.signing.outputs.KEY_PATH }}"
-          Write-Host "=== Signing key path ==="
-          Write-Host "KEY_PATH = '$keyPath'"
-          if ($keyPath -and (Test-Path $keyPath)) {
-            $f = Get-Item $keyPath
-            Write-Host "Key file: $($f.FullName) ($($f.Length) bytes)"
-            $firstLine = Get-Content $f.FullName -TotalCount 1
-            Write-Host "First line: $firstLine"
-            $lineCount = (Get-Content $f.FullName).Length
-            Write-Host "Line count: $lineCount"
-          } else {
-            Write-Warning "Key file does not exist or path is empty"
-          }
-          Write-Host ""
-          Write-Host "=== Bundle directory tree ==="
-          $bundleDir = "src-tauri/target/release/bundle"
-          if (Test-Path $bundleDir) {
-            Get-ChildItem -Recurse $bundleDir | Select-Object FullName, Length | Format-Table -AutoSize -Wrap
-          } else {
-            Write-Warning "No bundle directory at $bundleDir"
-          }
 
       - name: Collect installers and update bundle
         id: collect
