@@ -50,8 +50,8 @@ fn cmd_hide_settings(app: AppHandle) {
 }
 
 #[tauri::command]
-fn cmd_get_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
+fn cmd_get_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 #[tauri::command]
