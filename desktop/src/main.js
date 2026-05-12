@@ -20,6 +20,13 @@ async function load() {
     $("jump-keys").value      = cfg.jump_keys      ?? "tab";
     $("bearer-token").value   = cfg.bearer_token   ?? "";
     updateJumpKeysVisibility();
+    try {
+      const v = await invoke("cmd_get_version");
+      const el = $("app-subtitle");
+      if (el) el.textContent = `Windows desktop companion · v${v}`;
+    } catch (e) {
+      console.warn("version fetch failed:", e);
+    }
   } catch (e) {
     setSaveStatus(`Load failed: ${e}`, "status-error");
   }
@@ -91,8 +98,4 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-trigger").addEventListener("click", triggerNow);
   $("paste-mode").addEventListener("change", updateJumpKeysVisibility);
   load();
-  invoke("cmd_get_version").then((v) => {
-    const el = $("app-subtitle");
-    if (el) el.textContent = `Windows desktop companion · v${v}`;
-  }).catch(() => {});
 });

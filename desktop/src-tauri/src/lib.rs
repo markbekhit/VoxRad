@@ -95,6 +95,12 @@ pub fn run() {
     let _ = env_logger::try_init();
 
     tauri::Builder::default()
+        // Must be registered first so duplicate launches are caught before
+        // any expensive setup happens. The callback runs in the original
+        // (already-running) instance and brings the main app window forward.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_app_window(app);
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
@@ -149,6 +155,14 @@ pub fn run() {
                     let _ = win.hide();
                 }
             });
+
+            // Always show the main app window on launch — gives users a
+            // visible entry point so the Start Menu / desktop shortcut acts
+            // as a real "open RadSpeed" button instead of silently going to
+            // the (often hidden) tray. Single-instance plugin handles
+            // subsequent launches by bringing this same window forward.
+            let _ = app_window.show();
+            let _ = app_window.set_focus();
 
             // Register the configured hotkey at boot.
             let cfg = settings::load(app.handle());

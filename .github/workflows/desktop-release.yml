@@ -96,6 +96,32 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ steps.signing.outputs.KEY_PATH }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
+      - name: Diagnose bundle output
+        if: always()
+        shell: pwsh
+        run: |
+          $keyPath = "${{ steps.signing.outputs.KEY_PATH }}"
+          Write-Host "=== Signing key path ==="
+          Write-Host "KEY_PATH = '$keyPath'"
+          if ($keyPath -and (Test-Path $keyPath)) {
+            $f = Get-Item $keyPath
+            Write-Host "Key file: $($f.FullName) ($($f.Length) bytes)"
+            $firstLine = Get-Content $f.FullName -TotalCount 1
+            Write-Host "First line: $firstLine"
+            $lineCount = (Get-Content $f.FullName).Length
+            Write-Host "Line count: $lineCount"
+          } else {
+            Write-Warning "Key file does not exist or path is empty"
+          }
+          Write-Host ""
+          Write-Host "=== Bundle directory tree ==="
+          $bundleDir = "src-tauri/target/release/bundle"
+          if (Test-Path $bundleDir) {
+            Get-ChildItem -Recurse $bundleDir | Select-Object FullName, Length | Format-Table -AutoSize -Wrap
+          } else {
+            Write-Warning "No bundle directory at $bundleDir"
+          }
+
       - name: Collect installers and update bundle
         id: collect
         shell: pwsh
