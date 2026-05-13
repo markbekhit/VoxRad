@@ -1,0 +1,49 @@
+
+X main Desktop release (Windows) · 25774641410
+Triggered via push about 22 minutes ago
+
+JOBS
+X build in 13m43s (ID 75704641762)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Read version
+  ✓ Install Rust toolchain
+  ✓ Cargo cache
+  ✓ Install tauri-cli
+  ✓ Verify frontend assets
+  ✓ Bundle (NSIS + MSI + updater artifacts)
+  ✓ Verify updater artifacts (v2 mode: .exe + .exe.sig)
+  ✓ Collect release artifacts
+  X Generate update.json (v2: points at .exe)
+  ✓ Upload artifacts (always)
+  ✓ Upload tauri-build.log (always)
+  - Create GitHub Release
+  ✓ Push diagnostics to ci-diagnostics branch
+  ✓ Upload ci-diag as artifact (fallback if git push failed)
+  - Post Cargo cache
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+
+ANNOTATIONS
+! Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/upload-artifact@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+build: .github#3
+
+! No files were found with the provided path: D:\a\_temp/ci-diag.md. No artifacts will be uploaded.
+build: .github#15
+
+X Process completed with exit code 1.
+build: .github#90
+
+X Process completed with exit code 1.
+build: .github#37
+
+- NOTICE: windows-2025 requests are being redirected to windows-2025-vs2026 by May 12, 2026
+build: .github#1
+
+
+ARTIFACTS
+tauri-build-log-0.2.15
+radspeed-windows-0.2.15
+
+To see what failed, try: gh run view 25774641410 --log-failed
+View this run on GitHub: https://github.com/markbekhit/VoxRad/actions/runs/25774641410

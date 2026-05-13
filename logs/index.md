@@ -2,8 +2,13 @@
 
 | Run ID | Workflow | Conclusion | Status | SHA | Created |
 |--------|----------|-----------|--------|-----|---------|
-| 25774472415 | Deploy to Fly.io |  | in_progress | dba8a62 | 2026-05-13T02:27:38Z |
-| 25774472397 | Diag fetch (logs of recent failed runs) |  | in_progress | dba8a62 | 2026-05-13T02:27:38Z |
+| 25775382767 | Diag fetch (logs of recent failed runs) |  | in_progress | 3829bbf | 2026-05-13T02:54:49Z |
+| 25775382745 | Deploy to Fly.io |  | in_progress | 3829bbf | 2026-05-13T02:54:49Z |
+| 25774641428 | Deploy to Fly.io | success | completed | 6dd670f | 2026-05-13T02:32:35Z |
+| 25774641415 | Desktop CI (Windows) | success | completed | 6dd670f | 2026-05-13T02:32:35Z |
+| 25774641410 | Desktop release (Windows) | failure | completed | 6dd670f | 2026-05-13T02:32:35Z |
+| 25774472415 | Deploy to Fly.io | success | completed | dba8a62 | 2026-05-13T02:27:38Z |
+| 25774472397 | Diag fetch (logs of recent failed runs) | success | completed | dba8a62 | 2026-05-13T02:27:38Z |
 | 25774471873 | .github/workflows/desktop-ci.yml | failure | completed | dba8a62 | 2026-05-13T02:27:37Z |
 | 25774471690 | .github/workflows/desktop-release.yml | failure | completed | dba8a62 | 2026-05-13T02:27:36Z |
 | 25774148012 | .github/workflows/desktop-release.yml | failure | completed | 76979cd | 2026-05-13T02:17:37Z |
@@ -37,8 +42,3 @@
 | 25708058023 | Desktop release (Windows) | success | completed | 264ea0c | 2026-05-12T01:41:52Z |
 | 25708057972 | Deploy to Fly.io | success | completed | 264ea0c | 2026-05-12T01:41:52Z |
 | 25708057957 | Desktop CI (Windows) | success | completed | 264ea0c | 2026-05-12T01:41:52Z |
-| 25706411223 | Desktop CI (Windows) | success | completed | cdaf4fe | 2026-05-12T00:53:00Z |
-| 25706411222 | Deploy to Fly.io | success | completed | cdaf4fe | 2026-05-12T00:53:00Z |
-| 25706411205 | Desktop release (Windows) | success | completed | cdaf4fe | 2026-05-12T00:53:00Z |
-| 25369492562 | Desktop release (Windows) | success | completed | 3951ac0 | 2026-05-05T09:51:16Z |
-| 25369492530 | Deploy to Fly.io | success | completed | 3951ac0 | 2026-05-05T09:51:16Z |

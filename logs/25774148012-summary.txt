@@ -1,6 +1,6 @@
 
-X main .github/workflows/desktop-release.yml · 25774148012
-Triggered via push about 10 minutes ago
+X main Desktop release (Windows) · 25774148012
+Triggered via push about 37 minutes ago
 
 X This run likely failed because of a workflow file issue.
 
