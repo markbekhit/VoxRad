@@ -1,15 +1,22 @@
 // Settings window — Tauri 2 frontend.
-// Talks to the Rust backend exclusively via `invoke`.
 
 const { invoke } = window.__TAURI__.core;
-
 const $ = (id) => document.getElementById(id);
+const state = { current: null };
 
-const state = {
-  current: null,
-};
+async function loadVersion() {
+  try {
+    const v = await invoke("cmd_get_version");
+    const el = $("app-subtitle");
+    if (el) el.textContent = `Windows desktop companion · v${v}`;
+  } catch (e) {
+    console.warn("version fetch failed:", e);
+  }
+}
 
 async function load() {
+  // Fetch version independently so it shows even if settings load fails
+  loadVersion();
   try {
     const cfg = await invoke("cmd_get_settings");
     state.current = cfg;
@@ -20,13 +27,6 @@ async function load() {
     $("jump-keys").value      = cfg.jump_keys      ?? "tab";
     $("bearer-token").value   = cfg.bearer_token   ?? "";
     updateJumpKeysVisibility();
-    try {
-      const v = await invoke("cmd_get_version");
-      const el = $("app-subtitle");
-      if (el) el.textContent = `Windows desktop companion · v${v}`;
-    } catch (e) {
-      console.warn("version fetch failed:", e);
-    }
   } catch (e) {
     setSaveStatus(`Load failed: ${e}`, "status-error");
   }
@@ -83,17 +83,9 @@ async function testConnection() {
   }
 }
 
-async function openApp() {
-  await invoke("cmd_show_app");
-}
-
-async function triggerNow() {
-  await invoke("cmd_trigger_now");
-}
-
-async function hide() {
-  await invoke("cmd_hide_settings");
-}
+async function openApp() { await invoke("cmd_show_app"); }
+async function triggerNow() { await invoke("cmd_trigger_now"); }
+async function hide() { await invoke("cmd_hide_settings"); }
 
 window.addEventListener("DOMContentLoaded", () => {
   $("btn-save").addEventListener("click", save);
