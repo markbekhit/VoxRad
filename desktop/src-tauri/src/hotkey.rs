@@ -152,36 +152,70 @@ pub fn run_impressions_flow(app: AppHandle) {
     let app = Arc::new(app);
     tauri::async_runtime::spawn(async move {
         let settings = settings::load(app.as_ref());
-        if let Err(e) = do_round_trip(&settings).await {
-            log::warn!("impressions flow failed: {e}");
-            tray::set_status(app.as_ref(), &format!("Impressions failed: {e}"));
-        } else {
-            tray::set_status(app.as_ref(), "Impression pasted.");
+        let result = do_round_trip(&settings, app.as_ref()).await;
+        match result {
+            Ok(summary) => {
+                log::info!("impressions flow ok: {summary}");
+                tray::set_status(
+                    app.as_ref(),
+                    &format!("v{} ok: {summary}", env!("CARGO_PKG_VERSION")),
+                );
+            }
+            Err(e) => {
+                log::warn!("impressions flow failed: {e}");
+                tray::set_status(
+                    app.as_ref(),
+                    &format!("v{} failed: {e}", env!("CARGO_PKG_VERSION")),
+                );
+            }
         }
     });
 }
 
-async fn do_round_trip(settings: &Settings) -> Result<(), String> {
-    let findings = keyboard::capture_selection()?;
+async fn do_round_trip(settings: &Settings, app: &AppHandle) -> Result<String, String> {
+    tray::set_status(app, &format!("v{}: capturing FINDINGS…", env!("CARGO_PKG_VERSION")));
+    let findings = keyboard::capture_selection()
+        .map_err(|e| format!("capture_selection: {e}"))?;
+    let findings_len = findings.len();
     if findings.trim().is_empty() {
-        return Err("no text selected".to_string());
+        return Err("no text selected (clipboard empty after Ctrl+C — PS1 may be elevated and blocking SendInput; try Run as administrator)".to_string());
     }
-    let impression =
-        api::fetch_impression(&settings.api_base, &findings, settings.use_guidelines, &settings.bearer_token)
-            .await?;
+
+    tray::set_status(
+        app,
+        &format!("v{}: captured {findings_len} chars, fetching impression…", env!("CARGO_PKG_VERSION")),
+    );
+    let impression = api::fetch_impression(
+        &settings.api_base,
+        &findings,
+        settings.use_guidelines,
+        &settings.bearer_token,
+    )
+    .await
+    .map_err(|e| format!("fetch_impression: {e}"))?;
 
     if settings.paste_mode == "goto_impression" && !settings.jump_keys.trim().is_empty() {
-        // Deselect the captured FINDINGS text first. End moves the cursor to
-        // the end of the current line, cancelling any active selection without
-        // replacing it. In PowerScribe One, End stays within the FINDINGS field
-        // (unlike Right Arrow, which can trigger field-level navigation), so the
-        // subsequent Tab navigates cleanly to the IMPRESSION field.
-        let prefixed = format!("end {}", settings.jump_keys.trim());
-        keyboard::send_keys(&prefixed)?;
+        // Send the jump keys (default: "tab") directly while the FINDINGS
+        // placeholder is still selected from capture_selection's Ctrl+C.
+        // PowerScribe One only navigates to the next template field when
+        // Tab is pressed in the "placeholder-selected" state — sending any
+        // deselect key (right/end) first breaks that navigation. For non-PS1
+        // editors like Notepad, use paste_mode = "after_selection" instead.
+        tray::set_status(
+            app,
+            &format!("v{}: sending jump_keys '{}'…", env!("CARGO_PKG_VERSION"), settings.jump_keys),
+        );
+        keyboard::send_keys(&settings.jump_keys)
+            .map_err(|e| format!("send_keys jump: {e}"))?;
     } else if settings.paste_mode == "after_selection" {
-        // Move cursor to the end of the captured selection so the
-        // appended IMPRESSION block doesn't overwrite the user's text.
-        keyboard::send_keys("right")?;
+        // Move cursor to the end of the captured selection so the appended
+        // IMPRESSION block doesn't overwrite the user's text.
+        tray::set_status(
+            app,
+            &format!("v{}: deselecting (right)…", env!("CARGO_PKG_VERSION")),
+        );
+        keyboard::send_keys("right")
+            .map_err(|e| format!("send_keys right: {e}"))?;
     }
 
     let payload = if settings.paste_mode == "after_selection" {
@@ -190,7 +224,16 @@ async fn do_round_trip(settings: &Settings) -> Result<(), String> {
         // goto_impression: jumped to the conclusion field, so paste raw
         impression.trim_end().to_string()
     };
+    let payload_len = payload.len();
 
-    keyboard::paste_block(&payload)?;
-    Ok(())
+    tray::set_status(
+        app,
+        &format!("v{}: pasting {payload_len} chars…", env!("CARGO_PKG_VERSION")),
+    );
+    keyboard::paste_block(&payload).map_err(|e| format!("paste_block: {e}"))?;
+
+    Ok(format!(
+        "captured {findings_len} chars, pasted {payload_len} chars (mode={}, jump_keys='{}')",
+        settings.paste_mode, settings.jump_keys
+    ))
 }
