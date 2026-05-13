@@ -1,9 +1,9 @@
 
-X main Desktop release (Windows) · 25775554246
-Triggered via push about 1 hour ago
+X main Desktop release (Windows) · 25777332052
+Triggered via push about 18 minutes ago
 
 JOBS
-X build in 14m37s (ID 75707250001)
+X build in 14m26s (ID 75712583537)
   ✓ Set up job
   ✓ Run actions/checkout@v4
   ✓ Read version
@@ -12,14 +12,13 @@ X build in 14m37s (ID 75707250001)
   ✓ Install tauri-cli
   ✓ Verify frontend assets
   ✓ Bundle (NSIS + MSI + updater artifacts)
-  ✓ Verify updater artifacts (v2 mode: .exe + .exe.sig)
-  ✓ Collect release artifacts
-  X Generate update.json (v2: points at .exe)
-  ✓ Upload artifacts (always)
+  X Collect artifacts and generate update.json
+  ✓ Upload collect diagnostics (always)
+  ✓ Upload release artifacts (always)
   ✓ Upload tauri-build.log (always)
   - Create GitHub Release
   ✓ Push diagnostics to ci-diagnostics branch
-  ✓ Upload ci-diag as artifact (fallback if git push failed)
+  ✓ Upload ci-diag as artifact
   - Post Cargo cache
   ✓ Post Run actions/checkout@v4
   ✓ Complete job
@@ -32,18 +31,19 @@ build: .github#3
 build: .github#15
 
 X Process completed with exit code 1.
-build: .github#90
+build: .github#82
 
 X Process completed with exit code 1.
-build: .github#53
+build: .github#124
 
 - NOTICE: windows-2025 requests are being redirected to windows-2025-vs2026 by May 12, 2026
 build: .github#1
 
 
 ARTIFACTS
-tauri-build-log-0.2.16
-radspeed-windows-0.2.16
+tauri-build-log-0.2.17
+radspeed-windows-0.2.17
+collect-diag-0.2.17
 
-To see what failed, try: gh run view 25775554246 --log-failed
-View this run on GitHub: https://github.com/markbekhit/VoxRad/actions/runs/25775554246
+To see what failed, try: gh run view 25777332052 --log-failed
+View this run on GitHub: https://github.com/markbekhit/VoxRad/actions/runs/25777332052

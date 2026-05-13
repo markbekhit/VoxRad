@@ -2,8 +2,13 @@
 
 | Run ID | Workflow | Conclusion | Status | SHA | Created |
 |--------|----------|-----------|--------|-----|---------|
-| 25776767717 | Diag fetch (logs of recent failed runs) |  | in_progress | 6b0f657 | 2026-05-13T03:38:52Z |
-| 25776767714 | Deploy to Fly.io |  | in_progress | 6b0f657 | 2026-05-13T03:38:52Z |
+| 25777898495 | Diag fetch (logs of recent failed runs) |  | in_progress | 411f0e5 | 2026-05-13T04:15:40Z |
+| 25777898484 | Deploy to Fly.io |  | queued | 411f0e5 | 2026-05-13T04:15:40Z |
+| 25777332061 | Desktop CI (Windows) | success | completed | e877f67 | 2026-05-13T03:57:13Z |
+| 25777332059 | Deploy to Fly.io | success | completed | e877f67 | 2026-05-13T03:57:13Z |
+| 25777332052 | Desktop release (Windows) | failure | completed | e877f67 | 2026-05-13T03:57:13Z |
+| 25776767717 | Diag fetch (logs of recent failed runs) | success | completed | 6b0f657 | 2026-05-13T03:38:52Z |
+| 25776767714 | Deploy to Fly.io | success | completed | 6b0f657 | 2026-05-13T03:38:52Z |
 | 25775554251 | Desktop CI (Windows) | success | completed | 98d2247 | 2026-05-13T03:00:06Z |
 | 25775554246 | Desktop release (Windows) | failure | completed | 98d2247 | 2026-05-13T03:00:06Z |
 | 25775554242 | Deploy to Fly.io | success | completed | 98d2247 | 2026-05-13T03:00:06Z |
@@ -37,8 +42,3 @@
 | 25724090220 | Desktop CI (Windows) | failure | completed | 83475f9 | 2026-05-12T08:54:28Z |
 | 25724090188 | Deploy to Fly.io | success | completed | 83475f9 | 2026-05-12T08:54:28Z |
 | 25720382378 | .github/workflows/desktop-ci.yml | failure | completed | 6f10784 | 2026-05-12T07:35:50Z |
-| 25720382069 | .github/workflows/desktop-release.yml | failure | completed | 6f10784 | 2026-05-12T07:35:50Z |
-| 25720372697 | Deploy to Fly.io | success | completed | d6e036c | 2026-05-12T07:35:37Z |
-| 25720371964 | .github/workflows/desktop-release.yml | failure | completed | d6e036c | 2026-05-12T07:35:36Z |
-| 25720371731 | .github/workflows/desktop-ci.yml | failure | completed | d6e036c | 2026-05-12T07:35:36Z |
-| 25719749356 | Desktop release (Windows) | success | completed | 9cb2ee0 | 2026-05-12T07:21:23Z |
