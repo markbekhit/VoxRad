@@ -171,13 +171,12 @@ async fn do_round_trip(settings: &Settings) -> Result<(), String> {
             .await?;
 
     if settings.paste_mode == "goto_impression" && !settings.jump_keys.trim().is_empty() {
-        // Deselect the captured FINDINGS text first by moving cursor to the
-        // end of the selection. Without this, in plain text editors (Notepad,
-        // VS Code, etc.) the next keystroke (typically Tab) would REPLACE
-        // the still-active selection with a tab character. In PowerScribe One
-        // the Right Arrow is harmless inside the FINDINGS field, and Tab is
-        // still intercepted as field navigation to the IMPRESSION field.
-        let prefixed = format!("right {}", settings.jump_keys.trim());
+        // Deselect the captured FINDINGS text first. End moves the cursor to
+        // the end of the current line, cancelling any active selection without
+        // replacing it. In PowerScribe One, End stays within the FINDINGS field
+        // (unlike Right Arrow, which can trigger field-level navigation), so the
+        // subsequent Tab navigates cleanly to the IMPRESSION field.
+        let prefixed = format!("end {}", settings.jump_keys.trim());
         keyboard::send_keys(&prefixed)?;
     } else if settings.paste_mode == "after_selection" {
         // Move cursor to the end of the captured selection so the
