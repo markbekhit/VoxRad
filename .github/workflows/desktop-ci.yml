@@ -16,7 +16,6 @@ on:
       - "desktop/**"
       - ".github/workflows/desktop-ci.yml"
 
-# Cancel older runs on the same branch when a new push lands.
 concurrency:
   group: desktop-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -83,11 +82,10 @@ jobs:
           cargo tauri build
         shell: pwsh
         env:
-          # Same Tauri-format passwordless signing key as desktop-release.yml.
           TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
-      - name: Verify updater artifacts produced (v2 mode: .exe + .exe.sig)
+      - name: "Verify updater artifacts produced (v2 mode: .exe + .exe.sig)"
         shell: pwsh
         run: |
           $bundle = "src-tauri/target/release/bundle"

@@ -88,7 +88,7 @@ jobs:
           Write-Host "cargo tauri build exit=$exit"
           if ($exit -ne 0) { exit $exit }
 
-      - name: Verify updater artifacts (v2 mode: .exe + .exe.sig)
+      - name: "Verify updater artifacts (v2 mode: .exe + .exe.sig)"
         id: verify
         shell: pwsh
         run: |
@@ -112,16 +112,13 @@ jobs:
           $bundle = "src-tauri/target/release/bundle"
           $out = "release-artifacts"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          # Installers (for fresh installs)
           Get-ChildItem -Recurse -Path $bundle -Include *.exe,*.msi | ForEach-Object { Copy-Item $_.FullName $out -Force }
-          # Tauri v2 updater signatures (.exe.sig, .msi.sig live next to the installer)
           Get-ChildItem -Recurse -Path $bundle -Include *.exe.sig,*.msi.sig | ForEach-Object { Copy-Item $_.FullName $out -Force }
-          # v1Compatible artifacts, in case we ever switch back
           Get-ChildItem -Recurse -Path $bundle -Include *.nsis.zip,*.nsis.zip.sig | ForEach-Object { Copy-Item $_.FullName $out -Force }
           Write-Host "Collected:"
           Get-ChildItem $out | Format-Table Name, Length
 
-      - name: Generate update.json (v2: points at .exe)
+      - name: "Generate update.json (v2: points at .exe)"
         if: steps.verify.outputs.HAVE_UPDATER == 'true'
         shell: pwsh
         run: |
@@ -129,7 +126,6 @@ jobs:
           $tag = "${{ steps.ver.outputs.TAG }}"
           $out = "release-artifacts"
           $repo = "${{ github.repository }}"
-          # In v2 mode the .exe IS the updater artifact
           $sigFile = Get-ChildItem $out -Filter "*-setup.exe.sig" | Select-Object -First 1
           $exeFile = Get-ChildItem $out -Filter "*-setup.exe" | Select-Object -First 1
           if (-not $sigFile -or -not $exeFile) { throw "Missing .exe or .exe.sig in release-artifacts" }
