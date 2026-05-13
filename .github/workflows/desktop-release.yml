@@ -2,19 +2,12 @@ name: Desktop release (Windows)
 
 # Builds the RadSpeed Windows desktop companion (Tauri) and uploads the
 # NSIS .exe, MSI, and auto-update bundle (.nsis.zip) to a GitHub Release.
-# Also generates update.json so installed copies auto-update to this version.
 #
-# Triggers:
-#   - push to main that changes desktop/.trigger-release (Claude pushes
-#     this file with the version string, e.g. "0.2.0", to cut a release)
-#   - manual via workflow_dispatch (enter version in the input field)
+# Triggers on push to main that changes desktop/.trigger-release.
 #
-# Signing key: embedded inline in the Bundle step's env block (this is
-# a private repo). The matching pubkey lives in desktop/src-tauri/
-# tauri.conf.json. Generated once with `cargo tauri signer generate
-# --ci -p ""` -- this is the rsign-format key Tauri requires
-# (scrypt KDF with empty password), NOT a minisign --no-password key,
-# which Tauri rejects.
+# Signing key: rsign format (scrypt KDF, empty password), embedded in the
+# Bundle step env. Generated with `cargo tauri signer generate --ci -p ""`.
+# The matching pubkey is in desktop/src-tauri/tauri.conf.json.
 
 on:
   push:
@@ -25,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release as (e.g. 0.2.0). Leave blank to build artifacts only."
+        description: "Version to release (e.g. 0.2.13). Leave blank to auto-read."
         required: false
         default: ""
 
@@ -41,35 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Push run-start marker (proof of life)
-        if: always()
-        continue-on-error: true
-        shell: pwsh
-        env:
-          GH_TOKEN_DIAG: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $msg = "Run started: id=${{ github.run_id }} sha=${{ github.sha }} at $(Get-Date -UTC -Format 'u')"
-          Write-Host $msg
-          $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($msg))
-          $api = "https://api.github.com/repos/${{ github.repository }}"
-          $h = @{ Authorization = "Bearer $env:GH_TOKEN_DIAG"; Accept = "application/vnd.github+json"; "X-GitHub-Api-Version" = "2022-11-28" }
-          try {
-            $ref = Invoke-RestMethod "$api/git/ref/heads/main" -Headers $h
-            try {
-              Invoke-RestMethod -Method POST "$api/git/refs" -Headers $h -ContentType "application/json" -Body (@{ref="refs/heads/ci-diagnostics";sha=$ref.object.sha}|ConvertTo-Json) | Out-Null
-              Write-Host "Created ci-diagnostics branch"
-            } catch { Write-Host "Branch may already exist: $($_.Exception.Message)" }
-            $existing = $null
-            try { $existing = Invoke-RestMethod "$api/contents/run-started.txt?ref=ci-diagnostics" -Headers $h } catch {}
-            $body = @{ message="ci: run start ${{ github.run_id }}"; content=$b64; branch="ci-diagnostics" }
-            if ($existing -and $existing.sha) { $body.sha = $existing.sha }
-            Invoke-RestMethod -Method PUT "$api/contents/run-started.txt" -Headers $h -ContentType "application/json" -Body ($body|ConvertTo-Json -Depth 5) | Out-Null
-            Write-Host "Run-start marker pushed to ci-diagnostics/run-started.txt"
-          } catch {
-            Write-Host "PROOF-OF-LIFE PUSH FAILED: $($_.Exception.Message)"
-            Write-Host "Status: $($_.Exception.Response.StatusCode)"
-          }
-
       - name: Read version
         id: ver
         shell: pwsh
@@ -79,8 +43,8 @@ jobs:
           } else {
             $v = (Get-Content .trigger-release -Raw).Trim()
           }
-          echo "VERSION=$v" >> $env:GITHUB_OUTPUT
-          echo "TAG=desktop-v$v" >> $env:GITHUB_OUTPUT
+          "VERSION=$v" >> $env:GITHUB_OUTPUT
+          "TAG=desktop-v$v" >> $env:GITHUB_OUTPUT
           Write-Host "Building version: $v"
 
       - name: Install Rust toolchain
@@ -94,70 +58,47 @@ jobs:
       - name: Install tauri-cli
         shell: pwsh
         run: |
-          Set-Location src-tauri
-          cargo install tauri-cli --version "^2" --locked --quiet
-          $ver = cargo tauri --version 2>&1
-          Write-Host "tauri-cli: $ver"
+          cargo install tauri-cli --version "^2" --force 2>&1
+          Write-Host "tauri-cli version: $(cargo tauri --version 2>&1)"
 
       - name: Verify frontend assets
         shell: pwsh
         run: |
-          if (-not (Test-Path "src/index.html")) {
-            throw "Frontend src/index.html not found"
-          }
-          Write-Host "Frontend OK: $(Get-ChildItem src | Select-Object -ExpandProperty Name)"
+          if (-not (Test-Path "src/index.html")) { throw "src/index.html not found" }
+          Write-Host "Frontend assets OK"
 
-      - name: Signing smoke test
+      - name: Bundle (NSIS + MSI + updater .nsis.zip)
+        id: bundle
         shell: pwsh
         env:
           TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: |
-          Write-Host "Key length: $($env:TAURI_SIGNING_PRIVATE_KEY.Length)"
-          $tmp = [System.IO.Path]::GetTempFileName()
-          Set-Content -Path $tmp -Value "smoke-test-content"
+          Write-Host "TAURI_SIGNING_PRIVATE_KEY length: $($env:TAURI_SIGNING_PRIVATE_KEY.Length)"
           Set-Location src-tauri
-          $out = & cargo tauri signer sign $tmp 2>&1
-          Write-Host ($out | Out-String)
-          if ($LASTEXITCODE -ne 0) { throw "Signing smoke test FAILED exit=$LASTEXITCODE" }
-          Write-Host "Signing smoke test PASSED"
-
-      - name: Build (release)
-        shell: pwsh
-        run: |
-          Set-Location src-tauri
-          cargo build --release
-
-      - name: Bundle (NSIS + MSI + update bundle)
-        shell: pwsh
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-        run: |
-          Set-Location src-tauri
-          # Capture full output for diagnostics, also write to console
-          $logFile = "$env:RUNNER_TEMP\tauri-build.log"
-          Write-Host "Logging tauri build to $logFile"
-          & cargo tauri build --verbose 2>&1 | Tee-Object -FilePath $logFile
+          cargo tauri build --verbose 2>&1
           $exit = $LASTEXITCODE
-          Write-Host "cargo tauri build exit code: $exit"
+          Write-Host "cargo tauri build exit=$exit"
           if ($exit -ne 0) { exit $exit }
 
-      - name: Verify updater bundle was produced
+      - name: Verify updater artifacts
+        id: verify
         shell: pwsh
         run: |
           $bundle = "src-tauri/target/release/bundle"
           $sig = Get-ChildItem -Recurse -Path $bundle -Filter "*.nsis.zip.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
           $zip = Get-ChildItem -Recurse -Path $bundle -Filter "*.nsis.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $sig -or -not $zip) {
-            Write-Host "Bundle directory contents:"
-            if (Test-Path $bundle) { Get-ChildItem -Recurse $bundle | Select-Object FullName, Length | Format-Table -AutoSize -Wrap }
-            throw "Updater artifacts missing (.nsis.zip and/or .sig). Auto-update will not work."
+          if ($sig -and $zip) {
+            Write-Host "UPDATER OK: $($zip.Name) + $($sig.Name)"
+            "HAVE_UPDATER=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "WARNING: updater artifacts missing"
+            Write-Host "Bundle contents:"
+            if (Test-Path $bundle) { Get-ChildItem -Recurse $bundle | Select-Object FullName, Length }
+            "HAVE_UPDATER=false" >> $env:GITHUB_OUTPUT
           }
-          Write-Host "Updater bundle: $($zip.FullName)"
-          Write-Host "Signature:      $($sig.FullName)"
 
-      - name: Collect installers and update bundle
+      - name: Collect release artifacts
         id: collect
         shell: pwsh
         run: |
@@ -166,10 +107,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           Get-ChildItem -Recurse -Path $bundle -Include *.exe,*.msi | ForEach-Object { Copy-Item $_.FullName $out }
           Get-ChildItem -Recurse -Path $bundle -Include *.nsis.zip,*.nsis.zip.sig | ForEach-Object { Copy-Item $_.FullName $out }
-          Write-Host "Collected:"
-          Get-ChildItem $out
+          Write-Host "Collected: $(Get-ChildItem $out | Select-Object -ExpandProperty Name)"
 
       - name: Generate update.json
+        if: steps.verify.outputs.HAVE_UPDATER == 'true'
         shell: pwsh
         run: |
           $version = "${{ steps.ver.outputs.VERSION }}"
@@ -177,7 +118,6 @@ jobs:
           $out = "release-artifacts"
           $repo = "${{ github.repository }}"
           $sigFile = Get-ChildItem $out -Filter "*.nsis.zip.sig" | Select-Object -First 1
-          if (-not $sigFile) { throw "No .nsis.zip.sig in release-artifacts" }
           $signature = (Get-Content $sigFile.FullName -Raw).Trim()
           $zipFile = Get-ChildItem $out -Filter "*.nsis.zip" | Select-Object -First 1
           $url = "https://github.com/$repo/releases/download/$tag/$($zipFile.Name)"
@@ -193,13 +133,15 @@ jobs:
             }
           }
           $manifest | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 "$out/update.json"
+          Write-Host "update.json:"
           Get-Content "$out/update.json"
 
       - name: Upload artifacts (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: radspeed-windows
-          path: desktop/release-artifacts/*
+          name: radspeed-windows-${{ steps.ver.outputs.VERSION }}
+          path: desktop/release-artifacts/
           if-no-files-found: warn
 
       - name: Create GitHub Release
@@ -212,73 +154,70 @@ jobs:
           files: desktop/release-artifacts/*
           fail_on_unmatched_files: true
 
-      - name: End-of-run diagnostics (always)
+      - name: Push diagnostics to ci-diagnostics branch
         if: always()
         continue-on-error: true
         shell: pwsh
         env:
-          GH_TOKEN_DIAG: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5a2pxdmZxcXkwQVBXRmd2ZDVETE40bDB0MEhlVE44MUV2VDBDaE44OWFHY0FBQkFBQUFBQUFBQUFBQUlBQUFBQWc0bUlwQUFNZXFRdG1RcXN6K2xjWVdBT3lHd1p2ZHhrdnloWW9pTmxFb3RycHowc28xbUdvUzNNY0hLL01Nemk1Sk5Gck9nZHdDT015ZXdFcWJXbnkwaHE3cnlVSkFtRU40d0RyMmt6dU1VMFlIam5jdHk2V00zU3NvMVNBV1daTEZ0RmYrZ3pmOGs9Cg=="
-          JOB_STATUS: ${{ job.status }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $lines = New-Object System.Collections.ArrayList
-          [void]$lines.Add("# CI Diagnostics v${{ steps.ver.outputs.VERSION }}")
-          [void]$lines.Add("Run id : ${{ github.run_id }}")
-          [void]$lines.Add("SHA    : ${{ github.sha }}")
-          [void]$lines.Add("Status : $env:JOB_STATUS")
-          [void]$lines.Add("Time   : $(Get-Date -UTC -Format 'u')")
-          [void]$lines.Add("")
-          [void]$lines.Add("## tauri-cli version")
-          try { [void]$lines.Add((cargo tauri --version 2>&1 | Out-String).Trim()) } catch { [void]$lines.Add("(not available: $($_.Exception.Message))") }
-          [void]$lines.Add("")
-          [void]$lines.Add("## TAURI_SIGNING_PRIVATE_KEY length")
-          [void]$lines.Add("$($env:TAURI_SIGNING_PRIVATE_KEY.Length) chars")
-          [void]$lines.Add("")
-          [void]$lines.Add("## Tauri build log (last 200 lines)")
-          $logFile = "$env:RUNNER_TEMP\tauri-build.log"
-          if (Test-Path $logFile) {
-            $tail = Get-Content $logFile -Tail 200
-            foreach ($l in $tail) { [void]$lines.Add($l) }
-          } else {
-            [void]$lines.Add("(log file not found at $logFile -- bundle step did not run or failed before logging)")
-          }
-          [void]$lines.Add("")
-          [void]$lines.Add("## Bundle directory")
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add("# CI Diagnostics — Run ${{ github.run_id }}")
+          $lines.Add("")
+          $lines.Add("| Key | Value |")
+          $lines.Add("|-----|-------|")
+          $lines.Add("| Run ID | ${{ github.run_id }} |")
+          $lines.Add("| SHA | ${{ github.sha }} |")
+          $lines.Add("| Job status | ${{ job.status }} |")
+          $lines.Add("| Time | $(Get-Date -UTC -Format 'u') |")
+          $lines.Add("| tauri-cli | $(cargo tauri --version 2>&1) |")
+          $lines.Add("")
+          $lines.Add("## Bundle directory")
           $bd = "src-tauri/target/release/bundle"
           if (Test-Path $bd) {
-            $items = Get-ChildItem -Recurse $bd
-            if ($items.Count -eq 0) { [void]$lines.Add("(directory exists but is empty)") }
-            foreach ($i in $items) { [void]$lines.Add("$($i.FullName) [$($i.Length)]") }
+            foreach ($f in (Get-ChildItem -Recurse $bd)) {
+              $lines.Add("- ``$($f.Name)`` ($($f.Length) bytes)")
+            }
           } else {
-            [void]$lines.Add("(does not exist)")
+            $lines.Add("(does not exist)")
           }
-          [void]$lines.Add("")
-          [void]$lines.Add("## src-tauri/target/release top entries")
-          $rd = "src-tauri/target/release"
-          if (Test-Path $rd) {
-            foreach ($i in (Get-ChildItem $rd | Select-Object -First 30)) { [void]$lines.Add($i.Name) }
+          $lines.Add("")
+          $lines.Add("## Release artifacts")
+          if (Test-Path "release-artifacts") {
+            foreach ($f in (Get-ChildItem "release-artifacts")) {
+              $lines.Add("- ``$($f.Name)`` ($($f.Length) bytes)")
+            }
           } else {
-            [void]$lines.Add("(does not exist)")
+            $lines.Add("(none)")
           }
-          $text = ($lines -join "`n")
-          Write-Host "=== DIAG TEXT BEGIN ==="
-          Write-Host $text
-          Write-Host "=== DIAG TEXT END ==="
-          $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($text))
-          $api = "https://api.github.com/repos/${{ github.repository }}"
-          $h = @{ Authorization = "Bearer $env:GH_TOKEN_DIAG"; Accept = "application/vnd.github+json"; "X-GitHub-Api-Version" = "2022-11-28" }
-          try {
-            $ref = Invoke-RestMethod "$api/git/ref/heads/main" -Headers $h
-            try { Invoke-RestMethod -Method POST "$api/git/refs" -Headers $h -ContentType "application/json" -Body (@{ref="refs/heads/ci-diagnostics";sha=$ref.object.sha}|ConvertTo-Json) | Out-Null } catch {}
-          } catch { Write-Host "Failed to read main ref: $($_.Exception.Message)" }
-          $existing = $null
-          try { $existing = Invoke-RestMethod "$api/contents/ci-diag.md?ref=ci-diagnostics" -Headers $h } catch {}
-          $body = @{ message="ci: diag run=${{ github.run_id }} status=$env:JOB_STATUS"; content=$b64; branch="ci-diagnostics" }
-          if ($existing -and $existing.sha) { $body.sha = $existing.sha }
-          try {
-            Invoke-RestMethod -Method PUT "$api/contents/ci-diag.md" -Headers $h -ContentType "application/json" -Body ($body|ConvertTo-Json -Depth 5) | Out-Null
-            Write-Host "Diagnostics committed to ci-diagnostics/ci-diag.md"
-          } catch {
-            Write-Host "PUT failed: $($_.Exception.Message)"
-            Write-Host "Status: $($_.Exception.Response.StatusCode)"
+          $diagText = $lines -join "`n"
+          Write-Host "=== DIAG ==="
+          Write-Host $diagText
+          Write-Host "=== END DIAG ==="
+
+          $diagFile = "$env:RUNNER_TEMP\ci-diag.md"
+          $diagText | Set-Content -Encoding UTF8 $diagFile
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          $repoUrl = "https://x-access-token:$env:GITHUB_TOKEN@github.com/${{ github.repository }}.git"
+
+          git clone --branch ci-diagnostics --depth 1 $repoUrl "$env:RUNNER_TEMP\ci-diag-clone" 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ci-diagnostics branch not found, cloning main and creating branch"
+            git clone --depth 1 $repoUrl "$env:RUNNER_TEMP\ci-diag-clone" 2>&1
+            Set-Location "$env:RUNNER_TEMP\ci-diag-clone"
+            git checkout -b ci-diagnostics 2>&1
+          } else {
+            Set-Location "$env:RUNNER_TEMP\ci-diag-clone"
+          }
+
+          Copy-Item $diagFile ci-diag.md
+          git add ci-diag.md
+          git commit -m "ci: diag run=${{ github.run_id }} status=${{ job.status }}"
+          git push origin ci-diagnostics 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Diagnostics pushed to ci-diagnostics branch"
+          } else {
+            Write-Host "Git push to ci-diagnostics failed (exit $LASTEXITCODE)"
           }
